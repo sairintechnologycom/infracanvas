@@ -1,351 +1,365 @@
-import dagre from 'dagre';
+import { MarkerType } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import type { ResourceGraph, ResourceNode as ResourceNodeData, GraphEdge } from '../types';
-import { EDGE_STYLES, type EdgeRelationship } from './colors';
+import type { ZoneType } from './colors';
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 80;
-const GROUP_PADDING = 60;
-const RANK_SEP = 80;
-const NODE_SEP = 40;
+// Layout constants
+const NODE_W = 180;
+const NODE_H = 72;
+const GAP_X = 24;
+const TIER_PAD = 24;
+const LABEL_H = 36;
+const ZONE_GAP = 40;
+const VPC_PAD = 24;
+const VPC_LABEL_H = 40;
 
-const REGIONAL_RESOURCE_TYPES = [
-  'aws_s3_bucket', 'aws_sqs_queue', 'aws_sns_topic',
-  'aws_dynamodb_table', 'aws_cloudfront_distribution',
-  'aws_kms_key', 'aws_iam_role', 'aws_iam_policy',
-  'aws_lambda_function',
-];
+// --- Tier classification ---
 
-interface GroupInfo {
-  id: string;
-  label: string;
-  color: string;
-  children: string[];
-  dashed?: boolean;
+type Tier = 'internet' | 'public' | 'private' | 'data' | 'regional';
+
+const RESOURCE_TIER: Record<string, Tier> = {
+  // Internet/Edge
+  aws_internet_gateway: 'internet',
+  aws_cloudfront_distribution: 'internet',
+  aws_route53_zone: 'internet',
+  aws_route53_record: 'internet',
+  aws_waf_web_acl: 'internet',
+  // Public subnet tier
+  aws_alb: 'public',
+  aws_lb: 'public',
+  aws_nat_gateway: 'public',
+  aws_eip: 'public',
+  // Private subnet tier (compute)
+  aws_instance: 'private',
+  aws_autoscaling_group: 'private',
+  aws_ecs_service: 'private',
+  aws_ecs_cluster: 'private',
+  aws_eks_cluster: 'private',
+  aws_eks_node_group: 'private',
+  // aws_security_group — rendered as inline badge on attached resources, not a peer node
+  // Data tier
+  aws_db_instance: 'data',
+  aws_rds_instance: 'data',
+  aws_rds_cluster: 'data',
+  aws_elasticache_cluster: 'data',
+  aws_elasticache_replication_group: 'data',
+  aws_redshift_cluster: 'data',
+  // Regional services
+  aws_s3_bucket: 'regional',
+  aws_dynamodb_table: 'regional',
+  aws_sqs_queue: 'regional',
+  aws_sns_topic: 'regional',
+  aws_kms_key: 'regional',
+  aws_iam_role: 'regional',
+  aws_iam_policy: 'regional',
+  aws_iam_instance_profile: 'regional',
+  aws_cloudwatch_log_group: 'regional',
+  aws_cloudwatch_metric_alarm: 'regional',
+  aws_secretsmanager_secret: 'regional',
+  aws_ssm_parameter: 'regional',
+};
+
+function getResourceTier(node: ResourceNodeData): Tier {
+  if (node.type === 'aws_lambda_function') {
+    const vpc = node.attributes?.vpc_config;
+    const hasVpcConfig = vpc && typeof vpc === 'object' && Object.keys(vpc as object).length > 0;
+    return hasVpcConfig ? 'private' : 'regional';
+  }
+  return RESOURCE_TIER[node.type] ?? 'private';
 }
 
+function tierToZone(tier: Tier): ZoneType {
+  switch (tier) {
+    case 'internet': return 'internet';
+    case 'public': return 'public_subnet';
+    case 'private': return 'private_subnet';
+    case 'data': return 'data_subnet';
+    case 'regional': return 'regional';
+  }
+}
+
+const TIER_LABELS: Record<Tier, string> = {
+  internet: 'Internet / Edge',
+  public: 'Public Tier',
+  private: 'Private Tier',
+  data: 'Data Tier',
+  regional: 'Regional Services (AWS)',
+};
+
+const TIER_CHIPS: Partial<Record<Tier, string>> = {
+  public: '\uD83C\uDF10 public \u00b7 internet-facing',
+  private: '\uD83D\uDD12 private \u00b7 no public IP',
+  data: '\uD83D\uDDC4 data \u00b7 isolated',
+};
+
+// --- Main layout function ---
+
 export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges: Edge[] } {
-  // Detect groups
-  const groups = detectGroups(graph.nodes);
-  const nodeToGroup = new Map<string, string>();
-  for (const group of groups.values()) {
-    for (const childId of group.children) {
-      nodeToGroup.set(childId, group.id);
-    }
-  }
-
-  // Issue 1: Track which VPC nodes have a corresponding group
-  const suppressedVpcNodes = new Set<string>();
+  // Suppress VPC and subnet nodes — represented by zone containers
+  const suppressedIds = new Set<string>();
   for (const node of graph.nodes) {
-    if (node.type === 'aws_vpc') {
-      const groupId = `group-${node.id}`;
-      if (groups.has(groupId)) {
-        suppressedVpcNodes.add(node.id);
-      }
+    if (node.type === 'aws_vpc' || node.type === 'aws_subnet' || node.type === 'aws_security_group') {
+      suppressedIds.add(node.id);
     }
   }
 
-  // Issue 3: Determine security group parent placement
-  // Move SG to same parent group as the instance it protects
-  for (const node of graph.nodes) {
-    if (node.type === 'aws_security_group') {
-      const attachedInstance = graph.nodes.find(n =>
-        n.type === 'aws_instance' && n.dependencies.includes(node.id)
-      );
-      if (attachedInstance) {
-        const instanceGroup = nodeToGroup.get(attachedInstance.id);
-        if (instanceGroup && nodeToGroup.get(node.id) !== instanceGroup) {
-          // Move SG from its current group to the instance's group
-          const currentGroup = nodeToGroup.get(node.id);
-          if (currentGroup) {
-            const g = groups.get(currentGroup);
-            if (g) g.children = g.children.filter(id => id !== node.id);
-          }
-          nodeToGroup.set(node.id, instanceGroup);
-          groups.get(instanceGroup)?.children.push(node.id);
-        }
-      }
-    }
+  // Find VPC node for label
+  const vpcNode = graph.nodes.find(n => n.type === 'aws_vpc');
+  const vpcLabel = vpcNode ? vpcNode.id : 'VPC';
+
+  // Find subnet metadata for CIDR display
+  const subnetNodes = graph.nodes.filter(n => n.type === 'aws_subnet');
+  const publicSubnet = subnetNodes.find(n =>
+    n.name?.includes('public') || n.group?.includes('public')
+  );
+  const privateSubnet = subnetNodes.find(n =>
+    n.name?.includes('private') || n.group?.includes('private')
+  );
+
+  // Classify active nodes into tiers
+  const activeNodes = graph.nodes.filter(n => !suppressedIds.has(n.id));
+  const tiered: Record<Tier, ResourceNodeData[]> = {
+    internet: [], public: [], private: [], data: [], regional: [],
+  };
+  for (const node of activeNodes) {
+    tiered[getResourceTier(node)].push(node);
   }
 
-  // Issue 5: Create Regional Services group for non-VPC resources
-  const regionalNodes = graph.nodes.filter(n => {
-    if (suppressedVpcNodes.has(n.id)) return false;
-    if (nodeToGroup.has(n.id)) return false;
-    // Lambda with vpc_config stays in VPC
-    if (n.type === 'aws_lambda_function' && n.attributes?.vpc_config) return false;
-    return REGIONAL_RESOURCE_TYPES.includes(n.type);
-  });
-
-  if (regionalNodes.length > 0) {
-    const regionalGroupId = 'group-regional-services';
-    groups.set(regionalGroupId, {
-      id: regionalGroupId,
-      label: 'Regional Services (AWS)',
-      color: '#64748b',
-      children: regionalNodes.map(n => n.id),
-      dashed: true,
-    });
-    for (const n of regionalNodes) {
-      nodeToGroup.set(n.id, regionalGroupId);
-    }
-  }
-
-  // Build dagre graph
-  const g = new dagre.graphlib.Graph({ compound: true });
-  g.setGraph({ rankdir: 'TB', ranksep: RANK_SEP, nodesep: NODE_SEP });
-  g.setDefaultEdgeLabel(() => ({}));
-
-  // Add group nodes
-  for (const group of groups.values()) {
-    g.setNode(group.id, { width: 300, height: 200 });
-  }
-
-  // Add resource nodes (skip suppressed VPC nodes)
-  for (const node of graph.nodes) {
-    if (suppressedVpcNodes.has(node.id)) continue;
-    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-    const groupId = nodeToGroup.get(node.id);
-    if (groupId) {
-      g.setParent(node.id, groupId);
-    }
-  }
-
-  // Issue 6: Deduplicate edges and classify
-  const dedupedEdges = deduplicateEdges(graph.edges);
-  const classifiedEdges: { edge: GraphEdge; relationship: EdgeRelationship }[] = [];
-
-  for (const edge of dedupedEdges) {
-    // Skip edges to/from suppressed VPC nodes
-    if (suppressedVpcNodes.has(edge.source) || suppressedVpcNodes.has(edge.target)) continue;
-
-    const relationship = classifyEdge(edge, graph.nodes);
-    classifiedEdges.push({ edge, relationship });
-
-    // Only add non-containment edges to dagre
-    if (relationship !== 'containment') {
-      g.setEdge(edge.source, edge.target);
-    }
-  }
-
-  dagre.layout(g);
-
-  // Convert to React Flow nodes
+  // --- Position calculation ---
   const flowNodes: Node[] = [];
+  const startX = 40;
+  let currentY = 40;
 
-  // Group nodes first (so they render behind children)
-  for (const group of groups.values()) {
-    const dagreNode = g.node(group.id);
-    if (!dagreNode) continue;
+  function rowWidth(count: number): number {
+    return Math.max(count * (NODE_W + GAP_X) - GAP_X + 2 * TIER_PAD, 400);
+  }
+  const singleTierH = NODE_H + 2 * TIER_PAD + LABEL_H;
 
-    // Calculate bounds from children
-    const childPositions = group.children
-      .map(id => g.node(id))
-      .filter(Boolean);
+  // Internet zone (above VPC, standalone)
+  if (tiered.internet.length > 0) {
+    const w = rowWidth(tiered.internet.length);
+    flowNodes.push(makeZone('zone-internet', 'Internet / Edge', 'internet', startX, currentY, w, singleTierH));
+    tiered.internet.forEach((n, i) => {
+      flowNodes.push(makeResource(n, TIER_PAD + i * (NODE_W + GAP_X), LABEL_H + TIER_PAD, 'zone-internet'));
+    });
+    currentY += singleTierH + ZONE_GAP;
+  }
 
-    if (childPositions.length === 0) continue;
+  // VPC container with nested tier zones
+  const vpcTiers: Tier[] = ['public', 'private', 'data'];
+  const activeTiers = vpcTiers.filter(t => tiered[t].length > 0);
 
-    const minX = Math.min(...childPositions.map(n => n.x - NODE_WIDTH / 2));
-    const maxX = Math.max(...childPositions.map(n => n.x + NODE_WIDTH / 2));
-    const minY = Math.min(...childPositions.map(n => n.y - NODE_HEIGHT / 2));
-    const maxY = Math.max(...childPositions.map(n => n.y + NODE_HEIGHT / 2));
+  const maxTierW = activeTiers.length > 0
+    ? Math.max(...activeTiers.map(t => rowWidth(tiered[t].length)))
+    : 400;
+  const vpcContentW = maxTierW + 2 * VPC_PAD;
 
-    const groupWidth = Math.max(300, maxX - minX + GROUP_PADDING * 2);
-    const groupHeight = maxY - minY + GROUP_PADDING * 2 + 20;
+  // Calculate VPC height from inner tiers
+  let vpcInnerY = VPC_LABEL_H;
+  const tierLayout: { tier: Tier; relY: number }[] = [];
+  for (const tier of activeTiers) {
+    tierLayout.push({ tier, relY: vpcInnerY });
+    vpcInnerY += singleTierH + ZONE_GAP;
+  }
+  const vpcH = activeTiers.length > 0
+    ? vpcInnerY - ZONE_GAP + VPC_PAD + 40  // extra bottom padding for data tier
+    : VPC_LABEL_H + VPC_PAD;
 
-    // Issue 4: Enrich subnet group data
-    const groupData: Record<string, unknown> = {
-      label: group.label,
-      color: group.color,
-      dashed: group.dashed ?? false,
-    };
+  const vpcStartY = currentY;
 
-    // Find the source node for this group to get subnet metadata
-    const groupRefMatch = group.id.match(/^group-(.+)$/);
-    if (groupRefMatch) {
-      const sourceNode = graph.nodes.find(n => n.id === groupRefMatch[1]);
-      if (sourceNode?.type === 'aws_subnet') {
-        groupData.subnetNode = sourceNode;
-      }
-    }
+  // VPC outer group
+  flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcH));
 
-    flowNodes.push({
-      id: group.id,
-      type: 'group',
-      position: {
-        x: minX - GROUP_PADDING,
-        y: minY - GROUP_PADDING - 20,
-      },
-      data: groupData,
-      style: {
-        width: groupWidth,
-        height: groupHeight,
-        ...(group.dashed ? { borderStyle: 'dashed' } : {}),
-      },
-      draggable: true,
-      selectable: false,
+  // Tier zones inside VPC
+  for (const { tier, relY } of tierLayout) {
+    const zoneId = `zone-${tier}`;
+    const cidr = tier === 'public'
+      ? (publicSubnet?.attributes?.cidr_block as string | undefined)
+      : tier === 'private' || tier === 'data'
+        ? (privateSubnet?.attributes?.cidr_block as string | undefined)
+        : undefined;
+
+    flowNodes.push(makeZone(
+      zoneId, TIER_LABELS[tier], tierToZone(tier),
+      VPC_PAD, relY, maxTierW, singleTierH,
+      'zone-vpc', TIER_CHIPS[tier], cidr,
+    ));
+
+    tiered[tier].forEach((n, i) => {
+      flowNodes.push(makeResource(n, TIER_PAD + i * (NODE_W + GAP_X), LABEL_H + TIER_PAD, zoneId));
     });
   }
 
-  // Resource nodes
-  for (const node of graph.nodes) {
-    if (suppressedVpcNodes.has(node.id)) continue;
-    const dagreNode = g.node(node.id);
-    if (!dagreNode) continue;
+  // Regional Services (right column, aligned with VPC top)
+  if (tiered.regional.length > 0) {
+    const cols = 2;
+    const rows = Math.ceil(tiered.regional.length / cols);
+    const regW = cols * (NODE_W + GAP_X) - GAP_X + 2 * TIER_PAD;
+    const regRowGap = 56;  // increased to prevent edge label overlap
+    const regH = rows * (NODE_H + regRowGap) - regRowGap + 2 * TIER_PAD + LABEL_H;
+    const regX = startX + vpcContentW + ZONE_GAP;
 
-    const groupId = nodeToGroup.get(node.id);
-    let position = {
-      x: dagreNode.x - NODE_WIDTH / 2,
-      y: dagreNode.y - NODE_HEIGHT / 2,
-    };
+    flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regX, vpcStartY, regW, regH));
 
-    // If inside a group, make position relative to group
-    if (groupId) {
-      const groupFlowNode = flowNodes.find(n => n.id === groupId);
-      if (groupFlowNode) {
-        position = {
-          x: position.x - groupFlowNode.position.x,
-          y: position.y - groupFlowNode.position.y,
-        };
-      }
-    }
-
-    flowNodes.push({
-      id: node.id,
-      type: 'resource',
-      position,
-      data: node as unknown as Record<string, unknown>,
-      parentId: groupId,
-      extent: groupId ? 'parent' as const : undefined,
-      draggable: true,
+    tiered.regional.forEach((n, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      flowNodes.push(makeResource(
+        n,
+        TIER_PAD + col * (NODE_W + GAP_X),
+        LABEL_H + TIER_PAD + row * (NODE_H + regRowGap),
+        'zone-regional',
+      ));
     });
   }
 
-  // Convert edges — skip containment, style by relationship
-  const flowEdges: Edge[] = [];
-  let edgeIndex = 0;
-
-  for (const { edge, relationship } of classifiedEdges) {
-    // Containment edges are not rendered (nesting shows the relationship)
-    if (relationship === 'containment') continue;
-
-    const edgeStyle = EDGE_STYLES[relationship];
-    if (!edgeStyle) continue;
-
-    // Issue 6: Use straight edges within same group, smoothstep across groups
-    const sourceGroup = nodeToGroup.get(edge.source);
-    const targetGroup = nodeToGroup.get(edge.target);
-    const sameGroup = sourceGroup && targetGroup && sourceGroup === targetGroup;
-    const edgeType = sameGroup ? 'straight' : 'smoothstep';
-
-    const flowEdge: Edge = {
-      id: `e-${edgeIndex++}`,
-      source: edge.source,
-      target: edge.target,
-      type: edgeType,
-      animated: edgeStyle.animated,
-      style: edgeStyle.style as React.CSSProperties,
-    };
-
-    if (edgeStyle.markerEnd) {
-      flowEdge.markerEnd = {
-        ...edgeStyle.markerEnd,
-        width: 16,
-        height: 16,
-      };
-    }
-
-    // Issue 5: Add access edge labels
-    if (relationship === 'access') {
-      const sourceNode = graph.nodes.find(n => n.id === edge.source);
-      const targetNode = graph.nodes.find(n => n.id === edge.target);
-      if (sourceNode && targetNode) {
-        flowEdge.label = getAccessEdgeLabel(sourceNode, targetNode);
-        flowEdge.labelStyle = edgeStyle.labelStyle as React.CSSProperties;
-        flowEdge.labelBgStyle = { fill: '#0f172a', fillOpacity: 0.8 };
-        flowEdge.labelBgPadding = [4, 2] as [number, number];
-      }
-    }
-
-    flowEdges.push(flowEdge);
-  }
+  // Build edges
+  const flowEdges = buildEdges(graph.edges, graph.nodes, suppressedIds);
 
   return { nodes: flowNodes, edges: flowEdges };
 }
 
-function detectGroups(nodes: ResourceNodeData[]): Map<string, GroupInfo> {
-  const groups = new Map<string, GroupInfo>();
+// --- Node builders ---
 
-  for (const node of nodes) {
-    if (!node.group) continue;
-
-    // Parse group string like "vpc:aws_vpc.main" or "subnet:${aws_subnet.pub.id}"
-    const [groupType, groupRef] = node.group.split(':');
-    if (!groupRef) continue;
-
-    // Extract resource reference from ${...} if present
-    const refMatch = groupRef.match(/\$\{([^.]+\.[^.]+)/);
-    const groupId = refMatch ? `group-${refMatch[1]}` : `group-${groupRef}`;
-    const refName = refMatch ? refMatch[1] : groupRef;
-
-    if (!groups.has(groupId)) {
-      const color = groupType === 'vpc' ? '#3b82f6' : groupType === 'subnet' ? '#06b6d4' : '#64748b';
-      groups.set(groupId, {
-        id: groupId,
-        // Issue 1: Lowercase label format matching resource address style
-        label: `${groupType}.${refName.replace(/^aws_/, '')}`,
-        color,
-        children: [],
-      });
-    }
-
-    groups.get(groupId)!.children.push(node.id);
+function makeZone(
+  id: string,
+  label: string,
+  zoneType: ZoneType,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  parentId?: string,
+  chip?: string,
+  cidr?: string,
+): Node {
+  const node: Node = {
+    id,
+    type: 'group',
+    position: { x, y },
+    data: { label, zoneType, chip, cidr },
+    style: { width, height },
+    draggable: true,
+    selectable: false,
+  };
+  if (parentId) {
+    node.parentId = parentId;
+    node.extent = 'parent' as const;
   }
-
-  // Only keep groups with 2+ children
-  for (const [id, group] of groups) {
-    if (group.children.length < 2) {
-      groups.delete(id);
-    }
-  }
-
-  return groups;
+  return node;
 }
 
-// Issue 2: Classify edge by relationship type
-function classifyEdge(edge: GraphEdge, nodes: ResourceNodeData[]): EdgeRelationship {
-  const source = nodes.find(n => n.id === edge.source);
-  const target = nodes.find(n => n.id === edge.target);
-  if (!source || !target) return 'dependency';
-
-  // subnet → vpc: containment (nesting handles it)
-  if (source.type.includes('subnet') && target.type === 'aws_vpc') return 'containment';
-  // instance → subnet: containment
-  if (source.type === 'aws_instance' && target.type.includes('subnet')) return 'containment';
-  // security_group → vpc: containment
-  if (source.type === 'aws_security_group' && target.type === 'aws_vpc') return 'containment';
-  // security_group → instance: attachment
-  if (source.type === 'aws_security_group') return 'attachment';
-  // instance → security_group: attachment
-  if (source.type === 'aws_instance' && target.type === 'aws_security_group') return 'attachment';
-  // instance/lambda → iam_role: attachment
-  if (target.type === 'aws_iam_role') return 'attachment';
-  // instance/lambda → s3/sqs/sns/dynamodb: access
-  if (['aws_s3_bucket', 'aws_sqs_queue', 'aws_sns_topic', 'aws_dynamodb_table'].includes(target.type)) return 'access';
-  // everything else: dependency
-  return 'dependency';
+function makeResource(
+  data: ResourceNodeData,
+  x: number,
+  y: number,
+  parentId: string,
+): Node {
+  return {
+    id: data.id,
+    type: 'resource',
+    position: { x, y },
+    data: data as unknown as Record<string, unknown>,
+    parentId,
+    extent: 'parent' as const,
+    draggable: true,
+  };
 }
 
-// Issue 5: Label access edges
-function getAccessEdgeLabel(_source: ResourceNodeData, target: ResourceNodeData): string {
+// --- Edge system ---
+
+function buildEdges(
+  edges: GraphEdge[],
+  nodes: ResourceNodeData[],
+  suppressedIds: Set<string>,
+): Edge[] {
+  const deduped = deduplicateEdges(edges);
+  const result: Edge[] = [];
+  let idx = 0;
+
+  for (const edge of deduped) {
+    if (suppressedIds.has(edge.source) || suppressedIds.has(edge.target)) continue;
+
+    const source = nodes.find(n => n.id === edge.source);
+    const target = nodes.find(n => n.id === edge.target);
+    if (!source || !target) continue;
+
+    const sourceTier = getResourceTier(source);
+    const targetTier = getResourceTier(target);
+    const style = getEdgeStyle(source, target, sourceTier, targetTier);
+    if (!style) continue;
+
+    result.push({
+      id: `e-${idx++}`,
+      source: edge.source,
+      target: edge.target,
+      type: 'smoothstep',
+      ...style,
+    });
+  }
+
+  return result;
+}
+
+function getEdgeStyle(
+  source: ResourceNodeData,
+  target: ResourceNodeData,
+  sourceTier: Tier,
+  targetTier: Tier,
+): Partial<Edge> | null {
+  // Security group relationships (check first — takes priority)
+  if (source.type === 'aws_security_group' || target.type === 'aws_security_group') {
+    return {
+      style: { stroke: '#ef4444', strokeWidth: 1, strokeDasharray: '3 2' },
+      label: 'attached',
+      labelStyle: { fontSize: 9, fill: '#ef4444' } as React.CSSProperties,
+      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
+      labelBgPadding: [3, 1] as [number, number],
+    };
+  }
+
+  // Traffic flow: adjacent VPC tiers (internet→public→private→data)
+  const tierOrder: Tier[] = ['internet', 'public', 'private', 'data'];
+  const si = tierOrder.indexOf(sourceTier);
+  const ti = tierOrder.indexOf(targetTier);
+  if (si >= 0 && ti >= 0 && ti === si + 1) {
+    return {
+      style: { stroke: '#334155', strokeWidth: 1.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#475569', width: 16, height: 16 },
+    };
+  }
+
+  // Access to regional services
+  if (targetTier === 'regional') {
+    return {
+      style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '5 4' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6', width: 16, height: 16 },
+      label: getAccessLabel(target),
+      labelStyle: { fontSize: 10, fill: '#475569' } as React.CSSProperties,
+      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
+      labelBgPadding: [4, 2] as [number, number],
+    };
+  }
+
+  // Default dependency
+  return {
+    style: { stroke: '#1e293b', strokeWidth: 1, strokeDasharray: '4 3' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#334155', width: 16, height: 16 },
+  };
+}
+
+function getAccessLabel(target: ResourceNodeData): string {
   if (target.type === 'aws_kms_key') return 'encrypts with';
   if (target.type === 'aws_iam_role') return 'assumes';
-  if (['aws_sqs_queue', 'aws_sns_topic'].includes(target.type)) return 'publishes to';
+  if (target.type === 'aws_iam_policy') return 'grants';
+  if (target.type === 'aws_sqs_queue') return 'publishes to';
+  if (target.type === 'aws_sns_topic') return 'publishes to';
   if (target.type === 'aws_s3_bucket') return 'reads/writes';
+  if (target.type === 'aws_dynamodb_table') return 'queries';
+  if (target.type === 'aws_secretsmanager_secret') return 'reads secret';
   return 'accesses';
 }
 
-// Issue 6: Deduplicate edges (keep explicit over implicit)
 function deduplicateEdges(edges: GraphEdge[]): GraphEdge[] {
   const seen = new Map<string, GraphEdge>();
   for (const edge of edges) {

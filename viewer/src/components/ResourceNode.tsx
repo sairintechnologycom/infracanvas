@@ -11,10 +11,16 @@ type ResourceNodeProps = NodeProps & {
 
 function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const setSelectedNode = useStore(s => s.setSelectedNode);
+  const graphNodes = useStore(s => s.graph?.nodes);
   const highestSev = getHighestSeverity(data.findings);
   const findingCount = data.findings.length;
   const borderColor = data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? getResourceColor(data.type) : '#1e293b');
   const typeLabel = data.type.replace(/^aws_/, '').replaceAll('_', ' ');
+
+  // Resolve attached security groups from dependencies
+  const securityGroups = (graphNodes ?? []).filter(
+    n => n.type === 'aws_security_group' && data.dependencies.includes(n.id),
+  );
 
   return (
     <div
@@ -27,9 +33,9 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
       <div
         className="rounded-lg p-3 transition-all duration-150"
         style={{
-          background: '#111827',
+          background: 'rgba(15, 23, 42, 0.95)',
           border: `1.5px solid ${borderColor}`,
-          boxShadow: selected ? `0 0 12px ${borderColor}40` : '0 1px 4px #0003',
+          boxShadow: selected ? `0 0 12px ${borderColor}40` : '0 1px 3px rgba(0,0,0,0.4)',
           opacity: data.drift === 'deleted' ? 0.5 : 1,
         }}
       >
@@ -51,23 +57,13 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
         <div className="flex items-center gap-2 mb-1.5">
           <ResourceIcon resourceType={data.type} size={24} />
           <span
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+            className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-white"
             style={{
-              background: `${getResourceColor(data.type)}20`,
-              color: getResourceColor(data.type),
+              background: getResourceColor(data.type),
             }}
           >
             {typeLabel}
           </span>
-          {/* Issue 3: SG attachment indicator */}
-          {data.type === 'aws_security_group' && (
-            <span
-              className="text-[9px] px-1 py-0.5 rounded"
-              style={{ background: '#47556920', color: '#94a3b8' }}
-            >
-              attached
-            </span>
-          )}
         </div>
 
         {/* Resource name */}
@@ -78,6 +74,21 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
         >
           {data.name}
         </div>
+
+        {/* Security group badges */}
+        {securityGroups.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+            {securityGroups.map(sg => (
+              <span key={sg.id} style={{
+                fontSize: 9, padding: '1px 6px', borderRadius: 3,
+                background: 'rgba(239,68,68,0.15)', color: '#f87171',
+                border: '0.5px solid rgba(239,68,68,0.3)',
+              }}>
+                {'\u{1F6E1}'} {sg.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Cost label */}
         {data.cost.monthly_usd > 0 && (

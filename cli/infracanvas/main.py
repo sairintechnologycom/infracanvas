@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import time
 import uuid
 import webbrowser
 from datetime import UTC, datetime
@@ -13,6 +15,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from infracanvas.config import InfraCanvasConfig, load_config
 from infracanvas.cost.estimator import CostEstimator
 from infracanvas.drift.analyzer import DriftAnalyzer
 from infracanvas.export.html import export_html
@@ -25,41 +28,77 @@ from infracanvas.parser.plan import PlanReader
 from infracanvas.security.engine import evaluate_all
 from infracanvas.security.scorer import Scorer
 
+__version__ = "0.1.0"
+
 app = typer.Typer(
     name="infracanvas",
     help="Parse Terraform code and generate annotated resource graphs.",
     no_args_is_help=True,
 )
 console = Console()
+_ci_console = Console(stderr=True)  # for CI mode: diagnostics go to stderr
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"infracanvas {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-V", callback=_version_callback, is_eager=True,
+                      help="Show version and exit"),
+    ] = False,
+) -> None:
+    """InfraCanvas — interactive Terraform architecture diagrams."""
 
 
 def _run_scan(
     directory: Path,
     severity_filter: str | None = None,
+    ignore_rules: list[str] | None = None,
     *,
     allow_empty: bool = False,
+    ci: bool = False,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
-    parsed = parse_directory(directory)
+    out = _ci_console if ci else console
+
+    try:
+        parsed = parse_directory(directory)
+    except Exception as exc:
+        out.print(f"[red]Error:[/red] Failed to parse Terraform files: {exc}")
+        out.print("  Run with --verbose for details, or check that this is a valid Terraform directory.")
+        raise typer.Exit(code=2)
 
     if not allow_empty:
         tf_files = list(directory.glob("*.tf"))
         if not tf_files:
-            console.print(
+            out.print(
                 "[red]Error:[/red] No .tf files found in directory. "
                 "Are you pointing at a Terraform project?"
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=2)
 
     graph = build_graph(parsed)
 
     if not allow_empty and len(graph.nodes) == 0:
-        console.print(
+        out.print(
             "[red]Error:[/red] No Terraform resources found. "
             "Check for parse errors with --verbose."
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)
+
     graph = evaluate_all(graph)
+
+    # Strip ignored rules
+    if ignore_rules:
+        ignore_set = set(ignore_rules)
+        for node in graph.nodes:
+            node.findings = [f for f in node.findings if f.rule_id not in ignore_set]
 
     # Build metadata
     graph.metadata = {
@@ -184,7 +223,7 @@ def scan(
     ] = None,
     format: Annotated[
         str,
-        typer.Option("--format", "-f", help="Output format (json)"),
+        typer.Option("--format", "-f", help="Output format (json, html)"),
     ] = "json",
     quiet: Annotated[
         bool,
@@ -201,19 +240,38 @@ def scan(
             help="CI mode: JSON to stdout, non-zero exit on findings",
         ),
     ] = False,
+    watch: Annotated[
+        bool,
+        typer.Option("--watch", "-w", help="Re-scan on file changes"),
+    ] = False,
+    ignore: Annotated[
+        list[str] | None,
+        typer.Option("--ignore", help="Rule IDs to skip, e.g. --ignore SEC-010"),
+    ] = None,
 ) -> None:
     """Scan a Terraform directory and generate an annotated resource graph."""
     if not directory.is_dir():
         console.print(f"[red]Error:[/red] {directory} is not a directory")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)
 
-    graph = _run_scan(directory, severity_filter=severity)
+    # Load project config
+    config = load_config(directory)
+    effective_ignore = list(set((ignore or []) + config.ignore_rules))
+    effective_severity = severity or (config.severity_threshold if ci else severity)
+
+    if watch:
+        _run_watch(directory, output, format, effective_severity, effective_ignore, ci)
+        return
+
+    graph = _run_scan(directory, severity_filter=effective_severity,
+                      ignore_rules=effective_ignore, ci=ci)
 
     if ci or quiet:
-        typer.echo(export_graph(graph))
+        # CI mode: only valid JSON to stdout, diagnostics to stderr
+        sys.stdout.write(export_graph(graph))
+        sys.stdout.write("\n")
         if ci:
-            # Exit non-zero if findings exist at/above the severity threshold
-            threshold = severity or "critical"
+            threshold = effective_severity or "high"
             sev_order = ["critical", "high", "medium", "info"]
             threshold_idx = sev_order.index(threshold)
             has_findings = any(
@@ -226,23 +284,76 @@ def scan(
     _print_summary(graph)
 
     if format == "html":
-        out_path = output or Path("infracanvas-report.html")
+        out_path = output or Path(config.output_dir) / "infracanvas-report.html"
         try:
             export_html(graph, out_path)
             console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-            webbrowser.open(out_path.resolve().as_uri())
+            if config.open_browser:
+                webbrowser.open(out_path.resolve().as_uri())
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
             console.print("  Falling back to JSON output.")
-            out_path = output or Path("infracanvas-report.json")
+            out_path = output or Path(config.output_dir) / "infracanvas-report.json"
             out_path.write_text(export_graph(graph))
             console.print(f"  JSON report saved to: [bold]{out_path}[/bold]")
     else:
-        out_path = output or Path("infracanvas-report.json")
+        out_path = output or Path(config.output_dir) / "infracanvas-report.json"
         out_path.write_text(export_graph(graph))
         console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
     raise typer.Exit(code=0)
+
+
+def _run_watch(
+    directory: Path,
+    output: Path | None,
+    fmt: str,
+    severity: str | None,
+    ignore_rules: list[str],
+    ci: bool,
+) -> None:
+    """Watch *.tf files and re-scan on changes."""
+    try:
+        from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
+    except ImportError:
+        console.print("[yellow]Install watchdog for --watch: pip install watchdog[/yellow]")
+        raise typer.Exit(1)
+
+    console.print("[cyan]Watching for changes...[/cyan] Press Ctrl+C to stop")
+
+    # Initial scan
+    graph = _run_scan(directory, severity_filter=severity, ignore_rules=ignore_rules, ci=ci)
+    _print_summary(graph)
+
+    last_trigger = 0.0
+
+    class TfChangeHandler(FileSystemEventHandler):  # type: ignore[misc]
+        def on_modified(self, event) -> None:  # type: ignore[no-untyped-def]
+            nonlocal last_trigger
+            if event.is_directory or not event.src_path.endswith(".tf"):
+                return
+            now = time.time()
+            if now - last_trigger < 0.5:
+                return  # debounce
+            last_trigger = now
+            console.print("\n[cyan]Change detected, re-scanning...[/cyan]")
+            try:
+                g = _run_scan(directory, severity_filter=severity, ignore_rules=ignore_rules, ci=ci)
+                _print_summary(g)
+            except SystemExit:
+                pass
+
+    observer = Observer()
+    observer.schedule(TfChangeHandler(), str(directory), recursive=True)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+        console.print("\n[dim]Stopped watching.[/dim]")
+    observer.join()
 
 
 @app.command()
@@ -264,7 +375,8 @@ def score(
         console.print(f"[red]Error:[/red] {directory} is not a directory")
         raise typer.Exit(code=1)
 
-    graph = _run_scan(directory)
+    config = load_config(directory)
+    graph = _run_scan(directory, ignore_rules=config.ignore_rules)
 
     # Apply cost estimation
     estimator = CostEstimator()
@@ -286,7 +398,8 @@ def score(
         out_path = output or Path("scorecard.html")
         export_scorecard(card, out_path)
         console.print(f"  Score card saved to: [bold]{out_path}[/bold]")
-        webbrowser.open(out_path.resolve().as_uri())
+        if config.open_browser:
+            webbrowser.open(out_path.resolve().as_uri())
         return
 
     # Terminal output — rich box
@@ -320,7 +433,8 @@ def plan(
         console.print(f"[red]Error:[/red] Plan file {planfile} not found")
         raise typer.Exit(code=1)
 
-    graph = _run_scan(directory)
+    config = load_config(directory)
+    graph = _run_scan(directory, ignore_rules=config.ignore_rules)
 
     # Read plan and apply drift
     reader = PlanReader()
@@ -350,7 +464,8 @@ def plan(
         try:
             export_html(graph, out_path)
             console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-            webbrowser.open(out_path.resolve().as_uri())
+            if config.open_browser:
+                webbrowser.open(out_path.resolve().as_uri())
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
             out_path = output or Path("infracanvas-report.json")
@@ -439,8 +554,12 @@ def export(
         console.print(f"[red]Error:[/red] {report} not found")
         raise typer.Exit(code=1)
 
-    data = json.loads(report.read_text())
-    graph = ResourceGraph.model_validate(data)
+    try:
+        data = json.loads(report.read_text())
+        graph = ResourceGraph.model_validate(data)
+    except (json.JSONDecodeError, ValueError) as exc:
+        console.print(f"[red]Error:[/red] Invalid report file: {exc}")
+        raise typer.Exit(code=1)
 
     if format == "html":
         out_path = output or Path("infracanvas-report.html")

@@ -52,7 +52,7 @@ class TestScanCommand:
 
     def test_scan_invalid_directory(self):
         result = runner.invoke(app, ["scan", "/nonexistent/path"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2  # error exit code (vs 1 for findings)
 
     def test_scan_format_json(self):
         result = runner.invoke(app, [
@@ -74,6 +74,48 @@ class TestScanCommand:
         result = runner.invoke(app, ["scan", str(FIXTURES / "simple_vpc")])
         assert result.exit_code == 0
         assert "Security Score" in result.stdout or "InfraCanvas" in result.stdout
+
+
+    def test_scan_ignore_rule(self):
+        result = runner.invoke(app, [
+            "scan", str(FIXTURES / "simple_vpc"),
+            "--quiet", "--ignore", "SEC-001",
+        ])
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        for node in data["nodes"]:
+            for f in node["findings"]:
+                assert f["rule_id"] != "SEC-001"
+
+    def test_scan_ci_exit_code_2_no_tf(self, tmp_path):
+        """CI mode exits 2 for parse errors / no .tf files."""
+        result = runner.invoke(app, ["scan", str(tmp_path), "--ci"])
+        assert result.exit_code == 2
+
+
+class TestVersionFlag:
+    def test_version_output(self):
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert "0.1.0" in result.stdout
+
+
+class TestConfig:
+    def test_config_ignore_rules(self, tmp_path):
+        """Config file ignore_rules are applied."""
+        # Copy fixture
+        import shutil
+        shutil.copytree(FIXTURES / "simple_vpc", tmp_path / "tf")
+        config = tmp_path / "tf" / ".infracanvas.yml"
+        config.write_text("ignore_rules:\n  - SEC-001\n")
+        result = runner.invoke(app, [
+            "scan", str(tmp_path / "tf"), "--quiet",
+        ])
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        for node in data["nodes"]:
+            for f in node["findings"]:
+                assert f["rule_id"] != "SEC-001"
 
 
 class TestScoreCommand:
