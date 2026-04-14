@@ -36,8 +36,8 @@ resource "aws_security_group" "web" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -66,4 +66,9 @@ resource "aws_instance" "web" {
     Name        = "web-server"
     Environment = "production"
   }
+}
+
+resource "aws_s3_bucket" "data" {
+  bucket = "my-data-bucket"
+  acl    = "public-read"
 }

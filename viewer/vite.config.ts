@@ -10,4 +10,9 @@ export default defineConfig({
     assetsInlineLimit: 100000000,
     cssCodeSplit: false,
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/__tests__/setup.ts'],
+  },
 })

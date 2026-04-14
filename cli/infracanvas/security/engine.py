@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import ipaddress
-import re
 from typing import Any
 
-from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode, Severity
+from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode
 from infracanvas.security.loader import load_rules
 from infracanvas.security.models import SecurityRule
 

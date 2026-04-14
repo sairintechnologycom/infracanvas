@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     critical = "critical"
     high = "high"
     medium = "medium"
@@ -29,7 +29,7 @@ class CostEstimate(BaseModel):
     basis: str = ""
 
 
-class DriftStatus(str, Enum):
+class DriftStatus(StrEnum):
     unchanged = "unchanged"
     added = "added"
     changed = "changed"

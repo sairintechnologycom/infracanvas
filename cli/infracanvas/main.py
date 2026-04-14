@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import uuid
 import webbrowser
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -30,7 +30,7 @@ console = Console()
 
 def _run_scan(
     directory: Path,
-    severity_filter: Optional[str] = None,
+    severity_filter: str | None = None,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
     parsed = parse_directory(directory)
@@ -42,7 +42,7 @@ def _run_scan(
         "scan_id": str(uuid.uuid4()),
         "project": directory.resolve().name,
         "provider": _detect_provider(graph),
-        "scanned_at": datetime.now(timezone.utc).isoformat(),
+        "scanned_at": datetime.now(UTC).isoformat(),
         "terraform_version": "unknown",
     }
 
@@ -91,7 +91,7 @@ def _print_summary(graph: ResourceGraph) -> None:
     """Print a rich summary table to the terminal."""
     summary = graph.summary
     console.print()
-    console.print(f"[bold]InfraCanvas Scan Results[/bold]", justify="center")
+    console.print("[bold]InfraCanvas Scan Results[/bold]", justify="center")
     console.print()
 
     # Score with color
@@ -155,7 +155,7 @@ def scan(
         Path, typer.Argument(help="Directory containing Terraform files")
     ],
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
@@ -167,9 +167,16 @@ def scan(
         typer.Option("--quiet", "-q", help="JSON only to stdout, for CI/CD"),
     ] = False,
     severity: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--severity", "-s", help="Filter findings by severity"),
     ] = None,
+    ci: Annotated[
+        bool,
+        typer.Option(
+            "--ci",
+            help="CI mode: JSON to stdout, non-zero exit on findings",
+        ),
+    ] = False,
 ) -> None:
     """Scan a Terraform directory and generate an annotated resource graph."""
     if not directory.is_dir():
@@ -178,27 +185,38 @@ def scan(
 
     graph = _run_scan(directory, severity_filter=severity)
 
-    if quiet:
+    if ci or quiet:
         typer.echo(export_graph(graph))
-    else:
-        _print_summary(graph)
+        if ci:
+            # Exit non-zero if findings exist at/above the severity threshold
+            threshold = severity or "critical"
+            sev_order = ["critical", "high", "medium", "info"]
+            threshold_idx = sev_order.index(threshold)
+            has_findings = any(
+                graph.summary.findings.get(s, 0) > 0
+                for s in sev_order[: threshold_idx + 1]
+            )
+            raise typer.Exit(code=1 if has_findings else 0)
+        raise typer.Exit(code=0)
 
-        if format == "html":
-            out_path = output or Path("infracanvas-report.html")
-            try:
-                export_html(graph, out_path)
-                console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-                webbrowser.open(out_path.resolve().as_uri())
-            except FileNotFoundError as e:
-                console.print(f"  [yellow]Warning:[/yellow] {e}")
-                console.print("  Falling back to JSON output.")
-                out_path = output or Path("infracanvas-report.json")
-                out_path.write_text(export_graph(graph))
-                console.print(f"  JSON report saved to: [bold]{out_path}[/bold]")
-        else:
+    _print_summary(graph)
+
+    if format == "html":
+        out_path = output or Path("infracanvas-report.html")
+        try:
+            export_html(graph, out_path)
+            console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
+            webbrowser.open(out_path.resolve().as_uri())
+        except FileNotFoundError as e:
+            console.print(f"  [yellow]Warning:[/yellow] {e}")
+            console.print("  Falling back to JSON output.")
             out_path = output or Path("infracanvas-report.json")
             out_path.write_text(export_graph(graph))
-            console.print(f"  Report saved to: [bold]{out_path}[/bold]")
+            console.print(f"  JSON report saved to: [bold]{out_path}[/bold]")
+    else:
+        out_path = output or Path("infracanvas-report.json")
+        out_path.write_text(export_graph(graph))
+        console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
     raise typer.Exit(code=0)
 
@@ -208,6 +226,10 @@ def score(
     directory: Annotated[
         Path, typer.Argument(help="Directory containing Terraform files")
     ],
+    format: Annotated[
+        str,
+        typer.Option("--format", "-f", help="Output format (text, json)"),
+    ] = "text",
 ) -> None:
     """Show the security score for a Terraform directory."""
     if not directory.is_dir():
@@ -217,6 +239,24 @@ def score(
     graph = _run_scan(directory)
     summary = graph.summary
     score_val = summary.score
+
+    if format == "json":
+        score_data = {
+            "score": score_val,
+            "total_resources": summary.total_resources,
+            "findings": summary.findings,
+            "categories": {
+                "security": {
+                    "critical": summary.findings.get("critical", 0),
+                    "high": summary.findings.get("high", 0),
+                },
+                "tagging": {
+                    "info": summary.findings.get("info", 0),
+                },
+            },
+        }
+        typer.echo(json.dumps(score_data, indent=2))
+        return
 
     console.print()
     console.print("[bold]InfraCanvas Security Score Card[/bold]", justify="center")
@@ -232,6 +272,18 @@ def score(
         console.print(f"  Score: [bold red]{score_val}/100[/bold red]  Grade: F")
 
     console.print(f"  Resources: {summary.total_resources}")
+    console.print()
+
+    # Category breakdown
+    cat_table = Table(title="Score Breakdown")
+    cat_table.add_column("Category", style="bold")
+    cat_table.add_column("Issues", justify="right")
+    sec_count = summary.findings.get("critical", 0) + summary.findings.get("high", 0)
+    cat_table.add_row("Security", str(sec_count))
+    cat_table.add_row("Tagging", str(summary.findings.get("info", 0)))
+    console.print(cat_table)
+    console.print()
+
     console.print(
         f"  Findings: {summary.findings.get('critical', 0)} critical, "
         f"{summary.findings.get('high', 0)} high, "
@@ -257,7 +309,7 @@ def export(
         Path, typer.Argument(help="InfraCanvas report JSON file")
     ],
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
