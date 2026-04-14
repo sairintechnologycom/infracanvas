@@ -91,7 +91,15 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
         except Exception:
             return
 
-    # Resources
+    _extract_resources(parsed, result)
+    _extract_variables(parsed, result)
+    _extract_locals(parsed, result)
+    _extract_outputs(parsed, result)
+    _extract_data_sources(parsed, result)
+
+
+def _extract_resources(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract resource blocks from parsed HCL."""
     for resource_block in parsed.get("resource", []):
         for resource_type_raw, instances in resource_block.items():
             resource_type = _strip_quotes(resource_type_raw)
@@ -112,7 +120,9 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
                             )
                         )
 
-    # Variables
+
+def _extract_variables(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract variable blocks from parsed HCL."""
     for var_block in parsed.get("variable", []):
         if isinstance(var_block, dict):
             for name_raw, attrs in var_block.items():
@@ -125,7 +135,9 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
                     )
                 )
 
-    # Locals
+
+def _extract_locals(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract locals blocks from parsed HCL."""
     for local_block in parsed.get("locals", []):
         if isinstance(local_block, dict):
             for name_raw, value in local_block.items():
@@ -138,7 +150,9 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
                     )
                 )
 
-    # Outputs
+
+def _extract_outputs(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract output blocks from parsed HCL."""
     for output_block in parsed.get("output", []):
         if isinstance(output_block, dict):
             for name_raw, attrs in output_block.items():
@@ -151,7 +165,9 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
                     )
                 )
 
-    # Data sources
+
+def _extract_data_sources(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract data source blocks from parsed HCL."""
     for data_block in parsed.get("data", []):
         for data_type_raw, instances in data_block.items():
             data_type = _strip_quotes(data_type_raw)

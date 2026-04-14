@@ -3,10 +3,11 @@
 from pathlib import Path
 
 from infracanvas.graph.builder import build_graph
-from infracanvas.graph.models import Finding, ResourceNode, Severity
+from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode, Severity
 from infracanvas.parser.hcl import parse_directory
-from infracanvas.security.engine import evaluate_all
+from infracanvas.security.engine import _evaluate_rule, evaluate_all
 from infracanvas.security.loader import load_rules
+from infracanvas.security.models import RuleCondition, SecurityRule
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -188,3 +189,90 @@ class TestSecurityEngine:
             if f.severity == Severity.critical
         ]
         assert len(critical) == 0
+
+
+class TestOperatorCoverage:
+    """FIX-4: Direct operator tests to cover all branches in engine.py."""
+
+    def _make_rule(self, operator: str, attribute: str = "status",
+                   value=None, values=None) -> SecurityRule:
+        return SecurityRule(
+            id="TEST-001",
+            title="Test rule",
+            severity=Severity.medium,
+            resource_types=["aws_test"],
+            condition=RuleCondition(
+                attribute=attribute,
+                operator=operator,
+                value=value,
+                values=values or [],
+            ),
+            remediation="Fix it",
+            description="Test",
+        )
+
+    def _make_node(self, attrs: dict) -> ResourceNode:
+        return ResourceNode(
+            id="aws_test.thing",
+            type="aws_test",
+            name="thing",
+            provider="aws",
+            attributes=attrs,
+        )
+
+    def test_operator_equals(self):
+        rule = self._make_rule("equals", value="private")
+        node = self._make_node({"status": "private"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is not None
+        assert finding.rule_id == "TEST-001"
+
+    def test_operator_equals_no_match(self):
+        rule = self._make_rule("equals", value="private")
+        node = self._make_node({"status": "public"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is None
+
+    def test_operator_not_equals(self):
+        rule = self._make_rule("not_equals", value="private")
+        node = self._make_node({"status": "public"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is not None
+
+    def test_operator_not_in(self):
+        rule = self._make_rule("not_in", attribute="tier", values=["free", "basic"])
+        node = self._make_node({"tier": "enterprise"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is not None
+
+    def test_operator_not_in_no_match(self):
+        rule = self._make_rule("not_in", attribute="tier", values=["free", "basic"])
+        node = self._make_node({"tier": "free"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is None
+
+    def test_operator_any_equals(self):
+        rule = self._make_rule("any_equals", attribute="ingress.protocol", value="tcp")
+        node = self._make_node({"ingress": [{"protocol": "tcp"}, {"protocol": "udp"}]})
+        finding = _evaluate_rule(rule, node)
+        assert finding is not None
+
+    def test_operator_any_equals_no_match(self):
+        rule = self._make_rule("any_equals", attribute="ingress.protocol", value="icmp")
+        node = self._make_node({"ingress": [{"protocol": "tcp"}]})
+        finding = _evaluate_rule(rule, node)
+        assert finding is None
+
+    def test_operator_matches_cidr(self):
+        rule = self._make_rule("matches_cidr", attribute="cidr_block",
+                               values=["0.0.0.0/0"])
+        node = self._make_node({"cidr_block": "0.0.0.0/0"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is not None
+
+    def test_operator_matches_cidr_no_match(self):
+        rule = self._make_rule("matches_cidr", attribute="cidr_block",
+                               values=["0.0.0.0/0"])
+        node = self._make_node({"cidr_block": "10.0.0.0/16"})
+        finding = _evaluate_rule(rule, node)
+        assert finding is None

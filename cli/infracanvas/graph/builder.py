@@ -11,14 +11,23 @@ from infracanvas.parser.hcl import ParsedTerraform
 def build_graph(parsed: ParsedTerraform) -> ResourceGraph:
     """Construct a ResourceGraph from parsed Terraform data."""
     g = nx.DiGraph()
-    nodes: list[ResourceNode] = []
+    nodes = _create_nodes(g, parsed)
+    edges = _build_edges(g, parsed, nodes)
 
-    # Create nodes
+    for node in nodes:
+        node.dependencies = [e["target"] for e in edges if e["source"] == node.id]
+
+    return ResourceGraph(nodes=nodes, edges=edges)
+
+
+def _create_nodes(
+    g: nx.DiGraph, parsed: ParsedTerraform
+) -> list[ResourceNode]:
+    """Create ResourceNode objects and add them to the graph."""
+    nodes: list[ResourceNode] = []
     for res in parsed.resources:
         resource_id = f"{res.resource_type}.{res.name}"
         provider = res.resource_type.split("_")[0] if "_" in res.resource_type else "unknown"
-
-        # Determine grouping
         group = _determine_group(res.attributes)
 
         node = ResourceNode(
@@ -33,22 +42,27 @@ def build_graph(parsed: ParsedTerraform) -> ResourceGraph:
         )
         nodes.append(node)
         g.add_node(resource_id, **node.model_dump())
+    return nodes
 
-    # Build edges
+
+def _build_edges(
+    g: nx.DiGraph,
+    parsed: ParsedTerraform,
+    nodes: list[ResourceNode],
+) -> list[dict[str, str]]:
+    """Build edges from explicit depends_on and implicit references."""
     edges: list[dict[str, str]] = []
     resource_ids = {n.id for n in nodes}
 
     for res in parsed.resources:
         source_id = f"{res.resource_type}.{res.name}"
 
-        # Explicit depends_on
         for dep in res.depends_on:
             if dep in resource_ids:
                 edge = {"source": source_id, "target": dep, "type": "depends_on"}
                 edges.append(edge)
                 g.add_edge(source_id, dep, type="depends_on")
 
-        # Implicit dependencies from reference detection
         implicit = parsed.implicit_deps.get(source_id, set())
         for target_id in implicit:
             if target_id in resource_ids:
@@ -56,13 +70,7 @@ def build_graph(parsed: ParsedTerraform) -> ResourceGraph:
                 edges.append(edge)
                 g.add_edge(source_id, target_id, type="implicit")
 
-    # Set dependency lists on nodes
-    for node in nodes:
-        node.dependencies = [
-            e["target"] for e in edges if e["source"] == node.id
-        ]
-
-    return ResourceGraph(nodes=nodes, edges=edges)
+    return edges
 
 
 def _determine_group(attrs: dict[str, object]) -> str:

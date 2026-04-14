@@ -1,0 +1,97 @@
+"""Security scoring engine — build ScoreCard from ResourceGraph."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import UTC, datetime
+
+from infracanvas.graph.models import (
+    CategoryScore,
+    Finding,
+    ResourceGraph,
+    ScoreCard,
+    Severity,
+)
+
+# Grade thresholds
+GRADE_MAP = [(90, "A"), (80, "B"), (70, "C"), (60, "D"), (0, "F")]
+
+# Penalty weights per severity
+SEVERITY_WEIGHT: dict[str, int] = {
+    "critical": 20,
+    "high": 10,
+    "medium": 5,
+    "info": 1,
+}
+
+# Category → rule IDs mapping
+CATEGORY_RULES: dict[str, set[str]] = {
+    "Security": {"SEC-001", "SEC-003", "SEC-004", "SEC-005", "SEC-007", "SEC-008"},
+    "Encryption": {"SEC-002", "SEC-006", "SEC-009"},
+    "Networking": {"SEC-010", "SEC-011", "SEC-012", "SEC-013", "SEC-014"},
+    "IAM": {"SEC-007", "SEC-008", "SEC-015", "SEC-016"},
+    "Tagging": {"SEC-010"},
+}
+
+
+def _grade(score: int) -> str:
+    for threshold, letter in GRADE_MAP:
+        if score >= threshold:
+            return letter
+    return "F"
+
+
+class Scorer:
+    """Build a ScoreCard from a scanned ResourceGraph."""
+
+    def build(self, graph: ResourceGraph) -> ScoreCard:
+        """Compute overall score, category scores, and top issues."""
+        all_findings: list[Finding] = []
+        for node in graph.nodes:
+            all_findings.extend(node.findings)
+
+        # Overall score
+        penalty = sum(
+            SEVERITY_WEIGHT.get(f.severity.value, 0) for f in all_findings
+        )
+        overall = max(0, 100 - penalty)
+        overall_grade = _grade(overall)
+
+        # Category scores
+        categories: list[CategoryScore] = []
+        for cat_name, rule_ids in CATEGORY_RULES.items():
+            cat_findings = [f for f in all_findings if f.rule_id in rule_ids]
+            cat_penalty = sum(
+                SEVERITY_WEIGHT.get(f.severity.value, 0) for f in cat_findings
+            )
+            cat_score = max(0, 100 - cat_penalty)
+            categories.append(
+                CategoryScore(
+                    name=cat_name,
+                    score=cat_score,
+                    grade=_grade(cat_score),
+                    finding_count=len(cat_findings),
+                )
+            )
+
+        # Top issues — sorted by severity weight descending, max 5
+        weight_order = {"critical": 0, "high": 1, "medium": 2, "info": 3}
+        sorted_findings = sorted(
+            all_findings,
+            key=lambda f: weight_order.get(f.severity.value, 99),
+        )
+        top_issues = sorted_findings[:5]
+
+        return ScoreCard(
+            overall=overall,
+            overall_grade=overall_grade,
+            categories=categories,
+            top_issues=top_issues,
+            resource_count=len(graph.nodes),
+            estimated_monthly_cost=graph.summary.estimated_monthly_cost,
+            scan_id=str(graph.metadata.get("scan_id", str(uuid.uuid4()))),
+            project=str(graph.metadata.get("project", "unknown")),
+            scanned_at=str(
+                graph.metadata.get("scanned_at", datetime.now(UTC).isoformat())
+            ),
+        )

@@ -13,12 +13,17 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from infracanvas.cost.estimator import CostEstimator
+from infracanvas.drift.analyzer import DriftAnalyzer
 from infracanvas.export.html import export_html
 from infracanvas.export.json import export_graph
+from infracanvas.export.scorecard import export_scorecard
 from infracanvas.graph.builder import build_graph
 from infracanvas.graph.models import GraphSummary, ResourceGraph, Severity
 from infracanvas.parser.hcl import parse_directory
+from infracanvas.parser.plan import PlanReader
 from infracanvas.security.engine import evaluate_all
+from infracanvas.security.scorer import Scorer
 
 app = typer.Typer(
     name="infracanvas",
@@ -31,10 +36,29 @@ console = Console()
 def _run_scan(
     directory: Path,
     severity_filter: str | None = None,
+    *,
+    allow_empty: bool = False,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
     parsed = parse_directory(directory)
+
+    if not allow_empty:
+        tf_files = list(directory.glob("*.tf"))
+        if not tf_files:
+            console.print(
+                "[red]Error:[/red] No .tf files found in directory. "
+                "Are you pointing at a Terraform project?"
+            )
+            raise typer.Exit(code=1)
+
     graph = build_graph(parsed)
+
+    if not allow_empty and len(graph.nodes) == 0:
+        console.print(
+            "[red]Error:[/red] No Terraform resources found. "
+            "Check for parse errors with --verbose."
+        )
+        raise typer.Exit(code=1)
     graph = evaluate_all(graph)
 
     # Build metadata
@@ -228,8 +252,12 @@ def score(
     ],
     format: Annotated[
         str,
-        typer.Option("--format", "-f", help="Output format (text, json)"),
-    ] = "text",
+        typer.Option("--format", "-f", help="Output format (terminal, json, html)"),
+    ] = "terminal",
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file path"),
+    ] = None,
 ) -> None:
     """Show the security score for a Terraform directory."""
     if not directory.is_dir():
@@ -237,70 +265,159 @@ def score(
         raise typer.Exit(code=1)
 
     graph = _run_scan(directory)
-    summary = graph.summary
-    score_val = summary.score
+
+    # Apply cost estimation
+    estimator = CostEstimator()
+    graph = estimator.estimate(graph)
+
+    scorer = Scorer()
+    card = scorer.build(graph)
 
     if format == "json":
-        score_data = {
-            "score": score_val,
-            "total_resources": summary.total_resources,
-            "findings": summary.findings,
-            "categories": {
-                "security": {
-                    "critical": summary.findings.get("critical", 0),
-                    "high": summary.findings.get("high", 0),
-                },
-                "tagging": {
-                    "info": summary.findings.get("info", 0),
-                },
-            },
-        }
-        typer.echo(json.dumps(score_data, indent=2))
+        json_out = card.model_dump_json(indent=2)
+        if output:
+            output.write_text(json_out)
+            console.print(f"  Score card saved to: [bold]{output}[/bold]")
+        else:
+            typer.echo(json_out)
         return
 
-    console.print()
-    console.print("[bold]InfraCanvas Security Score Card[/bold]", justify="center")
-    console.print()
+    if format == "html":
+        out_path = output or Path("scorecard.html")
+        export_scorecard(card, out_path)
+        console.print(f"  Score card saved to: [bold]{out_path}[/bold]")
+        webbrowser.open(out_path.resolve().as_uri())
+        return
 
-    if score_val >= 80:
-        console.print(f"  Score: [bold green]{score_val}/100[/bold green]  Grade: A")
-    elif score_val >= 60:
-        console.print(f"  Score: [bold yellow]{score_val}/100[/bold yellow]  Grade: B")
-    elif score_val >= 40:
-        console.print(f"  Score: [bold yellow]{score_val}/100[/bold yellow]  Grade: C")
-    else:
-        console.print(f"  Score: [bold red]{score_val}/100[/bold red]  Grade: F")
-
-    console.print(f"  Resources: {summary.total_resources}")
-    console.print()
-
-    # Category breakdown
-    cat_table = Table(title="Score Breakdown")
-    cat_table.add_column("Category", style="bold")
-    cat_table.add_column("Issues", justify="right")
-    sec_count = summary.findings.get("critical", 0) + summary.findings.get("high", 0)
-    cat_table.add_row("Security", str(sec_count))
-    cat_table.add_row("Tagging", str(summary.findings.get("info", 0)))
-    console.print(cat_table)
-    console.print()
-
-    console.print(
-        f"  Findings: {summary.findings.get('critical', 0)} critical, "
-        f"{summary.findings.get('high', 0)} high, "
-        f"{summary.findings.get('medium', 0)} medium, "
-        f"{summary.findings.get('info', 0)} info"
-    )
-    console.print()
+    # Terminal output — rich box
+    _print_scorecard(card)
 
 
 @app.command()
 def plan(
-    plan_file: Annotated[
-        Path, typer.Argument(help="Terraform plan JSON file")
+    directory: Annotated[
+        Path, typer.Argument(help="Directory containing Terraform files")
     ],
+    planfile: Annotated[
+        Path,
+        typer.Option("--planfile", "-p", help="Terraform plan JSON file"),
+    ] = ...,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file path"),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option("--format", "-f", help="Output format (html, json)"),
+    ] = "html",
 ) -> None:
-    """Analyze a Terraform plan JSON for drift detection (Phase 2)."""
-    console.print("[yellow]Plan analysis will be available in Phase 2.[/yellow]")
+    """Scan directory and overlay terraform plan diff on the diagram."""
+    if not directory.is_dir():
+        console.print(f"[red]Error:[/red] {directory} is not a directory")
+        raise typer.Exit(code=1)
+
+    if not planfile.exists():
+        console.print(f"[red]Error:[/red] Plan file {planfile} not found")
+        raise typer.Exit(code=1)
+
+    graph = _run_scan(directory)
+
+    # Read plan and apply drift
+    reader = PlanReader()
+    changes = reader.read(planfile)
+    analyzer = DriftAnalyzer()
+    graph = analyzer.apply(graph, changes)
+
+    # Apply cost estimation with delta
+    estimator = CostEstimator()
+    graph = estimator.estimate(graph)
+    cost_delta = estimator.delta(graph, changes)
+
+    # Print drift summary
+    drift = graph.summary.drift
+    console.print()
+    console.print(
+        f"  [green]+{drift.get('added', 0)} added[/green]  ·  "
+        f"[yellow]~{drift.get('changed', 0)} changed[/yellow]  ·  "
+        f"[red]-{drift.get('deleted', 0)} deleted[/red]  ·  "
+        f"est. cost delta: [bold]{'+'if cost_delta >= 0 else ''}"
+        f"${cost_delta:.2f}/mo[/bold]"
+    )
+    console.print()
+
+    if format == "html":
+        out_path = output or Path("infracanvas-report.html")
+        try:
+            export_html(graph, out_path)
+            console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
+            webbrowser.open(out_path.resolve().as_uri())
+        except FileNotFoundError as e:
+            console.print(f"  [yellow]Warning:[/yellow] {e}")
+            out_path = output or Path("infracanvas-report.json")
+            out_path.write_text(export_graph(graph))
+            console.print(f"  JSON report saved to: [bold]{out_path}[/bold]")
+    else:
+        out_path = output or Path("infracanvas-report.json")
+        out_path.write_text(export_graph(graph))
+        console.print(f"  Report saved to: [bold]{out_path}[/bold]")
+
+
+def _print_scorecard(card: "ScoreCard") -> None:
+    """Print a rich score card to the terminal."""
+    from infracanvas.graph.models import ScoreCard  # noqa: F811
+
+    if card.overall >= 80:
+        score_style = "bold green"
+    elif card.overall >= 60:
+        score_style = "bold yellow"
+    else:
+        score_style = "bold red"
+
+    console.print()
+    console.print("[bold]╔══════════════════════════════════════╗[/bold]")
+    console.print("[bold]║  InfraCanvas Score Card              ║[/bold]")
+    console.print(
+        f"[bold]║[/bold]  project: {card.project}  ·  "
+        f"{card.resource_count} resources  [bold]║[/bold]"
+    )
+    console.print("[bold]╠══════════════════════════════════════╣[/bold]")
+    console.print(
+        f"[bold]║[/bold]  Overall Score    "
+        f"[{score_style}]{card.overall} / 100    {card.overall_grade}[/{score_style}]"
+        f"     [bold]║[/bold]"
+    )
+    console.print("[bold]╠══════════════════════════════════════╣[/bold]")
+
+    for cat in card.categories:
+        if cat.score >= 80:
+            cat_style = "green"
+        elif cat.score >= 60:
+            cat_style = "yellow"
+        else:
+            cat_style = "red"
+        console.print(
+            f"[bold]║[/bold]  {cat.name:<15} [{cat_style}]{cat.score:>3}   "
+            f"{cat.grade:<3}[/{cat_style}]  {cat.finding_count} issue{'s' if cat.finding_count != 1 else ''}"
+            f"  [bold]║[/bold]"
+        )
+
+    if card.top_issues:
+        console.print("[bold]╠══════════════════════════════════════╣[/bold]")
+        console.print("[bold]║[/bold]  Top Issues                          [bold]║[/bold]")
+        sev_icons = {"critical": "🔴", "high": "🟠", "medium": "🟡", "info": "🔵"}
+        for issue in card.top_issues[:5]:
+            icon = sev_icons.get(issue.severity, "⚪")
+            line = f"{icon} {issue.rule_id} {issue.title}"
+            console.print(f"[bold]║[/bold]  {line:<36} [bold]║[/bold]")
+
+    console.print("[bold]╠══════════════════════════════════════╣[/bold]")
+    console.print(
+        f"[bold]║[/bold]  Est. monthly cost: "
+        f"[bold]${card.estimated_monthly_cost:,.0f}[/bold]"
+        f"           [bold]║[/bold]"
+    )
+    console.print("[bold]╚══════════════════════════════════════╝[/bold]")
+    console.print()
 
 
 @app.command()

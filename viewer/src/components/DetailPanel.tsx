@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { X, FileText, Shield, Code } from 'lucide-react';
-import type { ResourceNode as ResourceNodeType } from '../types';
+import { X, FileText, Shield, Code, GitCompare } from 'lucide-react';
+import type { ResourceNode as ResourceNodeType, AttributeChange } from '../types';
 import { useStore } from '../store';
 import { FindingCard } from './FindingCard';
 import { ResourceIcon } from './icons/ResourceIcon';
 import { getResourceColor, driftColors, severityColors } from '../lib/colors';
 
-type Tab = 'overview' | 'findings' | 'attributes';
+type Tab = 'overview' | 'findings' | 'attributes' | 'changes';
 
 export function DetailPanel() {
   const selectedNode = useStore(s => s.selectedNode);
@@ -19,10 +19,14 @@ export function DetailPanel() {
   const typeLabel = node.type.replace(/^aws_/, '').replaceAll('_', ' ');
   const color = getResourceColor(node.type);
 
+  const driftChanges = node.drift_changes ?? [];
   const tabs: { id: Tab; label: string; icon: typeof FileText }[] = [
     { id: 'overview', label: 'Overview', icon: FileText },
     { id: 'findings', label: `Findings (${node.findings.length})`, icon: Shield },
     { id: 'attributes', label: 'Attributes', icon: Code },
+    ...(driftChanges.length > 0
+      ? [{ id: 'changes' as const, label: `Changes (${driftChanges.length})`, icon: GitCompare }]
+      : []),
   ];
 
   return (
@@ -87,6 +91,7 @@ export function DetailPanel() {
         {activeTab === 'overview' && <OverviewTab node={node} />}
         {activeTab === 'findings' && <FindingsTab node={node} />}
         {activeTab === 'attributes' && <AttributesTab node={node} />}
+        {activeTab === 'changes' && <ChangesTab changes={driftChanges} />}
       </div>
     </div>
   );
@@ -217,5 +222,54 @@ function AttributesTab({ node }: { node: { attributes: Record<string, unknown> }
     >
       {JSON.stringify(node.attributes, null, 2)}
     </pre>
+  );
+}
+
+function ChangesTab({ changes }: { changes: AttributeChange[] }) {
+  if (changes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <GitCompare size={24} color="#22c55e" />
+        <div className="text-xs mt-2" style={{ color: '#22c55e' }}>No changes</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {changes.map((change) => (
+        <div
+          key={change.attribute}
+          className="p-2 rounded text-[11px]"
+          style={{ background: '#0a0e17' }}
+        >
+          <div className="font-semibold mb-1" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>
+            {change.attribute}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {change.before != null && (
+              <div style={{ color: '#ef4444' }}>
+                <span style={{ textDecoration: 'line-through' }}>
+                  {change.sensitive ? (
+                    <span style={{ color: '#64748b', fontStyle: 'italic' }}>[sensitive]</span>
+                  ) : (
+                    String(change.before)
+                  )}
+                </span>
+              </div>
+            )}
+            {change.after != null && (
+              <div style={{ color: '#22c55e' }}>
+                {change.sensitive ? (
+                  <span style={{ color: '#64748b', fontStyle: 'italic' }}>[sensitive]</span>
+                ) : (
+                  String(change.after)
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

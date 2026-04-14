@@ -36,6 +36,13 @@ class DriftStatus(StrEnum):
     deleted = "deleted"
 
 
+class AttributeChange(BaseModel):
+    attribute: str
+    before: object = None
+    after: object = None
+    sensitive: bool = False
+
+
 class ResourceNode(BaseModel):
     id: str
     type: str
@@ -49,6 +56,7 @@ class ResourceNode(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     cost: CostEstimate = Field(default_factory=CostEstimate)
     drift: DriftStatus = DriftStatus.unchanged
+    drift_changes: list[AttributeChange] = Field(default_factory=list)
     position: dict[str, float] = Field(default_factory=lambda: {"x": 0.0, "y": 0.0})
 
 
@@ -62,6 +70,25 @@ class GraphSummary(BaseModel):
     drift: dict[str, int] = Field(
         default_factory=lambda: {"added": 0, "changed": 0, "deleted": 0}
     )
+
+
+class CategoryScore(BaseModel):
+    name: str
+    score: int
+    grade: str
+    finding_count: int
+
+
+class ScoreCard(BaseModel):
+    overall: int
+    overall_grade: str
+    categories: list[CategoryScore]
+    top_issues: list[Finding]
+    resource_count: int
+    estimated_monthly_cost: float
+    scan_id: str
+    project: str
+    scanned_at: str
 
 
 class ResourceGraph(BaseModel):

@@ -139,8 +139,8 @@ class TestIntegration:
             check=False,
         )
         data = json.loads(result.stdout)
-        assert "score" in data
-        assert 0 <= data["score"] <= 100
+        assert "overall" in data
+        assert 0 <= data["overall"] <= 100
 
     def test_schema_fields_complete(self):
         """Verify all required schema fields are present in output."""

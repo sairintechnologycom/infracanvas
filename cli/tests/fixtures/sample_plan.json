@@ -1,0 +1,109 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.7.0",
+  "resource_changes": [
+    {
+      "address": "aws_nat_gateway.main",
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "allocation_id": "eipalloc-abc123",
+          "subnet_id": "subnet-abc123",
+          "tags": {"Name": "main-nat"}
+        },
+        "after_sensitive": {},
+        "before_sensitive": false
+      }
+    },
+    {
+      "address": "aws_instance.app",
+      "type": "aws_instance",
+      "name": "app",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "ami": "ami-0c55b159cbfafe1f0",
+          "instance_type": "t3.medium",
+          "tags": {"Name": "app-server"}
+        },
+        "after": {
+          "ami": "ami-0c55b159cbfafe1f0",
+          "instance_type": "m5.large",
+          "tags": {"Name": "app-server"}
+        },
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "aws_s3_bucket.old",
+      "type": "aws_s3_bucket",
+      "name": "old",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "bucket": "my-old-bucket",
+          "acl": "private"
+        },
+        "after": null,
+        "before_sensitive": {},
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "aws_vpc.main",
+      "type": "aws_vpc",
+      "name": "main",
+      "change": {
+        "actions": ["no-op"],
+        "before": {
+          "cidr_block": "10.0.0.0/16"
+        },
+        "after": {
+          "cidr_block": "10.0.0.0/16"
+        },
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "aws_db_instance.secrets",
+      "type": "aws_db_instance",
+      "name": "secrets",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "instance_class": "db.t3.micro",
+          "password": "old-secret"
+        },
+        "after": {
+          "instance_class": "db.t3.micro",
+          "password": "new-secret"
+        },
+        "before_sensitive": {"password": true},
+        "after_sensitive": {"password": true}
+      }
+    },
+    {
+      "address": "aws_lambda_function.replace_me",
+      "type": "aws_lambda_function",
+      "name": "replace_me",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {
+          "runtime": "python3.9",
+          "handler": "main.handler"
+        },
+        "after": {
+          "runtime": "python3.12",
+          "handler": "main.handler"
+        },
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    }
+  ]
+}

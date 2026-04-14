@@ -86,7 +86,7 @@ class TestScoreCommand:
         result = runner.invoke(app, ["score", str(FIXTURES / "simple_vpc"), "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
-        assert "score" in data
+        assert "overall" in data
         assert "categories" in data
 
     def test_score_invalid_directory(self):
@@ -109,6 +109,11 @@ class TestExportCommand:
 
 
 class TestPlanCommand:
-    def test_plan_stub(self, tmp_path):
-        result = runner.invoke(app, ["plan", str(tmp_path / "plan.json")])
-        assert "Phase 2" in result.stdout or result.exit_code == 0
+    def test_plan_command(self):
+        result = runner.invoke(app, [
+            "plan", str(FIXTURES / "simple_vpc"),
+            "--planfile", str(FIXTURES / "sample_plan.json"),
+            "--format", "json",
+            "--output", "/tmp/ic-plan-test.json",
+        ])
+        assert result.exit_code == 0

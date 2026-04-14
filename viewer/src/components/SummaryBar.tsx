@@ -76,6 +76,24 @@ export function SummaryBar() {
       {/* Spacer */}
       <div className="flex-1" />
 
+      {/* Drift counts */}
+      {(summary.drift.added > 0 || summary.drift.changed > 0 || summary.drift.deleted > 0) && (
+        <>
+          <div className="w-px h-5" style={{ background: '#1e293b' }} />
+          <div className="flex items-center gap-1.5 text-[10px] font-medium">
+            {summary.drift.added > 0 && (
+              <span style={{ color: '#22c55e' }}>+{summary.drift.added} added</span>
+            )}
+            {summary.drift.changed > 0 && (
+              <span style={{ color: '#f59e0b' }}>~{summary.drift.changed} changed</span>
+            )}
+            {summary.drift.deleted > 0 && (
+              <span style={{ color: '#ef4444' }}>-{summary.drift.deleted} deleted</span>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Resource count */}
       <span className="text-[11px]" style={{ color: '#64748b' }}>
         {summary.total_resources} resources
@@ -84,7 +102,7 @@ export function SummaryBar() {
       {/* Cost */}
       {summary.estimated_monthly_cost > 0 && (
         <span className="text-[11px] font-medium" style={{ color: '#22c55e' }}>
-          ${summary.estimated_monthly_cost.toFixed(2)}/mo
+          ${summary.estimated_monthly_cost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
         </span>
       )}
 

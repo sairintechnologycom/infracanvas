@@ -30,6 +30,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           background: '#111827',
           border: `1.5px solid ${borderColor}`,
           boxShadow: selected ? `0 0 12px ${borderColor}40` : '0 1px 4px #0003',
+          opacity: data.drift === 'deleted' ? 0.5 : 1,
         }}
       >
         {/* Finding badge */}

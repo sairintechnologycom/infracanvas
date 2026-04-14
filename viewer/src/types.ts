@@ -17,6 +17,13 @@ export interface CostEstimate {
   basis: string;
 }
 
+export interface AttributeChange {
+  attribute: string;
+  before: unknown;
+  after: unknown;
+  sensitive: boolean;
+}
+
 export interface ResourceNode {
   id: string;
   type: string;
@@ -30,6 +37,7 @@ export interface ResourceNode {
   findings: Finding[];
   cost: CostEstimate;
   drift: DriftStatus;
+  drift_changes?: AttributeChange[];
   position: { x: number; y: number };
 }
 
