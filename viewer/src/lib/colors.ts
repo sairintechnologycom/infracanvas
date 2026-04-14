@@ -1,3 +1,4 @@
+import { MarkerType } from '@xyflow/react';
 import type { DriftStatus, Severity } from '../types';
 
 export const severityColors: Record<Severity | 'clean', string> = {
@@ -19,6 +20,33 @@ export const edgeColors: Record<string, string> = {
   implicit: '#475569',
   explicit: '#3b82f6',
   depends_on: '#f97316',
+};
+
+export type EdgeRelationship = 'containment' | 'attachment' | 'dependency' | 'access';
+
+export const EDGE_STYLES: Record<EdgeRelationship, null | {
+  style: Record<string, unknown>;
+  markerEnd?: { type: MarkerType; color: string };
+  animated: boolean;
+  labelStyle?: Record<string, unknown>;
+}> = {
+  containment: null,
+  attachment: {
+    style: { stroke: '#475569', strokeWidth: 1.5 },
+    markerEnd: undefined,
+    animated: false,
+  },
+  dependency: {
+    style: { stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 3' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#475569' },
+    animated: false,
+  },
+  access: {
+    style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '6 4' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#1e3a5f' },
+    animated: false,
+    labelStyle: { fontSize: 10, fill: '#64748b' },
+  },
 };
 
 const resourceTypeColors: Record<string, string> = {

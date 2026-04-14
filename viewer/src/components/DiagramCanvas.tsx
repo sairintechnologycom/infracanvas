@@ -89,6 +89,10 @@ export function DiagramCanvas() {
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+        }}
+        connectionLineStyle={{ stroke: '#334155', strokeWidth: 1 }}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}

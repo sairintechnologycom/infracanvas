@@ -59,6 +59,15 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           >
             {typeLabel}
           </span>
+          {/* Issue 3: SG attachment indicator */}
+          {data.type === 'aws_security_group' && (
+            <span
+              className="text-[9px] px-1 py-0.5 rounded"
+              style={{ background: '#47556920', color: '#94a3b8' }}
+            >
+              attached
+            </span>
+          )}
         </div>
 
         {/* Resource name */}
