@@ -1,0 +1,21 @@
+- id: SEC-005
+  title: "RDS Instance Publicly Accessible"
+  severity: critical
+  resource_types: ["aws_rds_instance", "aws_db_instance"]
+  condition:
+    attribute: "publicly_accessible"
+    operator: "equals"
+    value: true
+  remediation: "Set publicly_accessible to false and use VPC security groups for access"
+  description: "RDS instance is publicly accessible from the internet"
+
+- id: SEC-006
+  title: "RDS Instance Missing Encryption"
+  severity: high
+  resource_types: ["aws_rds_instance", "aws_db_instance"]
+  condition:
+    attribute: "storage_encrypted"
+    operator: "not_exists"
+    values: []
+  remediation: "Enable storage_encrypted = true on the RDS instance"
+  description: "RDS instance does not have storage encryption enabled"

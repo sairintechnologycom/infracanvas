@@ -1,0 +1,10 @@
+- id: SEC-007
+  title: "IAM Policy with Wildcard Action"
+  severity: critical
+  resource_types: ["aws_iam_policy"]
+  condition:
+    attribute: "policy"
+    operator: "contains"
+    value: "\"Action\":\"*\""
+  remediation: "Replace wildcard Action with specific required permissions following least privilege"
+  description: "IAM policy grants wildcard (*) Action which provides unrestricted access"

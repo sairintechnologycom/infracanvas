@@ -1,0 +1,42 @@
+- id: SEC-008
+  title: "EBS Volume Unencrypted"
+  severity: high
+  resource_types: ["aws_instance"]
+  condition:
+    attribute: "root_block_device.encrypted"
+    operator: "not_exists"
+    values: []
+  remediation: "Enable encryption on root_block_device and all ebs_block_device blocks"
+  description: "EC2 instance does not have encrypted root block device"
+
+- id: SEC-009
+  title: "KMS Key Rotation Disabled"
+  severity: medium
+  resource_types: ["aws_kms_key"]
+  condition:
+    attribute: "enable_key_rotation"
+    operator: "not_exists"
+    values: []
+  remediation: "Set enable_key_rotation = true to enable automatic annual key rotation"
+  description: "KMS key does not have automatic key rotation enabled"
+
+- id: SEC-010
+  title: "Missing Required Tags"
+  severity: info
+  resource_types:
+    - "aws_vpc"
+    - "aws_subnet"
+    - "aws_security_group"
+    - "aws_instance"
+    - "aws_s3_bucket"
+    - "aws_rds_instance"
+    - "aws_db_instance"
+    - "aws_lambda_function"
+    - "aws_dynamodb_table"
+    - "aws_kms_key"
+  condition:
+    attribute: "tags"
+    operator: "not_exists"
+    values: []
+  remediation: "Add tags block with at least Name and Environment tags to all resources"
+  description: "Resource is missing required tags (Name, Environment)"

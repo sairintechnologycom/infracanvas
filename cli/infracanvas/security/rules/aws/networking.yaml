@@ -1,0 +1,21 @@
+- id: SEC-003
+  title: "Security Group Allows SSH/RDP from Internet"
+  severity: critical
+  resource_types: ["aws_security_group"]
+  condition:
+    attribute: "ingress.cidr_blocks"
+    operator: "list_contains_cidr"
+    values: ["0.0.0.0/0"]
+  remediation: "Restrict SSH (22) and RDP (3389) access to specific IP ranges"
+  description: "Security group allows inbound SSH or RDP access from 0.0.0.0/0"
+
+- id: SEC-004
+  title: "Security Group Allows All Traffic from Internet"
+  severity: high
+  resource_types: ["aws_security_group"]
+  condition:
+    attribute: "ingress.cidr_blocks"
+    operator: "list_contains_cidr"
+    values: ["0.0.0.0/0"]
+  remediation: "Restrict inbound rules to specific IP ranges and required ports only"
+  description: "Security group has an inbound rule allowing traffic from 0.0.0.0/0"

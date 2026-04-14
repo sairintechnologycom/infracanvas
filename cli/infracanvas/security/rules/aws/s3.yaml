@@ -1,0 +1,21 @@
+- id: SEC-001
+  title: "S3 Bucket Publicly Accessible"
+  severity: critical
+  resource_types: ["aws_s3_bucket"]
+  condition:
+    attribute: "acl"
+    operator: "in"
+    values: ["public-read", "public-read-write"]
+  remediation: "Set acl to 'private' and use bucket policies for granular access control"
+  description: "S3 bucket has public ACL which exposes all objects to the internet"
+
+- id: SEC-002
+  title: "S3 Bucket Missing Encryption"
+  severity: high
+  resource_types: ["aws_s3_bucket"]
+  condition:
+    attribute: "server_side_encryption_configuration"
+    operator: "not_exists"
+    values: []
+  remediation: "Enable server-side encryption using AES-256 or aws:kms"
+  description: "S3 bucket does not have server-side encryption configured"
