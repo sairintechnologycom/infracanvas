@@ -28,7 +28,11 @@ Thumbs.db
 # Reports (generated output)
 infracanvas-report.json
 infracanvas-report.html
+.coverage
 
 # Env
 .env
 .env.local
+
+# Build
+*.tsbuildinfo

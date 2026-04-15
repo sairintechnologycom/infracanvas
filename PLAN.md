@@ -1,269 +1,353 @@
-# InfraCanvas — Product Blueprint
+# InfraCanvas — Product Blueprint v2.0
 
 ## One-Liner
-**One command. Full picture. Every blind spot visible.**
+**Terraform scan to board-ready architecture diagram in 30 seconds — with every security risk highlighted.**
 
-InfraCanvas parses Terraform code and imports live cloud resources to generate interactive architecture diagrams annotated with security findings, drift markers, cost estimates, and compliance flags.
+---
+
+## What We're Building
+
+InfraCanvas is a hybrid cloud intelligence platform that gives engineering and leadership teams a single visual pane of glass across AWS, Azure, and physical data centre infrastructure — showing configuration, security, network traffic paths, and cost in real time.
+
+Not a diagramming tool. Not a security scanner. Not a network monitor. All four, unified, in one platform across three intelligence layers.
 
 ---
 
 ## Problem Statement
 
-Cloud engineers and architects today juggle 4–5 disconnected tools:
-- **Diagramming**: Cloudcraft, Lucidchart, draw.io (manual, always outdated)
-- **Security scanning**: Checkov, tfsec, Snyk IaC (CLI output, no visual context)
-- **Drift detection**: Terraform plan, Firefly, env0 (text-based, hard to communicate)
-- **Cost estimation**: Infracost (numbers without architecture context)
-- **Compliance**: Manual checklists or expensive GRC platforms
+Cloud teams running production infrastructure across AWS and Azure cannot answer the question "Is our infrastructure in the state we think it is?" at any given moment — without days of manual audit work.
 
-**The pain**: No single tool answers "Is this infrastructure healthy?" visually. Security findings lack architecture context. Diagrams are always stale. Communicating infrastructure state to leadership or auditors requires hours of manual work.
+| Tool | What it does | What it misses |
+|------|-------------|----------------|
+| Cloudcraft / draw.io | Pretty diagrams | Always stale, manual |
+| Checkov / tfsec | Security findings | No architectural context |
+| Terraform plan | Drift detection | Unreadable to non-engineers |
+| Infracost | Cost estimates | No visual context |
+| GRC platforms | Compliance | $50k+/year, overkill |
 
-**Who feels this most**:
-1. Platform/DevOps engineers reviewing PRs with IaC changes
-2. Cloud architects presenting infrastructure to stakeholders
-3. Security engineers auditing cloud environments
-4. CTOs/VPs who need infrastructure visibility without reading HCL
+**Specific pain points this product was built from:**
+- Resources deployed manually, bypassing Terraform entirely (shadow infrastructure)
+- Network changes made inconsistently across 2 regions
+- Standards not followed despite Terraform being used — no enforcement
+- Services never upgraded — Lambda on EOL runtimes, Azure Apps on old stacks
+- Tags inconsistent — shared infrastructure cost invisible
+- Resource locks missing or incorrectly configured
+- Firewall rules approaching capacity exhaustion (no alert until it breaks)
+- Asymmetric routing between AWS and Azure through physical data centres — forward and return paths diverge, stateful firewalls see only one direction, diagnosis takes hours
+- No single view of what a packet path looks like from AWS Singapore to Azure Australia East through two data centre legs with BGP + static routing mixed
+
+Nobody has connected all of these. We will.
+
+---
+
+## Three Products
+
+### 1. Canvas — Infrastructure Intelligence
+*"What exists, and is it configured correctly?"*
+
+Parses Terraform code and live cloud APIs to generate interactive architecture diagrams. Detects drift, security misconfigurations, policy violations, shadow infrastructure, and runtime staleness. The entry point for every user.
+
+### 2. FlowMap — Network Path Intelligence
+*"What path does traffic actually take, and why?"*
+
+Visualises complete hybrid network topology end-to-end: AWS Transit Gateway → physical data centres (Cisco routers, BGP + static routing) → Azure Secure Hub / vWAN. Detects asymmetric routing, monitors firewall capacity, alerts on route changes. The feature no competitor has attempted.
+
+### 3. CostLens — FinOps Intelligence
+*"What is shared infrastructure actually costing, and who is consuming it?"*
+
+Allocates shared infrastructure costs (Transit Gateway, Secure Hub, ExpressRoute, Direct Connect, Azure Firewall throughput) by workload and team. Shows per-path data transfer costs and identifies optimisation opportunities. Opens the FinOps budget conversation.
 
 ---
 
 ## Target Users & Personas
 
-### Primary: Platform Engineer ("Priya")
+### Primary Buyer: Cloud Architect ("Alex")
+- Maintains architecture docs that are always 3 months stale
+- Presents infrastructure state to leadership and auditors quarterly
+- Signs or influences $200–999/month SaaS decisions
+- **Job to be done**: "Give me a defensible, always-current architecture diagram I can put in front of a CISO without embarrassment"
+- **Conversion path**: Priya installs → team sees value → Alex approves Team/Enterprise
+
+### Primary User / Distribution Channel: Platform Engineer ("Priya")
 - Reviews 10+ Terraform PRs/week
-- Needs to spot security gaps and architectural regressions fast
-- Currently runs tfsec + terraform plan + manually draws changes
-- **Job to be done**: "Show me what this PR actually changes, visually, with any problems highlighted"
+- Currently runs tfsec + terraform plan + manually pieces together the story
+- Discovers InfraCanvas through open-source CLI, becomes internal champion
+- **Job to be done**: "Show me what this PR actually changes, visually, with problems highlighted"
+- **Conversion path**: Free CLI → Pro ($79/mo) → brings to team
 
-### Secondary: Cloud Architect ("Alex")
-- Maintains architecture documentation (always outdated)
-- Presents infrastructure state to leadership quarterly
-- **Job to be done**: "Give me an always-current, shareable architecture diagram"
-
-### Tertiary: Security Engineer ("Sam")
+### High-Value Expansion: Security / Network Engineer ("Sam")
+- Gets the 2am call when something breaks
+- Diagnoses asymmetric routing manually — correlating TGW route tables, Azure effective routes, DC BGP state, firewall logs across 4–5 systems
 - Audits cloud environments for compliance
-- Needs to trace blast radius of misconfigurations
-- **Job to be done**: "Show me every security finding in context of the full architecture"
+- **Job to be done**: "Show me every finding in context of the full architecture. Why can't X reach Y?"
+- **Conversion path**: Team tier user → drives Enterprise conversation around compliance and troubleshooting wizard
+
+> **Co-founder rule**: Priya installs it. Alex pays for it. Every product and marketing decision gets filtered through this lens.
 
 ---
 
-## Core Features (MVP — v1.0)
+## Open-Source Strategy
 
-### F1: Terraform Parser & Resource Graph
-- Parse HCL files (`.tf`, `.tfvars`) into a resource dependency graph
-- Support Terraform state files (`.tfstate`) for live resource import
-- Extract: resource types, names, dependencies, provider, region
-- Handle modules, data sources, locals, variables
+We open-source the CLI core. This is intentional and strategic — not a concession.
+
+### What's Open-Source (MIT License)
+- Terraform HCL parser → resource dependency graph
+- Diagram layout engine (force-directed + hierarchical)
+- AWS/Azure/GCP resource icon library
+- JSON output schema and spec
+- Basic HTML export renderer
+- Top 10 security rules (enough to be useful, not enough to replace Pro)
+
+### What Stays Closed (Commercial Only)
+- Full security annotation engine (30+ rules, severity scoring, contextual findings)
+- Drift detection and before/after diffing
+- Cost estimation overlay
+- FlowMap network intelligence engine
+- DC collector agent
+- SaaS dashboard, history, sharing
+- Compliance framework mappings (SOC2, HIPAA, PCI)
+- CI/CD webhook integrations
+
+**Why this works**: HashiCorp proved this model with Terraform. Grafana proved it with dashboards. The open-source core gets us into every Terraform community on earth. The closed features are what enterprises need and what converts engineers into budget conversations with their managers.
+
+**The fork risk**: If someone forks the core and adds security rules, we compete on depth, UX, and the SaaS layer. Our domain expertise means our security rules catch contextual blast radius, cross-resource relationship findings, and compliance-mapped annotations that a weekend fork won't produce correctly.
+
+---
+
+## Phase 0: Validate Before Building (Weeks 1–4)
+
+**This is non-negotiable. No production code until we have evidence.**
+
+### Week 1–2: The Fake Demo Test
+- Take a real open-source Terraform repo (Gruntwork reference architecture)
+- Manually build a diagram in Excalidraw with colour-coded security badges overlaid
+- Post across r/devops, r/Terraform, Terraform Discord, LinkedIn
+- Collect responses via Typeform: role, team size, current toolchain, willingness to pay
+
+### Week 3–4: Pre-Sales
+- DM every positive responder
+- Offer founding member pricing — $49/month locked forever, paid now
+- Set up Stripe. Count credit cards, not compliments.
+
+**Go/No-Go Signal**: 10 paying pre-sales OR 50 genuine "I would pay" responses from target personas with contact details. If we can't hit that with our combined network and 20 years of cloud credibility, the GTM is wrong.
+
+---
+
+## Core Features — MVP (Canvas v0.1)
+
+**Three features only. Nothing else.**
+
+### F1: Terraform Parser + Resource Graph
+- Parse `.tf` files and `.tfstate` — AWS only at launch
+- Support flat configs + up to 3 levels of module nesting
+- Extract resource types, names, dependencies, region, provider
+- Hard scope: no Terragrunt, no workspaces
 
 ### F2: Interactive Architecture Diagram
-- Auto-layout using force-directed + hierarchical algorithms
-- Cloud provider icons (AWS, Azure, GCP — start with AWS)
-- Grouping by: VPC/VNET, subnet, region, module, resource type
+- Auto-layout with AWS service icons
+- Grouping by VPC, subnet, module
 - Zoom, pan, search, filter by resource type
-- Export as PNG, SVG, PDF
+- Single-file HTML export (zero dependencies, emails cleanly, opens in any browser)
 
-### F3: Security Annotation Engine
-- 30 high-impact rules at launch:
-  - Public S3 buckets / storage accounts
-  - Security groups with 0.0.0.0/0 ingress
-  - Unencrypted databases, volumes, buckets
-  - IAM policies with * actions or * resources
-  - Missing logging (CloudTrail, VPC Flow Logs)
-  - Untagged resources
-  - Publicly accessible RDS/databases
-  - Missing WAF on ALB/CloudFront
-  - Root account usage indicators
-  - KMS key rotation disabled
-- Severity levels: Critical / High / Medium / Info
-- Visual overlay: color-coded badges on affected resources
-- Click-to-expand finding detail + remediation suggestion
+### F3: Security Annotation Engine (10 rules, closed-source)
+1. S3 bucket publicly accessible (ACL)
+2. Security group 0.0.0.0/0 ingress on sensitive ports
+3. RDS publicly accessible
+4. RDS no encryption
+5. IAM policy with Action: "*"
+6. IAM policy with Resource: "*"
+7. Missing CloudTrail logging
+8. VPC Flow Logs disabled
+9. KMS key rotation disabled
+10. Untagged resources (missing Name, Environment, Owner)
 
-### F4: Drift Detection (v1 — Plan-based)
-- Compare `terraform plan` output against current diagram
-- Highlight: additions (green), deletions (red), modifications (amber)
-- Show before/after for modified resources
-- "What changed" summary panel
-
-### F5: Cost Estimation Overlay
-- Integrate with Infracost pricing data (or build lightweight estimator)
-- Show estimated monthly cost per resource and per group
-- Total infrastructure cost visible on diagram
-- Cost delta on drift/changes
-
-### F6: CLI Tool
-- `infracanvas scan ./terraform` — scan local Terraform directory
-- `infracanvas plan ./terraform` — scan + show plan diff
-- `infracanvas export ./terraform --format=html|json|svg|png`
-- `infracanvas serve` — local web viewer
-- Output: interactive HTML report (single file, zero dependencies)
-- JSON output for CI/CD integration
-
-### F7: SaaS Dashboard (v1)
-- Project management (connect repos, upload state files)
-- History: diagram snapshots over time
-- Sharing: public/private links with optional password
-- Team workspace with role-based access
-- Webhook for CI/CD triggers (push to main → auto-scan)
+Free tier shows findings exist but hides details. That's the conversion moment.
 
 ---
 
-## Features Deferred (v2+)
+## Full Feature Roadmap
 
-- **Multi-cloud support**: Azure, GCP resource parsing
-- **PR Review Bot**: GitHub/GitLab bot that posts diagram diff as PR comment
-- **Compliance frameworks**: SOC2, HIPAA, PCI-DSS mapped to findings
-- **Custom policy engine**: Write custom rules in Rego/YAML
-- **Pulumi/CDK support**: Parse other IaC frameworks
-- **Live cloud import**: Direct AWS/Azure/GCP API import (no Terraform required)
-- **Slack/Teams integration**: Alert on new critical findings
-- **SBOM integration**: Map software dependencies to infrastructure
-- **AI insights**: Natural language queries ("What's my blast radius if us-east-1 goes down?")
+### v0.1 — MVP (Month 1–2)
+- Canvas: Terraform parser (AWS), interactive diagram, 10 security rules, HTML export
+- `infracanvas score` — Report Card mechanic, shareable 0–100 score card
+- Open-source repo public, pip + Homebrew
+
+### v1.0 — Canvas Growth Release (Month 3–4)
+- Drift detection (plan-based visual diff — green/red/amber)
+- Cost estimation overlay (Infracost integration)
+- Full CLI: scan, plan, score, export, serve
+- 30 security rules (20 additional closed-source)
+- Azure core resources (10 types)
+- Runtime staleness checks (Lambda EOL, AKS/EKS version lag)
+- Shadow infrastructure detection (live API vs Terraform state diff)
+- Custom policy engine v1 (YAML — naming conventions, required tags, approved regions, approved instance types)
+- Resource lock validation
+- Tag compliance checking
+- PNG, SVG, PDF export
+
+### v1.5 — FlowMap Release (Month 5–7)
+- Hybrid network topology visualisation (AWS TGW → DC → Azure Secure Hub)
+- BGP + static routing correlation
+- Asymmetric routing detector (forward path + return path simultaneously)
+- Firewall capacity monitoring (Azure Firewall, Checkpoint R80+, Cisco ASA/FTD)
+- Stale firewall rule detection (zero hit count in 90 days)
+- Route change alerting (BGP withdrawal, static route modification)
+- DC Collector Agent (Cisco NETCONF/RESTCONF primary, SSH CLI fallback, NetFlow v9/IPFIX)
+- Checkpoint Management API integration (no agent required)
+- Cisco ASA REST API + Cisco FMC single-endpoint for FTD devices
+- ZIA forwarding rule visualisation (Zscaler internet-bound traffic interception)
+- Network-specific findings: static route no failover, static/BGP asymmetry, undocumented static (shadow config), stale static route
+- Team tier ($299/mo) unlocked
+
+### v2.0 — SaaS Dashboard + CostLens (Month 8–10)
+- SaaS Dashboard:
+  - Project management, repo connections
+  - Scan history and point-in-time snapshots
+  - Shareable links (public/private/password-protected, no login required)
+  - Team workspace, role-based access (owner/admin/member/viewer), 15 users
+  - CI/CD webhook (push to main → auto-scan → Slack alert)
+  - Historical comparison (any two scans side-by-side)
+- CostLens:
+  - TGW attachment cost split by workload/team
+  - Azure Secure Hub data processing fees by source
+  - ExpressRoute/Direct Connect port fees allocated per consumer
+  - Azure Firewall per-GB throughput cost overlaid on FlowMap traffic
+  - Cross-cloud data transfer costs by workload and flow
+  - Per-path cost comparison with optimisation recommendations
+  - Idle resource detection (running, zero traffic 30 days)
+
+### v3.0 — Enterprise Moat (Month 10–12)
+- Compliance frameworks: SOC2, HIPAA, PCI-DSS mapped to findings, auto-generated evidence reports
+- SSO (SAML/OIDC via Clerk Enterprise) + full audit logs
+- Custom policy engine v2 (Rego + YAML, team-namespaced policy sets)
+- Self-hosted deployment (Docker Compose + Helm chart, air-gapped support)
+- GitHub PR Bot — diagram diff + security delta posted as PR comment
+- NMS integrations: SolarWinds, PRTG, NetBrain API pull (avoids agent where NMS exists)
+- Palo Alto / Fortinet NVA support (firewall rule API integrations)
+- Zscaler ZPA topology: connector topology inside AWS + Azure mapped on diagram
+- Zscaler ZDX: hop-by-hop path traces including backbone segments
+- Network troubleshooting wizard: "Why can't X reach Y?" traces SGs, NACLs, route tables, firewall rules in sequence
+- Network path analyser (all possible paths between two resources)
+- SG rule visualiser as diagram edges
+- Route table + NACL overlay on subnet diagram
+- Enterprise tier ($999+/mo)
+
+### v4.0 — Horizon (Year 2)
+- Live cloud import (no Terraform required — direct AWS/Azure API)
+- AI natural language queries ("What's my blast radius if us-east-1 goes down?")
+- Pulumi / CDK / Bicep support
+- SBOM integration (software dependencies mapped to infrastructure)
+- GCP support
 
 ---
 
-## User Stories & Acceptance Criteria
+## CLI Design
 
-### US-1: Scan Terraform Directory
-**As a** platform engineer
-**I want to** run a single CLI command against my Terraform directory
-**So that** I get an interactive architecture diagram without manual setup
+```bash
+# Core commands
+infracanvas scan ./terraform              # Scan + diagram + security findings
+infracanvas plan ./terraform              # Scan + show plan diff
+infracanvas export ./terraform --format=html|json|svg|png
+infracanvas serve ./terraform             # Local web viewer
+infracanvas score ./terraform             # Infrastructure Report Card (viral mechanic)
 
-**Acceptance Criteria**:
-- [ ] `infracanvas scan ./infra` produces an HTML file
-- [ ] All resource types in supported providers are rendered
-- [ ] Module references are resolved and shown
-- [ ] Runs in < 10 seconds for projects with < 500 resources
-- [ ] Exit code 0 on success, non-zero with descriptive error on failure
+# CI/CD
+infracanvas scan ./terraform --ci --severity=high  # Exit code based on findings
+infracanvas scan ./terraform --quiet               # JSON only to stdout
+infracanvas scan ./terraform --ignore=SEC-018      # Skip specific rules
+```
 
-### US-2: View Security Findings in Context
-**As a** security engineer
-**I want to** see security findings overlaid on the architecture diagram
-**So that** I understand the blast radius and context of each finding
-
-**Acceptance Criteria**:
-- [ ] Each finding is a clickable badge on the affected resource
-- [ ] Badge color reflects severity
-- [ ] Click opens detail panel with description, impact, remediation
-- [ ] Filter/sort by severity level
-- [ ] Summary count of findings by severity visible at all times
-
-### US-3: Visualize Terraform Plan Changes
-**As a** platform engineer reviewing a PR
-**I want to** see what infrastructure changes a Terraform plan introduces
-**So that** I can approve/reject with visual understanding
-
-**Acceptance Criteria**:
-- [ ] `infracanvas plan ./infra` reads `terraform show -json plan.out`
-- [ ] Additions shown in green, deletions in red, changes in amber
-- [ ] Changed resources show before/after diff on click
-- [ ] Summary panel shows total adds/changes/deletes
-
-### US-4: Share Diagram with Stakeholders
-**As a** cloud architect
-**I want to** share a live architecture diagram via link
-**So that** leadership can see current infrastructure without Terraform knowledge
-
-**Acceptance Criteria**:
-- [ ] Generate shareable link from dashboard
-- [ ] Link opens interactive diagram (zoom, pan, filter)
-- [ ] Optional password protection
-- [ ] Viewer does not require login
-- [ ] Diagram reflects latest scan
-
-### US-5: Track Infrastructure Changes Over Time
-**As a** platform team lead
-**I want to** see how infrastructure has evolved over time
-**So that** I can audit changes and understand architectural drift
-
-**Acceptance Criteria**:
-- [ ] Dashboard shows timeline of scans per project
-- [ ] Click any historical scan to view that point-in-time diagram
-- [ ] Compare any two scans side-by-side
-- [ ] Export change history as PDF report
+Output is always a single self-contained HTML file. Zero dependencies. Opens in any browser. Emails cleanly. This matters because the diagram needs to reach Alex without Priya having to explain how to open it.
 
 ---
 
-## Pricing & Revenue Model
+## Pricing
 
-| Tier | Price | Limits | Target |
-|------|-------|--------|--------|
-| **Free** | $0 | CLI only, 3 projects, basic diagrams, no security | Individual devs, trial |
-| **Pro** | $49/mo | Unlimited projects, security annotations, drift, cost overlay, HTML export | Solo engineers, freelancers |
-| **Team** | $199/mo | Dashboard, 10 users, history, sharing, CI/CD webhook, PR bot (v2) | Platform teams (5-15 people) |
-| **Enterprise** | $499+/mo | SSO, compliance frameworks, custom policies, SLA, priority support | Mid-market companies |
+| Tier | Price | What You Get | Target |
+|------|-------|-------------|--------|
+| **Free** | $0 | CLI forever, 1 project, full diagram, 5 security finding teasers | Individual devs, trial |
+| **Pro** | $79/mo | Unlimited projects, all 30+ security rules, drift, cost overlay, shadow infra, runtime staleness, custom policies, all export formats | Solo engineers, freelancers |
+| **Team** | $299/mo | Everything in Pro + FlowMap (hybrid topology, asymmetric routing, firewall capacity), SaaS dashboard, 15 users, scan history, sharing, CostLens (shared infra cost allocation), CI/CD webhook | Platform teams |
+| **Enterprise** | $999+/mo | Everything in Team + compliance frameworks, SSO, Zscaler ZPA/ZDX, NMS integrations, network troubleshooting wizard, self-hosted, SLA, priority support | Mid-market and up |
 
-**Revenue target**: 200 Pro + 50 Team = $19,750 MRR within 12 months
+**Conversion mechanic**: Free tier shows a banner on every scan: *"3 critical findings hidden. Your infrastructure may be exposed. Upgrade to Pro to view."*
+
+**Revenue target**: 200 Pro + 50 Team = $30,750 MRR within 12 months
 
 ---
 
 ## Go-to-Market Strategy
 
-### Phase 1: Developer Adoption (Month 1-3)
-- Open-source the CLI core (diagram generation only)
-- Publish to npm/pip, Homebrew
-- "Show HN" launch + dev.to/medium technical posts
-- Target: 1,000 CLI installs, 100 GitHub stars
+### Phase 0: Validate (Month 0 — Right Now)
+- Fake demo post across communities
+- 10 pre-sales at founding member pricing ($49/mo locked)
+- 20 customer conversations minimum
 
-### Phase 2: Content-Led Growth (Month 3-6)
-- "Infrastructure Report Card" — viral mechanic:
-  - Run `infracanvas score ./infra` → generates a shareable score card
-  - Security score, cost efficiency score, compliance readiness
-  - Social sharing ("My infrastructure scored 72/100")
-- Weekly blog: "Terraform Anti-Patterns" series using InfraCanvas diagrams
-- Target: 5,000 CLI installs, 500 free signups
+### Phase 1: CLI Launch (Month 1–3)
+- Open-source core to GitHub → pip, Homebrew
+- **Lead with Infrastructure Report Card** — not the diagram
+  - `infracanvas score ./infra` → shareable score card
+  - "My infrastructure scored 71/100" designed for LinkedIn + Twitter
+- Show HN launch timed to open-source release
+- Target: 2,000 CLI installs, 200 GitHub stars, 50 free signups
 
-### Phase 3: Team Conversion (Month 6-12)
-- Launch Team tier with dashboard
+### Phase 2: Content Engine (Month 3–6)
+- Weekly "Terraform Anti-Patterns" series — each post uses InfraCanvas diagrams
+- "AWS Architecture Reviews" — submit your Terraform, reviewed live with the tool
+- YouTube: "terraform security" + "aws architecture diagram" keywords
+- Target: 8,000 CLI installs, 500 free signups, 50 Pro subscribers
+
+### Phase 3: Team Conversion (Month 6–12)
+- Team dashboard launch + FlowMap release (the category-defining feature)
 - GitHub Marketplace listing
-- Case studies from early Pro users
-- Target: 200 Pro, 50 Team subscribers
-
-### Distribution Channels (PLG)
-1. **CLI → SaaS upgrade**: Free CLI includes "upgrade for security insights" CTA
-2. **GitHub Marketplace**: One-click install for org-wide scanning
-3. **Content marketing**: Terraform tutorials, architecture review content
-4. **Community**: Discord for users, Terraform community engagement
-5. **Partnerships**: DevOps tool directories (StackShare, AlternativeTo)
+- Direct outreach to platform teams at Series A–C startups
+- Case studies from Pro users
+- Target: 200 Pro, 50 Team, $30,750 MRR
 
 ---
 
-## Competitive Analysis
+## Competitive Position
 
-| Feature | InfraCanvas | Brainboard | Pluralith | Hava.io | Cloudcraft |
-|---------|-------------|------------|-----------|---------|------------|
-| Terraform parsing | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Live cloud import | v2 | ✅ | ❌ | ✅ | ✅ |
-| Security findings | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Drift detection | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Cost overlay | ✅ | ❌ | ✅ | ❌ | ✅ |
-| CLI-first | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Open-source core | ✅ | ❌ | ❌ | ❌ | ❌ |
-| PR integration | v2 | ❌ | ✅ | ❌ | ❌ |
-| Self-hosted option | v2 | ❌ | ❌ | ❌ | ❌ |
+| Feature | InfraCanvas | Brainboard | Pluralith | Hava.io | Cloudcraft | NetBrain |
+|---------|-------------|------------|-----------|---------|------------|---------|
+| Terraform parsing | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Security findings | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Drift detection | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Cost overlay | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| CLI-first | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Open-source core | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Hybrid network topology | ✅ | ❌ | ❌ | ❌ | ❌ | Partial |
+| Asymmetric routing detect | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| DC collector agent | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Firewall capacity monitor | ✅ | ❌ | ❌ | ❌ | ❌ | Partial |
+| Shared cost allocation | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-**Defensible moat**: The combination of visual architecture + security + drift + cost in a CLI-first, open-source-core package. No one does all four.
+**Defensible moat**: The combination of visual architecture + security + hybrid network intelligence + cost in a CLI-first, open-core package with a DC collector agent for physical infrastructure. No competitor does all of this. The asymmetric routing detector and Cisco/Checkpoint/Zscaler integrations are things no one has built at this price point.
 
 ---
 
 ## Key Metrics
 
-| Metric | Target (6 months) | Target (12 months) |
-|--------|-------------------|---------------------|
-| CLI installs | 5,000 | 20,000 |
-| GitHub stars | 500 | 2,000 |
-| Free signups | 500 | 2,000 |
-| Pro subscribers | 50 | 200 |
-| Team subscribers | 10 | 50 |
-| MRR | $4,450 | $19,750 |
-| NPS | 40+ | 50+ |
+| Metric | Month 3 | Month 6 | Month 12 |
+|--------|---------|---------|---------|
+| CLI installs | 2,000 | 8,000 | 25,000 |
+| GitHub stars | 200 | 800 | 3,000 |
+| Free signups | 50 | 500 | 2,500 |
+| Pro subscribers | 10 | 50 | 200 |
+| Team subscribers | 0 | 10 | 50 |
+| MRR | $790 | $6,950 | $30,750 |
+| Free → Pro conversion | — | 10% | 12% |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Terraform parsing complexity (modules, workspaces) | MVP delay | Start with flat configs, add module support iteratively |
-| Security rules quality vs. Checkov/tfsec | Credibility | Focus on visual context as differentiator, not rule count |
-| Low conversion free→paid | Revenue | Gate security insights (highest value) behind Pro |
-| Cloud provider API changes | Maintenance | Abstract provider layer, community-contributed icons |
-| Solo founder bandwidth | Everything | Ruthless MVP scoping, open-source for community contributions |
+| Risk | Our Response |
+|------|-------------|
+| Terraform parsing complexity (modules, workspaces) | Hard scope at launch: AWS only, 3 module levels, no Terragrunt. Expand based on customer demand. |
+| Fork risk on open-source | Compete on depth and UX, not rule count. 20yr domain expertise is the moat. |
+| Engineer ≠ buyer problem | Build for Alex (buyer), distribute through Priya (user). Every feature asks "how does Alex see this?" |
+| Conversion free → paid | Security teaser gate is the primary mechanism. Report Card virality drives top of funnel. |
+| DC agent adoption (enterprise) | Config file import fallback for offline topology. NETCONF removes fragility for modern IOS-XE. |
+| Zscaler interception invisible | ZDX API gives hop-by-hop path traces including Zscaler backbone — complete picture only at Enterprise tier. |
+| Parsing BGP + static mixed topologies | Start with cloud API segments (clean data). DC agent adds physical legs. Static routes parsed from router configs. |
