@@ -2,11 +2,11 @@
 
 ## What This Is
 
-InfraCanvas is a CLI tool and SaaS platform that parses Terraform code to generate interactive architecture diagrams annotated with security findings, drift markers, cost estimates, and compliance scores. It targets platform engineers, cloud architects, and security engineers who need visual infrastructure understanding without manual diagramming.
+InfraCanvas is a hybrid cloud intelligence platform that gives engineering and leadership teams a single visual pane of glass across AWS, Azure, and physical data centre infrastructure — showing configuration, security, network traffic paths, and cost in real time. It combines three products: Canvas (infrastructure diagrams + security), FlowMap (hybrid network topology + asymmetric routing detection), and CostLens (shared infrastructure cost allocation). CLI-first, open-core, with a SaaS dashboard for teams.
 
 ## Core Value
 
-One command gives you a complete, annotated picture of your infrastructure — security blind spots, drift, and cost — so you never have to manually assemble that picture from 5 different tools again.
+One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres, so you never have to manually correlate 5 different tools to answer "is our infrastructure in the state we think it is?"
 
 ## Requirements
 
@@ -26,64 +26,121 @@ One command gives you a complete, annotated picture of your infrastructure — s
 
 ### Active
 
-- [ ] SaaS dashboard with Next.js frontend
-- [ ] FastAPI backend with API for scans, projects, sharing
-- [ ] Authentication (provider TBD — research Clerk, Supabase Auth, Auth.js)
-- [ ] Supabase PostgreSQL for projects, scans, users, teams
-- [ ] Shareable diagram links (public/private, optional password)
-- [ ] Scan history timeline with point-in-time diagram viewing
-- [ ] Scan comparison (side-by-side diff of two scans)
-- [ ] CI/CD webhook endpoint (auto-scan on push to main)
-- [ ] CLI `login` command for SaaS authentication
-- [ ] CLI `push` command to upload scan results to SaaS
-- [ ] Expand security rules from 10 to 30 (per PLAN.md targets)
-- [ ] Fix silent HCL parse failures (log warnings, report skipped files)
-- [ ] Multi-region cost estimation (detect region from resource attributes)
-- [ ] YAML rule schema validation (fail fast on malformed rules)
-- [ ] Pro tier billing (Stripe integration, $49/mo)
-- [ ] Team tier billing ($199/mo, up to 10 users)
+#### Canvas v1.0 (Phase 2)
+- [ ] Terraform plan reader (plan JSON diff)
+- [ ] Shadow infrastructure detection (live AWS API vs Terraform state)
+- [ ] AWS security rules expansion to 30 rules (SEC-011 through SEC-030)
+- [ ] Azure parser — 10 core resource types
+- [ ] Azure security rules (AZ-001 through AZ-010)
+- [ ] Runtime staleness checks (Lambda EOL, EKS/AKS version lag)
+- [ ] Custom policy engine v1 (YAML — naming, tags, regions, instance types)
+- [ ] Resource lock validation
+- [ ] Multi-region cost estimation
+- [ ] CLI polish: --ci, --watch, --ignore, --severity, --quiet flags
+- [ ] Docker image + multi-platform binary distribution
+
+#### FlowMap v1.0 (Phase 3)
+- [ ] FlowMap data model (NetworkPath, PathHop, DCCollectorReading, NetworkFinding)
+- [ ] AWS network topology collection (TGW, VPC routes, NACLs, Direct Connect)
+- [ ] Azure network topology collection (vWAN, Secure Hub, vNet peering, ExpressRoute)
+- [ ] Checkpoint Management API integration (policies, NAT, VPN, hit counts)
+- [ ] DC Collector Agent — Cisco Router (Go, NETCONF/RESTCONF, SSH fallback, NetFlow)
+- [ ] DC Collector Agent — Cisco ASA + FTD (REST API, FMC API)
+- [ ] Path tracer engine (forward + return path computation across hybrid topology)
+- [ ] Asymmetric routing detector (divergence detection, root cause classification)
+- [ ] FlowMap viewer components (dual-path rendering, DC site groups, firewall capacity)
+- [ ] Network findings engine (NET-001 through NET-012)
+
+#### SaaS Dashboard + CostLens (Phase 4)
+- [ ] FastAPI backend (projects, scans, auth via Clerk, Neon PostgreSQL, R2 storage)
+- [ ] Team features (roles, RLS, Stripe billing)
+- [ ] Scan history + comparison
+- [ ] Share link system (UUID + token, optional password, expiry)
+- [ ] CI/CD webhook (auto-scan on push, Slack/Teams alerts)
+- [ ] CostLens shared cost allocation (TGW, Secure Hub, ExpressRoute, Firewall throughput)
+- [ ] Cross-cloud per-path cost analysis + optimisation recommendations
+- [ ] Next.js dashboard (project views, scan detail, team management, billing)
+
+#### Enterprise (Phase 5)
+- [ ] Compliance framework engine (SOC2, HIPAA, PCI-DSS mapping + evidence export)
+- [ ] SSO (SAML/OIDC via Clerk Enterprise) + audit logs
+- [ ] Custom policy engine v2 (OPA/Rego)
+- [ ] Self-hosted deployment (Docker Compose + Helm)
+- [ ] GitHub PR Bot (diagram diff + security delta as PR comment)
+- [ ] NMS integrations (SolarWinds, PRTG, NetBrain)
+- [ ] Palo Alto + Fortinet NVA support
+- [ ] Zscaler ZPA + ZDX integration
+- [ ] Network troubleshooting wizard ("Why can't X reach Y?")
 
 ### Out of Scope
 
-- Multi-cloud support (Azure, GCP) — defer to v2, AWS-first for MVP
-- PR review bot (GitHub/GitLab) — defer to v2, manual sharing sufficient for now
-- Custom policy engine (Rego/YAML) — defer to v2, 30 built-in rules sufficient
-- Pulumi/CDK support — defer to v2, Terraform-only for now
-- Live cloud import (direct AWS API) — defer to v2, Terraform files sufficient
-- Slack/Teams integration — defer to v2, webhook + sharing covers notification needs
-- AI insights / natural language queries — defer to v2+
-- Self-hosted option — defer to v2, SaaS-first
-- SSO/SAML (Enterprise tier) — defer post-MVP, Supabase/Clerk SSO can be added later
+- GCP support — defer to v4.0 (Year 2), AWS + Azure covers target market
+- Pulumi / CDK / Bicep support — defer to v4.0, Terraform-only for now
+- Live cloud import (no Terraform required) — defer to v4.0
+- AI natural language queries — defer to v4.0
+- SBOM integration — defer to v4.0
+- Terragrunt / workspaces — not supported at launch, expand based on demand
+- Mobile app — web-first, CLI-first
 
 ## Context
 
-- CLI core is mature: Python 3.12, Typer, Pydantic, python-hcl2, NetworkX
-- Viewer is React 18 + ReactFlow + Zustand + Tailwind, built as single-file HTML via Vite
-- SaaS will be two services: Next.js frontend (Vercel) + FastAPI backend
-- Supabase for database (PostgreSQL), object storage (scan artifacts), potentially auth
-- Target: 200 Pro + 50 Team subscribers = $19,750 MRR within 12 months
-- Solo founder — cost efficiency and operational simplicity are critical
-- Open-source CLI core is part of GTM strategy (npm/pip, Homebrew, Show HN)
-- Codebase has known concerns: silent parse failures, hardcoded us-east-1 pricing, no rule schema validation, graph layout O(n²) for large projects
+- **CLI core**: Python 3.12, Typer, Pydantic v2, python-hcl2, NetworkX. Mature and working.
+- **Viewer**: React 18 + @xyflow/react + Zustand + Tailwind, built as single-file HTML via Vite + vite-plugin-singlefile
+- **DC Agent**: Go — single binary, zero runtime deps, NETCONF/SSH/NetFlow
+- **SaaS Backend**: FastAPI (Python) — same language as CLI
+- **SaaS Frontend**: Next.js 14 (App Router) + shadcn/ui + TanStack Query
+- **Database**: Neon PostgreSQL (serverless, scales to zero, RLS)
+- **Auth**: Clerk (managed auth, SSO for Enterprise)
+- **Object Storage**: Cloudflare R2 (zero egress fees — critical for scan artifacts)
+- **Cache/Queue**: Upstash Redis (session, rate limiting, arq job queue)
+- **Payments**: Stripe (subscriptions, usage metering)
+- **Target personas**: Priya (Platform Engineer, installs CLI) → Alex (Cloud Architect, pays) → Sam (Security/Network Engineer, drives Enterprise)
+- **Revenue target**: 200 Pro ($79/mo) + 50 Team ($299/mo) = $30,750 MRR within 12 months
+- **Pricing tiers**: Free ($0), Pro ($79/mo), Team ($299/mo), Enterprise ($999+/mo)
+- **Open-source strategy**: CLI core (parser, layout, icons, basic HTML export, JSON schema) is MIT. Security engine, FlowMap, DC agent, CostLens, SaaS are commercial.
+- **Codebase concerns**: silent parse failures, hardcoded us-east-1 pricing, no rule schema validation, graph layout O(n²) for large projects
 
 ## Constraints
 
 - **Solo founder**: Must minimize operational complexity — no separate infrastructure to maintain
-- **Cost**: SaaS hosting budget <$100/mo until revenue covers it
-- **Stack**: Next.js frontend + FastAPI backend (decided), Supabase for database
-- **Auth**: TBD — research will compare Clerk, Supabase Auth, Auth.js
-- **CLI compatibility**: Python 3.12+, must remain pip-installable
+- **Cost**: SaaS hosting budget $10–104/mo until revenue (Railway/Fly.io + Vercel + Neon + R2 + Upstash + Clerk)
+- **CLI stack**: Python 3.12+, pip-installable + PyInstaller standalone binary
+- **DC Agent stack**: Go, single binary, cross-compiled Linux amd64 + macOS arm64
+- **Frontend stack**: Next.js 14 App Router on Vercel
+- **Backend stack**: FastAPI on Railway or Fly.io
 - **Browser**: Modern browsers only (ES2020+), no IE support
+- **Performance**: Parse 500 resources < 10s, FlowMap topology < 20s, HTML < 5MB
+- **Security**: No cloud credentials stored. CLI scans are local-only. DC agent read-only, outbound-only.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Next.js + FastAPI (two services) | Keep Python ecosystem for Terraform parsing logic, Next.js for modern frontend | — Pending |
-| Supabase over Neon | Postgres + storage + potential auth in one platform, reduces vendor count | — Pending |
-| Auth provider | Research needed — Clerk (managed), Supabase Auth (integrated), Auth.js (self-hosted) | — Pending |
-| Open-source CLI core | PLG strategy — free CLI drives adoption, SaaS upsell for security + sharing | — Pending |
-| AWS-only for v1 | Reduces scope dramatically, covers largest IaC market segment | — Pending |
+| Python CLI + Go DC Agent | Python for fast iteration on domain logic; Go for zero-dep DC binary | — Pending |
+| Neon PostgreSQL over Supabase | Serverless, scales to zero, built-in connection pooling, RLS | — Pending |
+| Clerk over Supabase Auth | Managed auth with SSO/SAML for Enterprise tier, generous free tier | — Pending |
+| Cloudflare R2 over Supabase Storage | Zero egress fees critical for large scan artifacts | — Pending |
+| React Flow over D3 | Built-in zoom/pan/minimap, custom nodes, edge routing, TypeScript | — Pending |
+| Open-source CLI core (MIT) | PLG strategy — HashiCorp/Grafana model, drives adoption | — Pending |
+| Three-product architecture (Canvas/FlowMap/CostLens) | Different buyer conversations, progressive tier unlock | — Pending |
+| FlowMap as moat | No competitor does hybrid topology + asymmetric routing at this price point | — Pending |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 after initialization*
+*Last updated: 2026-04-15 after v2.0 reinitialize*
