@@ -12,6 +12,7 @@ const LABEL_H = 36;
 const ZONE_GAP = 40;
 const VPC_PAD = 24;
 const VPC_LABEL_H = 40;
+const EMPTY_ZONE_H = 64;
 
 // --- Tier classification ---
 
@@ -34,9 +35,9 @@ const RESOURCE_TIER: Record<string, Tier> = {
   aws_autoscaling_group: 'private',
   aws_ecs_service: 'private',
   aws_ecs_cluster: 'private',
+  aws_ecs_task_definition: 'private',
   aws_eks_cluster: 'private',
   aws_eks_node_group: 'private',
-  // aws_security_group — rendered as inline badge on attached resources, not a peer node
   // Data tier
   aws_db_instance: 'data',
   aws_rds_instance: 'data',
@@ -59,7 +60,37 @@ const RESOURCE_TIER: Record<string, Tier> = {
   aws_ssm_parameter: 'regional',
 };
 
-function getResourceTier(node: ResourceNodeData): Tier {
+// Resources suppressed from node rendering — represented by zone containers or badges
+const SUPPRESS_AS_NODE = new Set([
+  'aws_vpc',
+  'aws_subnet',
+  'aws_security_group',
+  'aws_network_acl',
+  'aws_vpc_dhcp_options',
+  'aws_route_table',
+  'aws_vpc_endpoint',
+]);
+
+// Determine tier for compute resources based on their subnet reference
+function getComputeTier(node: ResourceNodeData, allNodes: ResourceNodeData[]): Tier {
+  const subnetRef = node.attributes?.subnet_id as string | undefined;
+  if (subnetRef) {
+    const subnet = allNodes.find(n => n.id === subnetRef || subnetRef.includes(n.name));
+    if (subnet) {
+      if (subnet.name?.includes('public') || subnet.attributes?.map_public_ip_on_launch) {
+        return 'public';
+      }
+      return 'private';
+    }
+  }
+  return 'private';
+}
+
+function getResourceTier(node: ResourceNodeData, allNodes: ResourceNodeData[]): Tier {
+  // Compute resources: check subnet reference for tier placement
+  if (['aws_instance', 'aws_ecs_service', 'aws_ecs_task_definition'].includes(node.type)) {
+    return getComputeTier(node, allNodes);
+  }
   if (node.type === 'aws_lambda_function') {
     const vpc = node.attributes?.vpc_config;
     const hasVpcConfig = vpc && typeof vpc === 'object' && Object.keys(vpc as object).length > 0;
@@ -95,10 +126,10 @@ const TIER_CHIPS: Partial<Record<Tier, string>> = {
 // --- Main layout function ---
 
 export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges: Edge[] } {
-  // Suppress VPC and subnet nodes — represented by zone containers
+  // Suppress VPC-structural nodes — represented by zone containers/badges
   const suppressedIds = new Set<string>();
   for (const node of graph.nodes) {
-    if (node.type === 'aws_vpc' || node.type === 'aws_subnet' || node.type === 'aws_security_group') {
+    if (SUPPRESS_AS_NODE.has(node.type)) {
       suppressedIds.add(node.id);
     }
   }
@@ -116,13 +147,15 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     n.name?.includes('private') || n.group?.includes('private')
   );
 
-  // Classify active nodes into tiers
-  const activeNodes = graph.nodes.filter(n => !suppressedIds.has(n.id));
+  // Filter to renderable nodes (exclude suppressed structural types)
+  const renderableNodes = graph.nodes.filter(n => !suppressedIds.has(n.id));
+
+  // Classify renderable nodes into tiers
   const tiered: Record<Tier, ResourceNodeData[]> = {
     internet: [], public: [], private: [], data: [], regional: [],
   };
-  for (const node of activeNodes) {
-    tiered[getResourceTier(node)].push(node);
+  for (const node of renderableNodes) {
+    tiered[getResourceTier(node, graph.nodes)].push(node);
   }
 
   // --- Position calculation ---
@@ -145,34 +178,37 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     currentY += singleTierH + ZONE_GAP;
   }
 
-  // VPC container with nested tier zones
+  // VPC container with nested tier zones — always render all three tiers
   const vpcTiers: Tier[] = ['public', 'private', 'data'];
-  const activeTiers = vpcTiers.filter(t => tiered[t].length > 0);
 
-  const maxTierW = activeTiers.length > 0
-    ? Math.max(...activeTiers.map(t => rowWidth(tiered[t].length)))
+  // Calculate max tier width across all tiers (including empty ones for uniform sizing)
+  const populatedTierWidths = vpcTiers
+    .filter(t => tiered[t].length > 0)
+    .map(t => rowWidth(tiered[t].length));
+  const maxTierW = populatedTierWidths.length > 0
+    ? Math.max(...populatedTierWidths, 400)
     : 400;
   const vpcContentW = maxTierW + 2 * VPC_PAD;
 
-  // Calculate VPC height from inner tiers
+  // Calculate VPC height — always render all three tier zones
   let vpcInnerY = VPC_LABEL_H;
-  const tierLayout: { tier: Tier; relY: number }[] = [];
-  for (const tier of activeTiers) {
-    tierLayout.push({ tier, relY: vpcInnerY });
-    vpcInnerY += singleTierH + ZONE_GAP;
+  const tierLayout: { tier: Tier; relY: number; isEmpty: boolean }[] = [];
+  for (const tier of vpcTiers) {
+    tierLayout.push({ tier, relY: vpcInnerY, isEmpty: tiered[tier].length === 0 });
+    const zoneH = tiered[tier].length === 0 ? EMPTY_ZONE_H : singleTierH;
+    vpcInnerY += zoneH + ZONE_GAP;
   }
-  const vpcH = activeTiers.length > 0
-    ? vpcInnerY - ZONE_GAP + VPC_PAD + 40  // extra bottom padding for data tier
-    : VPC_LABEL_H + VPC_PAD;
+  const vpcH = vpcInnerY - ZONE_GAP + VPC_PAD + 40;
 
   const vpcStartY = currentY;
 
   // VPC outer group
   flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcH));
 
-  // Tier zones inside VPC
-  for (const { tier, relY } of tierLayout) {
+  // Tier zones inside VPC — always rendered, even if empty
+  for (const { tier, relY, isEmpty } of tierLayout) {
     const zoneId = `zone-${tier}`;
+    const zoneH = isEmpty ? EMPTY_ZONE_H : singleTierH;
     const cidr = tier === 'public'
       ? (publicSubnet?.attributes?.cidr_block as string | undefined)
       : tier === 'private' || tier === 'data'
@@ -181,7 +217,7 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
 
     flowNodes.push(makeZone(
       zoneId, TIER_LABELS[tier], tierToZone(tier),
-      VPC_PAD, relY, maxTierW, singleTierH,
+      VPC_PAD, relY, maxTierW, zoneH,
       'zone-vpc', TIER_CHIPS[tier], cidr,
     ));
 
@@ -195,7 +231,7 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     const cols = 2;
     const rows = Math.ceil(tiered.regional.length / cols);
     const regW = cols * (NODE_W + GAP_X) - GAP_X + 2 * TIER_PAD;
-    const regRowGap = 56;  // increased to prevent edge label overlap
+    const regRowGap = 56;
     const regH = rows * (NODE_H + regRowGap) - regRowGap + 2 * TIER_PAD + LABEL_H;
     const regX = startX + vpcContentW + ZONE_GAP;
 
@@ -284,8 +320,8 @@ function buildEdges(
     const target = nodes.find(n => n.id === edge.target);
     if (!source || !target) continue;
 
-    const sourceTier = getResourceTier(source);
-    const targetTier = getResourceTier(target);
+    const sourceTier = getResourceTier(source, nodes);
+    const targetTier = getResourceTier(target, nodes);
     const style = getEdgeStyle(source, target, sourceTier, targetTier);
     if (!style) continue;
 

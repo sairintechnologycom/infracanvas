@@ -1,76 +1,97 @@
 import { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
-import type { ResourceNode } from '../types';
+import { ZONE_COLORS, type ZoneType } from '../lib/colors';
+import {
+  ArchitectureGroupVirtualprivatecloudVPC,
+  ArchitectureGroupRegion,
+} from 'aws-react-icons';
+
+const ZONE_BORDER_STYLE: Record<ZoneType, 'solid' | 'dashed'> = {
+  internet: 'solid',
+  vpc: 'solid',
+  public_subnet: 'solid',
+  private_subnet: 'dashed',
+  data_subnet: 'dashed',
+  regional: 'dashed',
+};
 
 type GroupNodeProps = NodeProps & {
   data: {
     label: string;
-    color: string;
-    dashed?: boolean;
-    subnetNode?: ResourceNode;
+    zoneType: ZoneType;
+    chip?: string;
+    cidr?: string;
   };
 };
 
 function GroupNodeComponent({ data }: GroupNodeProps) {
-  const subnetNode = data.subnetNode;
-  const isSubnet = !!subnetNode;
-
-  // Issue 4: Determine public/private for subnet context
-  const isPublic = isSubnet && (
-    subnetNode.attributes?.map_public_ip_on_launch === true ||
-    subnetNode.group?.includes('public') ||
-    subnetNode.name?.includes('public')
-  );
-
-  const cidr = isSubnet
-    ? (subnetNode.attributes?.cidr_block as string | undefined)
-    : undefined;
+  const zone = ZONE_COLORS[data.zoneType] ?? ZONE_COLORS.regional;
+  const borderStyle = ZONE_BORDER_STYLE[data.zoneType] ?? 'dashed';
 
   return (
     <div
-      className="rounded-xl p-3 pt-7 h-full w-full"
       style={{
-        background: `${data.color}08`,
-        border: `1px ${data.dashed ? 'dashed' : 'dashed'} ${data.color}40`,
-        minWidth: 300,
-        minHeight: 150,
+        width: '100%',
+        height: '100%',
+        background: zone.background,
+        border: `1px ${borderStyle} ${zone.border}`,
+        borderRadius: 12,
+        position: 'relative',
       }}
     >
-      {/* Group label */}
+      {/* Zone label */}
       <div
-        className="absolute top-2 left-3 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded"
         style={{
-          color: data.color,
-          background: `${data.color}15`,
+          position: 'absolute',
+          top: 8,
+          left: 12,
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: 'ui-monospace, monospace',
+          color: zone.label,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
         }}
       >
+        {data.zoneType === 'vpc' && <ArchitectureGroupVirtualprivatecloudVPC size={16} />}
+        {data.zoneType === 'regional' && <ArchitectureGroupRegion size={16} />}
         {data.label}
       </div>
 
-      {/* Issue 4: Subnet context chip */}
-      {isSubnet && (
-        <div className="absolute top-2 right-3 flex items-center gap-2">
-          {/* Public/private indicator */}
-          <span
-            className="text-[9px] font-medium px-1.5 py-0.5 rounded"
-            style={{
-              color: isPublic ? '#06b6d4' : '#64748b',
-              background: isPublic ? '#06b6d410' : '#64748b10',
-            }}
-          >
-            {isPublic ? '\uD83C\uDF10 public IP on launch' : '\uD83D\uDD12 no public IP'}
-          </span>
+      {/* Tier chip (public/private/data) */}
+      {data.chip && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 12,
+            fontSize: 9,
+            fontWeight: 500,
+            color: zone.label,
+            background: `${zone.label}15`,
+            padding: '2px 6px',
+            borderRadius: 3,
+          }}
+        >
+          {data.chip}
+        </span>
+      )}
 
-          {/* CIDR block */}
-          {cidr && (
-            <span
-              className="text-[10px] font-mono px-1 py-0.5 rounded"
-              style={{ color: '#94a3b8', background: '#1e293b' }}
-            >
-              {cidr}
-            </span>
-          )}
-        </div>
+      {/* CIDR block */}
+      {data.cidr && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 6,
+            left: 12,
+            fontSize: 10,
+            fontFamily: 'ui-monospace, monospace',
+            color: '#64748b',
+          }}
+        >
+          {data.cidr}
+        </span>
       )}
     </div>
   );

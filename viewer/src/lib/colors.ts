@@ -49,6 +49,53 @@ export const EDGE_STYLES: Record<EdgeRelationship, null | {
   },
 };
 
+// --- Tier-based zone colors ---
+
+export type ZoneType =
+  | 'internet'
+  | 'vpc'
+  | 'public_subnet'
+  | 'private_subnet'
+  | 'data_subnet'
+  | 'regional';
+
+export const ZONE_COLORS: Record<ZoneType, {
+  background: string;
+  border: string;
+  label: string;
+}> = {
+  internet: {
+    background: 'rgba(100, 116, 139, 0.08)',
+    border: 'rgba(100, 116, 139, 0.25)',
+    label: '#94a3b8',
+  },
+  vpc: {
+    background: 'rgba(30, 41, 59, 0.60)',
+    border: 'rgba(59, 130, 246, 0.35)',
+    label: '#60a5fa',
+  },
+  public_subnet: {
+    background: 'rgba(34, 197, 94, 0.07)',
+    border: 'rgba(34, 197, 94, 0.30)',
+    label: '#4ade80',
+  },
+  private_subnet: {
+    background: 'rgba(59, 130, 246, 0.07)',
+    border: 'rgba(59, 130, 246, 0.30)',
+    label: '#60a5fa',
+  },
+  data_subnet: {
+    background: 'rgba(168, 85, 247, 0.07)',
+    border: 'rgba(168, 85, 247, 0.30)',
+    label: '#c084fc',
+  },
+  regional: {
+    background: 'rgba(30, 41, 59, 0.40)',
+    border: 'rgba(100, 116, 139, 0.25)',
+    label: '#94a3b8',
+  },
+};
+
 const resourceTypeColors: Record<string, string> = {
   aws_vpc: '#3b82f6',
   aws_subnet: '#06b6d4',

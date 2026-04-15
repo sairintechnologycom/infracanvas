@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ResourceNode as ResourceNodeData } from '../types';
-import { ResourceIcon } from './icons/ResourceIcon';
-import { severityColors, driftColors, getHighestSeverity, getResourceColor } from '../lib/colors';
+import { AwsIcon } from './icons/AwsIcon';
+import { severityColors, driftColors, getHighestSeverity } from '../lib/colors';
 import { useStore } from '../store';
 
 type ResourceNodeProps = NodeProps & {
@@ -14,7 +14,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const graphNodes = useStore(s => s.graph?.nodes);
   const highestSev = getHighestSeverity(data.findings);
   const findingCount = data.findings.length;
-  const borderColor = data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? getResourceColor(data.type) : '#1e293b');
+  const borderColor = data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? '#60a5fa' : '#1e293b');
   const typeLabel = data.type.replace(/^aws_/, '').replaceAll('_', ' ');
 
   // Resolve attached security groups from dependencies
@@ -53,26 +53,27 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           </div>
         )}
 
-        {/* Icon + type chip */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <ResourceIcon resourceType={data.type} size={24} />
-          <span
-            className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-white"
-            style={{
-              background: getResourceColor(data.type),
-            }}
-          >
-            {typeLabel}
-          </span>
-        </div>
-
-        {/* Resource name */}
-        <div
-          className="text-xs font-medium truncate"
-          style={{ fontFamily: 'var(--font-mono)', color: '#e2e8f0' }}
-          title={data.id}
-        >
-          {data.name}
+        {/* Icon + name + type */}
+        <div className="flex items-start gap-2">
+          <div style={{
+            width: 32, height: 32,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <AwsIcon resourceType={data.type} size={28} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div
+              className="text-xs font-medium truncate"
+              style={{ fontFamily: 'var(--font-mono)', color: '#e2e8f0' }}
+              title={data.id}
+            >
+              {data.name}
+            </div>
+            <div className="text-[10px]" style={{ color: '#64748b' }}>
+              {typeLabel}
+            </div>
+          </div>
         </div>
 
         {/* Security group badges */}

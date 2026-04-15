@@ -106,6 +106,22 @@ export function SummaryBar() {
         </span>
       )}
 
+      {/* Edge legend */}
+      <div className="flex items-center gap-3 text-[9px]" style={{ color: '#475569' }}>
+        <span className="flex items-center gap-1">
+          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#334155" strokeWidth="1.5" /><polygon points="14,0 18,1 14,2" fill="#475569" /></svg>
+          traffic
+        </span>
+        <span className="flex items-center gap-1">
+          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#1e3a5f" strokeWidth="1" strokeDasharray="4 3" /><polygon points="14,0 18,1 14,2" fill="#3b82f6" /></svg>
+          access
+        </span>
+        <span className="flex items-center gap-1">
+          <svg width="18" height="2"><line x1="0" y1="1" x2="18" y2="1" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" /></svg>
+          security
+        </span>
+      </div>
+
       {/* Filter toggle */}
       <button
         onClick={toggleFilterPanel}
