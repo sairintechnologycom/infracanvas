@@ -1,0 +1,219 @@
+# Requirements: InfraCanvas v2.0
+
+**Defined:** 2026-04-15
+**Core Value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
+
+## v1 Requirements
+
+### Validation (Phase 0)
+
+- [ ] **VAL-01**: Fake demo posted across r/devops, r/Terraform, Terraform Discord, LinkedIn
+- [ ] **VAL-02**: Typeform collects role, team size, current toolchain, willingness to pay
+- [ ] **VAL-03**: Stripe founding member page live ($49/mo locked forever)
+- [ ] **VAL-04**: 20 customer conversations completed with documented pain points
+- [ ] **VAL-05**: Go/No-Go decision based on 10 credit cards OR 50 strong signals
+
+### Canvas MVP (Phase 1)
+
+- [ ] **CLI-01**: Python project with Typer CLI skeleton (scan, plan, score, export, serve)
+- [ ] **CLI-02**: Pydantic v2 models for Resource, Edge, ResourceGraph, Finding, NetworkFinding
+- [ ] **PRS-01**: HCL parser extracts resources, variables, locals, outputs, data blocks from .tf files
+- [ ] **PRS-02**: Parser supports 15 AWS resource types at launch
+- [ ] **PRS-03**: Explicit + implicit dependency detection (depends_on + resource references)
+- [ ] **PRS-04**: Module parsing with local source resolution (max 3 levels deep)
+- [ ] **PRS-05**: Terraform .tfstate v4 reader with shadow infra flagging
+- [ ] **GRF-01**: NetworkX directed graph from parsed resources with metadata
+- [ ] **GRF-02**: Auto-grouping by VPC, subnet, module, region
+- [ ] **GRF-03**: JSON export matching v2.0 schema
+- [ ] **SEC-01**: YAML rule definition schema with loader
+- [ ] **SEC-02**: Rule evaluation engine with 8 operators (equals, not_equals, in, not_in, exists, not_exists, matches, gt/lt)
+- [ ] **SEC-03**: 10 AWS security rules (SEC-001 through SEC-010)
+- [ ] **SEC-04**: Finding severity weighting for score calculation
+- [ ] **SCR-01**: Infrastructure health score 0-100 with letter grades (A/B/C/D/F)
+- [ ] **SCR-02**: Score dimensions: Security, Encryption, IAM Hygiene, Cost Efficiency, Tagging
+- [ ] **SCR-03**: Shareable HTML score card designed for LinkedIn/Slack sharing
+- [ ] **VWR-01**: React 18 + ReactFlow + Zustand + Tailwind viewer scaffolding
+- [ ] **VWR-02**: Vite single-file HTML output (vite-plugin-singlefile)
+- [ ] **VWR-03**: Custom resource node with icon, badges, labels, drift/shadow indicators
+- [ ] **VWR-04**: Dagre hierarchical auto-layout with VPC/subnet group containers
+- [ ] **VWR-05**: Summary bar, filter panel, detail panel, search, zoom/minimap
+- [ ] **VWR-06**: Free tier gate: finding count visible, details blurred with upgrade CTA
+- [ ] **EXP-01**: Single-file HTML export opens in any browser with zero dependencies
+- [ ] **EXP-02**: `infracanvas scan ./terraform` opens browser with diagram
+- [ ] **REL-01**: PyPI package (pip install infracanvas) + Homebrew formula
+- [ ] **REL-02**: GitHub repo public with MIT license (parser + viewer + icons)
+- [ ] **REL-03**: GitHub Actions auto-publish to PyPI on semver tag
+- [ ] **REL-04**: Show HN submission leading with Report Card mechanic
+
+### Canvas v1.0 (Phase 2)
+
+- [ ] **PLN-01**: Terraform plan JSON reader with resource change extraction (create/update/delete)
+- [ ] **PLN-02**: Drift visualisation with colour-coded nodes (green/red/amber/grey)
+- [ ] **PLN-03**: Before/after attribute diff view for changed resources
+- [ ] **SHD-01**: Live AWS API read (read-only IAM role) comparing API vs Terraform state
+- [ ] **SHD-02**: Shadow resources flagged with dashed border, "Shadow" badge, estimated cost
+- [ ] **CST-01**: Infracost pricing API integration with static pricing fallback
+- [ ] **CST-02**: Cost per resource, per group, total + cost delta on plan changes
+- [ ] **CST-03**: Multi-region cost estimation (detect region from resource attributes)
+- [ ] **AZR-01**: Azure parser for 10 core resource types (VNet, subnet, NSG, VM, storage, AKS, App Service, SQL, Key Vault, App Gateway)
+- [ ] **AZR-02**: Azure resource icons in viewer
+- [ ] **AZR-03**: 10 Azure security rules (AZ-001 through AZ-010)
+- [ ] **SEC-05**: AWS security rules expansion to 30 rules (SEC-011 through SEC-030)
+- [ ] **SEC-06**: Compliance framework tags on all rules (framework_ids: CIS, NIST, SOC2, PCI-DSS)
+- [ ] **RST-01**: Runtime staleness checks (Lambda EOL, EKS/AKS version lag)
+- [ ] **RST-02**: Resource lock validation (azurerm_management_lock, AWS resource policies)
+- [ ] **POL-01**: Custom policy engine v1 (YAML: required_tags, allowed_regions, allowed_instance_types, naming_pattern)
+- [ ] **POL-02**: .infracanvas.yml config + --policy flag for external policy directory
+- [ ] **CLX-01**: CI mode: --ci, --fail-on, --quiet, --ignore, --severity flags
+- [ ] **CLX-02**: Watch mode: re-scan on .tf file changes
+- [ ] **DST-01**: Docker image + GitHub Releases (Linux amd64, macOS arm64, Windows x64)
+- [ ] **DST-02**: Updated Homebrew formula
+
+### FlowMap v1.0 (Phase 3)
+
+- [ ] **FDM-01**: Pydantic models for NetworkPath, PathHop, DCCollectorReading, NetworkFinding
+- [ ] **FDM-02**: Extended ResourceGraph JSON schema with network_paths and dc_sites
+- [ ] **FDM-03**: NetworkFinding rule IDs NET-001 through NET-012
+- [ ] **AWS-01**: AWS TGW route tables, attachments, VPN connections collection
+- [ ] **AWS-02**: VPC route tables, NACLs, Direct Connect virtual interfaces
+- [ ] **AWS-03**: CloudWatch VPC/TGW flow logs for traffic confirmation
+- [ ] **AZN-01**: Azure vWAN hubs, connections, Secure Hub effective routes
+- [ ] **AZN-02**: vNet peering topology, NSG effective rules per NIC/subnet
+- [ ] **AZN-03**: ExpressRoute circuit state, Azure Monitor NSG flow logs
+- [ ] **CKP-01**: Checkpoint Management API: access rules + hit counts, NAT rules, VPN communities
+- [ ] **CKP-02**: Map Checkpoint objects to FlowMap topology nodes
+- [ ] **DCA-01**: Go DC Agent scaffold with cobra CLI and daemon mode
+- [ ] **DCA-02**: NETCONF/RESTCONF client for Cisco IOS-XE 16.6+ (RIB, BGP, VRF, interfaces)
+- [ ] **DCA-03**: SSH CLI fallback parser for older IOS (show ip route, show bgp neighbors, show ip bgp)
+- [ ] **DCA-04**: NetFlow v9 / IPFIX UDP collector with 30s aggregation
+- [ ] **DCA-05**: Encrypted API push to InfraCanvas cloud (/api/v1/dc-collector/readings)
+- [ ] **DCA-06**: Daemon mode: route tables 5min, BGP 1min, NetFlow 30s
+- [ ] **DCA-07**: Config file import fallback (parse Cisco IOS show running-config)
+- [ ] **DCA-08**: Single binary (Linux amd64 primary, macOS arm64 secondary)
+- [ ] **DCA-09**: Security review packet for enterprise CAB approval
+- [ ] **ASA-01**: Cisco ASA REST API client (access lists, NAT, connections, VPN, asp drop)
+- [ ] **ASA-02**: Cisco FMC REST API client (access control policies, NAT, connection events)
+- [ ] **ASA-03**: SSH CLI fallback for older ASA versions
+- [ ] **PTH-01**: Forward path computation: AWS TGW → DC (via agent) → Azure vWAN
+- [ ] **PTH-02**: Return path computation with BGP/static boundary identification
+- [ ] **PTH-03**: NetFlow correlation to confirm paths with actual traffic data
+- [ ] **ASY-01**: Asymmetric routing detector: compare forward/return paths hop-by-hop
+- [ ] **ASY-02**: Root cause classifier: BGP attribute diff, static mismatch, NAT asymmetry
+- [ ] **ASY-03**: Impact assessment: stateful firewall on one path only → CRITICAL (NET-010)
+- [ ] **FMV-01**: FlowMapCanvas.tsx with dual-colour path rendering (blue forward, orange return)
+- [ ] **FMV-02**: Divergence point marker (red pulsing) with tooltip explanation
+- [ ] **FMV-03**: DC site group nodes, router/firewall node types
+- [ ] **FMV-04**: Firewall capacity gauge (mini progress bar on firewall nodes)
+- [ ] **FMV-05**: FlowMap filter panel and network path detail panel
+- [ ] **NFN-01**: Network findings engine: NET-001 through NET-012 rule evaluation
+- [ ] **NFN-02**: Route change alerting: compare current vs last scan baseline
+- [ ] **TIR-01**: Team tier gating: FlowMap behind Team/Enterprise tier check
+- [ ] **TIR-02**: Team tier Stripe product ($299/mo)
+
+### SaaS Dashboard + CostLens (Phase 4)
+
+- [ ] **API-01**: FastAPI backend: project CRUD, scan upload/retrieval
+- [ ] **API-02**: Clerk auth integration (JWT validation middleware)
+- [ ] **API-03**: Neon PostgreSQL + Alembic migrations with RLS per team
+- [ ] **API-04**: Cloudflare R2 artifact storage (scan JSON + HTML)
+- [ ] **API-05**: API key management (create, list, revoke, scoped per project)
+- [ ] **API-06**: Rate limiting via Upstash Redis
+- [ ] **API-07**: DC Collector Agent ingest endpoint + per-site API key management
+- [ ] **TMM-01**: Team CRUD: create, invite members, role-based access (owner/admin/member/viewer)
+- [ ] **TMM-02**: Subscription status check via Stripe webhooks
+- [ ] **HST-01**: Scan timeline per project with metadata
+- [ ] **HST-02**: Point-in-time scan retrieval from R2
+- [ ] **HST-03**: Side-by-side scan comparison (findings, resources, cost diff)
+- [ ] **SHR-01**: Share link creation: UUID + token, optional password, configurable expiry
+- [ ] **SHR-02**: Public share endpoint (no auth): full Canvas + FlowMap + CostLens read-only
+- [ ] **WBH-01**: CI/CD webhook endpoint (GitHub, GitLab, Bitbucket push events)
+- [ ] **WBH-02**: Background job processing via taskiq (Redis-based queue)
+- [ ] **WBH-03**: Slack/Teams notification on Critical findings
+- [ ] **CLA-01**: AWS Cost Explorer API integration (per-resource cost with tags)
+- [ ] **CLA-02**: Azure Cost Management API integration
+- [ ] **CLA-03**: TGW attachment cost split by workload/team via resource tags
+- [ ] **CLA-04**: Azure Secure Hub data processing cost by source
+- [ ] **CLA-05**: ExpressRoute/Direct Connect port fees split by connected VNet/VPC
+- [ ] **CLA-06**: Azure Firewall throughput cost overlay on FlowMap traffic
+- [ ] **CPC-01**: Cross-cloud data transfer cost matching (NetFlow → Cost Explorer egress)
+- [ ] **CPC-02**: Per-path cost comparison with "rerouting saves $X/mo" recommendations
+- [ ] **CPC-03**: Idle resource detection (no traffic 30 days) + oversized instance recommendations
+- [ ] **DSH-01**: Next.js 15 App Router: /dashboard, /projects/:id, /scans/:id, /team, /settings
+- [ ] **DSH-02**: Clerk authentication integration (sign-in, sign-up, session)
+- [ ] **DSH-03**: Embedded Canvas + FlowMap + CostLens viewer (shared React component)
+- [ ] **DSH-04**: Scan comparison view
+- [ ] **DSH-05**: Team management UI (invite, roles, API keys)
+- [ ] **DSH-06**: Billing UI (plan badge, usage, Stripe Customer Portal)
+- [ ] **OBS-01**: Sentry error tracking (CLI + API + dashboard)
+- [ ] **OBS-02**: Structured logging/tracing for scan pipeline and webhook handlers
+
+### Enterprise (Phase 5)
+
+- [ ] **CMP-01**: Compliance mapping database: SOC2, HIPAA, PCI-DSS controls → finding IDs
+- [ ] **CMP-02**: Compliance scan mode: infracanvas score --compliance=soc2
+- [ ] **CMP-03**: Control coverage report + evidence export PDF
+- [ ] **SSO-01**: Clerk Enterprise SAML 2.0 + OIDC provider configuration
+- [ ] **SSO-02**: Audit log table + API (paginated, filtered, exportable CSV/PDF)
+- [ ] **SSO-03**: Data residency: scan artifacts in customer-specified R2 bucket
+- [ ] **REG-01**: Custom policy engine v2: OPA/Rego evaluation
+- [ ] **REG-02**: Policy bundle upload + team-namespaced policy sets
+- [ ] **SLF-01**: Docker Compose: all services (api, dashboard, worker, postgres, redis)
+- [ ] **SLF-02**: Helm chart for Kubernetes deployment
+- [ ] **SLF-03**: Air-gapped mode (offline pricing DB, no external API calls)
+- [ ] **PRB-01**: GitHub App: PR scan trigger, diagram diff comment, status check
+- [ ] **PRB-02**: GitHub Marketplace listing
+- [ ] **NMS-01**: SolarWinds API topology pull
+- [ ] **NMS-02**: PRTG API device tree pull
+- [ ] **NMS-03**: NetBrain API topology + path analysis pull
+- [ ] **NVA-01**: Palo Alto PAN-OS REST API: security policies, NAT, threat profiles
+- [ ] **NVA-02**: Fortinet FortiGate REST API: firewall policies, VPN tunnels
+- [ ] **ZSC-01**: Zscaler ZPA API: connector topology, application segments, policy rules
+- [ ] **ZSC-02**: Zscaler ZDX API: hop-by-hop path traces including backbone segments
+- [ ] **ZSC-03**: Asymmetric routing detector: Zscaler interception as divergence root cause
+- [ ] **WIZ-01**: Network troubleshooting wizard: "Why can't X reach Y?" traces SGs, NACLs, route tables, firewall rules
+- [ ] **WIZ-02**: Blocker identification with remediation suggestion (specific Terraform change)
+- [ ] **WIZ-03**: CLI: infracanvas trace --from=X --to=Y
+- [ ] **ENT-01**: Enterprise Stripe product ($999+/mo, custom negotiated)
+- [ ] **ENT-02**: Enterprise feature gating + SLA documentation
+
+## v2 Requirements
+
+### Horizon (Year 2)
+
+- **HRZ-01**: Live cloud import (no Terraform required — direct AWS/Azure API)
+- **HRZ-02**: AI natural language queries ("What's my blast radius if us-east-1 goes down?")
+- **HRZ-03**: Pulumi / CDK / Bicep support
+- **HRZ-04**: SBOM integration (software dependencies mapped to infrastructure)
+- **HRZ-05**: GCP support
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Terragrunt / workspaces | Reduces scope, expand based on demand |
+| Mobile app | Web-first, CLI-first |
+| Real-time streaming from DC Agent | Push-based snapshots sufficient for v1 |
+| Terraform execution / apply | Read-only stance eliminates blast-radius liability |
+| BGP route management | Read-only, no write operations to network devices |
+| Full GRC platform (Vanta/Drata replacement) | Adjacent market, not core |
+| SIEM integration | Adjacent, defer |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| VAL-01..05 | Phase 0 | Pending |
+| CLI-01..02, PRS-01..05, GRF-01..03, SEC-01..04, SCR-01..03, VWR-01..06, EXP-01..02, REL-01..04 | Phase 1 | Pending |
+| PLN-01..03, SHD-01..02, CST-01..03, AZR-01..03, SEC-05..06, RST-01..02, POL-01..02, CLX-01..02, DST-01..02 | Phase 2 | Pending |
+| FDM-01..03, AWS-01..03, AZN-01..03, CKP-01..02, DCA-01..09, ASA-01..03, PTH-01..03, ASY-01..03, FMV-01..05, NFN-01..02, TIR-01..02 | Phase 3 | Pending |
+| API-01..07, TMM-01..02, HST-01..03, SHR-01..02, WBH-01..03, CLA-01..06, CPC-01..03, DSH-01..06, OBS-01..02 | Phase 4 | Pending |
+| CMP-01..03, SSO-01..03, REG-01..02, SLF-01..03, PRB-01..02, NMS-01..03, NVA-01..02, ZSC-01..03, WIZ-01..03, ENT-01..02 | Phase 5 | Pending |
+
+**Coverage:**
+- v1 requirements: 128 total
+- Mapped to phases: 128
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-04-15*
+*Last updated: 2026-04-15 after v2.0 reinitialize*
