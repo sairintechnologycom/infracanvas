@@ -25,7 +25,11 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
   3. A Stripe founding-member page is live at $49/mo locked pricing
   4. 20 customer conversations are documented with specific pain points and tool names
   5. A Go/No-Go decision is made: 10 credit cards captured OR 50 strong signals recorded
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 00-01-PLAN.md — Landing page (Next.js static site at infracanvas.dev with Stripe + Typeform CTAs)
+- [ ] 00-02-PLAN.md — Validation content artifacts (post drafts, Typeform spec, tracker, demo script, Go/No-Go framework)
+- [ ] 00-03-PLAN.md — External service setup + outreach execution (Stripe, Typeform, Vercel deploy, community posts, customer conversations, Go/No-Go decision)
 
 ### Phase 1: Canvas MVP
 **Goal**: Engineers can run one command against a Terraform directory and get an interactive, annotated infrastructure diagram with security scores
@@ -34,7 +38,7 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 **Success Criteria** (what must be TRUE):
   1. `infracanvas scan ./terraform` opens a browser with a zoomable, filterable diagram in under 10 seconds on a 500-resource project
   2. The diagram shows VPC/subnet grouping, resource icons, dependency edges, and security finding badges
-  3. `infracanvas score` outputs a letter-grade (A–F) across Security, Encryption, IAM Hygiene, Cost Efficiency, and Tagging dimensions
+  3. `infracanvas score` outputs a letter-grade (A-F) across Security, Encryption, IAM Hygiene, Cost Efficiency, and Tagging dimensions
   4. `pip install infracanvas` and `brew install infracanvas` both work; GitHub repo is public with MIT license
   5. The exported single-file HTML opens in any browser with zero dependencies and includes an upgrade CTA for blurred finding details
 **Plans**: TBD
@@ -44,7 +48,7 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 **Depends on**: Phase 1
 **Requirements**: PLN-01, PLN-02, PLN-03, SHD-01, SHD-02, CST-01, CST-02, CST-03, AZR-01, AZR-02, AZR-03, SEC-05, SEC-06, RST-01, RST-02, POL-01, POL-02, CLX-01, CLX-02, DST-01, DST-02
 **Success Criteria** (what must be TRUE):
-  1. `infracanvas scan` on an Azure Terraform directory produces a diagram with 10 Azure resource types, NSG rules, and AZ-001–AZ-010 security findings
+  1. `infracanvas scan` on an Azure Terraform directory produces a diagram with 10 Azure resource types, NSG rules, and AZ-001-AZ-010 security findings
   2. `infracanvas plan` overlays colour-coded drift (green/red/amber/grey) on the diagram and shows before/after attribute diffs
   3. Shadow infrastructure (live AWS API vs state) is flagged with dashed borders and estimated cost; no silent parse failures occur on complex modules
   4. All 30 AWS security rules and all 10 Azure rules carry compliance framework tags (CIS, NIST, SOC2, PCI-DSS) visible in findings output
@@ -57,7 +61,7 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 **Requirements**: FDM-01, FDM-02, FDM-03, AWS-01, AWS-02, AWS-03, AZN-01, AZN-02, AZN-03, CKP-01, CKP-02, DCA-01, DCA-02, DCA-03, DCA-04, DCA-05, DCA-06, DCA-07, DCA-08, DCA-09, ASA-01, ASA-02, ASA-03, PTH-01, PTH-02, PTH-03, ASY-01, ASY-02, ASY-03, FMV-01, FMV-02, FMV-03, FMV-04, FMV-05, NFN-01, NFN-02, TIR-01, TIR-02
 **Success Criteria** (what must be TRUE):
   1. The DC Collector Agent binary installs on a Linux server, connects to a Cisco IOS-XE router via NETCONF (or SSH fallback), and pushes route tables, BGP state, and NetFlow aggregates to the InfraCanvas API within 5 minutes of setup
-  2. The FlowMap viewer shows a dual-colour path (blue forward, orange return) across AWS TGW → data centre → Azure vWAN, with Checkpoint and ASA/FTD firewall nodes displayed
+  2. The FlowMap viewer shows a dual-colour path (blue forward, orange return) across AWS TGW -> data centre -> Azure vWAN, with Checkpoint and ASA/FTD firewall nodes displayed
   3. Asymmetric routing is detected with root cause classified (BGP_LOCAL_PREF vs ROUTE_LEAK vs NAT_ASYMMETRY) and a CRITICAL finding raised when a stateful firewall sits on only one path
   4. NET-001 through NET-012 network findings appear in the findings panel; route changes trigger alerts compared to the previous scan baseline
   5. FlowMap is accessible only on Team/Enterprise tier ($299/mo Stripe product); free/Pro users see a gated upgrade prompt
@@ -90,11 +94,11 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Validation | 0/TBD | Not started | - |
+| 0. Validation | 0/3 | Planning complete | - |
 | 1. Canvas MVP | 0/TBD | Not started | - |
 | 2. Canvas v1.0 | 0/TBD | Not started | - |
 | 3. FlowMap v1.0 | 0/TBD | Not started | - |
