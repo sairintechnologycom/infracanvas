@@ -1,74 +1,70 @@
 # Project Research Summary
 
-**Project:** InfraCanvas
-**Domain:** IaC Visualization and Security SaaS — CLI-to-SaaS transition
+**Project:** InfraCanvas v2.0 — Hybrid Cloud Infrastructure Intelligence Platform
+**Domain:** IaC Visualization + Hybrid Network Topology + Shared Cost Allocation
 **Researched:** 2026-04-15
-**Confidence:** MEDIUM-HIGH
+**Confidence:** HIGH
 
 ## Executive Summary
 
-InfraCanvas occupies a clear niche: no major competitor combines interactive visualization + native security scoring + cost estimation + visual scan comparison in a read-only SaaS. The "no execution" positioning is a deliberate advantage — eliminates compliance and blast-radius concerns that make Terraform Cloud/Spacelift complex.
+InfraCanvas v2.0 occupies an unoccupied market intersection — IaC-first security visualization + hybrid network topology + shared cost allocation — at price points that undercut the nearest comparable tool (NetBrain, $100K+ ACV) by 100x. The recommended 5-phase approach follows a strict dependency chain: harden the CLI core and add Azure (Phase 2), ship the Go DC Collector Agent and FlowMap path tracer (Phase 3), launch the FastAPI SaaS with CostLens (Phase 4), then add Enterprise compliance and self-hosted deployment (Phase 5). The most dangerous risks are the pre-existing HCL parser silent failure pattern, multi-tenant RLS session leakage, viewer codebase divergence, and BGP false-positive asymmetry alerts — all must be architected out before their respective phases begin.
 
-**Recommended stack:** Next.js 15 (App Router) + FastAPI 0.111+ deployed as Vercel Services under one domain. Supabase for Postgres, object storage, and auth. Stripe for billing.
+## Key Stack Corrections
 
-**Key auth decision:** Supabase Auth over Clerk — users live in the same Postgres instance, RLS works natively with `auth.uid()`, included in $25/mo Pro plan regardless of MAU. Clerk charges per MAU with steep cliff above 10k.
+1. **Replace `arq` with `taskiq`** — arq is maintenance-only (GitHub #437). taskiq + taskiq-redis is async-native, production-stable, same Redis broker.
+2. **Next.js 15 not 14** — Stable, uncached-by-default behavior is correct for SaaS where stale scan data is a correctness bug.
+3. **Stripe Billing Meters only** — Legacy `create_usage_record()` removed in API 2025-03-31. Must use Billing Meters from day one.
+4. **goflow2 not goflow** — Cloudflare goflow was archived Feb 2025. Use `netsampler/goflow2/v2`.
+5. **Add observability** — Sentry + Logfire (or similar) required before Phase 4 ships. Silent billing webhook failures are the most dangerous bug class.
 
-**Critical build order:** Database schema → FastAPI auth → CLI push → Dashboard → Sharing + Billing → Teams + Webhooks. Nothing is buildable until the first three links in this chain exist.
+## Table Stakes Features
 
-## Key Findings
+**Canvas:** Interactive diagram, resource grouping, security findings, drift, score card, CI/CD mode, HTML export (already built). Azure parser, shadow infra detection, 30 AWS rules (Phase 2).
 
-### Stack
-- **Supabase Auth over Clerk**: Same-database users, native RLS, included in Supabase pricing
-- **Auth.js is not a fit**: No admin SDK, no FastAPI integration, adds complexity without benefit
-- **Vercel Services**: Next.js at `/` + FastAPI at `/api` via `experimentalServices` — no CORS, atomic deploys
-- **Full hosting under $45/mo**: Vercel Pro $20 + Supabase Pro $25 covers early growth
-- **Dual CLI tokens**: Supabase JWT for interactive login, opaque API keys for CI/CD
-- **`@supabase/auth-helpers-nextjs` is deprecated** — must use `@supabase/ssr` 0.5.x
+**FlowMap:** AWS + Azure network topology collection, DC site visualization via DC Agent, forward/return path tracing, asymmetric routing detection with root-cause classification, firewall capacity monitoring (Phase 3).
 
-### Features
-- **Auth + scan storage are root dependencies** — nothing SaaS works without them
-- **ReactFlow viewer adaptation is highest-complexity task** — from `window.__INFRACANVAS_DATA__` to React props
-- **Scan comparison diff is strongest differentiator** — no competitor offers it
-- **Five anti-features to resist**: Terraform execution, PR bot, custom policy engine, multi-cloud, AI suggestions
+**CostLens:** Shared service cost identification (TGW, ExpressRoute, Firewall), showback reporting, cost trend (Phase 4). Per-path cost analysis is the unique differentiator (Phase 4).
 
-### Architecture
-- **Split scan storage**: Metadata in Postgres (fast queries), full ResourceGraph blob in Supabase Storage
-- **CLI analysis modules import directly into FastAPI** — no reimplementation needed
-- **Viewer needs one refactor**: Export `<InfraCanvasViewer data={graph} />` as shared component
-- **Build order is strict**: Schema → Auth → CLI push → Dashboard diagram view
+## Differentiators
 
-### Pitfalls
-1. **Viewer divergence (BLOCKING)**: Extract shared component before any SaaS frontend work
-2. **Silent parse failures (BLOCKING)**: Fix before first SaaS scan — trust-destroying in multi-tenant context
-3. **Stripe webhooks incomplete**: Build `payment_failed` + `subscription.deleted` handlers as billing acceptance criteria
-4. **CLI push API unversioned**: Ship as `/api/v1/scans` from day one with `cli_version` in request
-5. **Auth header not propagated**: Next.js server components calling FastAPI must forward JWT — invisible in isolated testing
+- Asymmetric routing detection at Team tier pricing ($299/mo vs NetBrain $100K+ ACV)
+- Per-path cost analysis (FlowMap path x CostLens cost model — no competitor does this)
+- PCI-DSS network segmentation verification via FlowMap (unique cross-product moat)
+- Read-only stance eliminates credential storage, blast-radius liability, state locking complexity
+- Open-core CLI drives PLG adoption; commercial FlowMap/CostLens/SaaS drives revenue
 
-## Roadmap Implications
+## Critical Pitfalls
 
-| Phase | Focus | Rationale |
-|-------|-------|-----------|
-| 0 | Pre-SaaS CLI hardening | Silent failures become trust failures in SaaS context |
-| 1 | Foundation: Schema + Auth + Shared Viewer | Root dependencies — everything gates on this |
-| 2 | CLI Bridge: login + push | Only ingest path — validates entire data pipeline before UI work |
-| 3 | Core Dashboard: Projects + History + Diagram | Minimum viable product experience |
-| 4 | Sharing + Billing | Launch gates — viral loop + revenue |
-| 5 | Team Tier + CI/CD Webhooks | Monetization expansion + friction reduction |
-| 6 | Analytics + Comparison | Requires accumulated user data; strongest differentiator |
+1. **HCL parser silent failures** (blocking Phase 2) — python-hcl2 returns partial results on ~15% of complex modules. Fix before Azure parser.
+2. **BGP asymmetry false positives** (Phase 3) — BGP asymmetry is intentional in enterprise networks. Must classify cause (BGP_LOCAL_PREF = expected vs ROUTE_LEAK = alert).
+3. **DC Agent enterprise approval** (Phase 3) — 4-12 week CAB approval. Need security review packet, minimum-privilege design, SSH fallback.
+4. **RLS session leakage** (Phase 4) — SET LOCAL can persist under PgBouncer transaction-mode. Use Neon session-mode pooler, dedicated app role with no BYPASSRLS.
+5. **Viewer codebase divergence** (Phase 4) — Extract viewer to shared package before any Next.js work begins.
+6. **Compliance framework tags** — Must embed CIS/NIST/SOC2/PCI-DSS metadata on security rules during Phase 2, not Phase 5.
 
-## Research Flags
+## Architecture Approach
 
-**Needs verification before implementation:**
-- Vercel `experimentalServices` production status (was beta mid-2025)
-- Supabase Auth MAU limits and current Pro pricing
-- `supabase-py` async support status
-- Tailwind v4 + shadcn/ui compatibility
+- **Viewer dual-build:** Single React package with two Vite configs — `vite-plugin-singlefile` for CLI HTML, `lib` mode for SaaS dashboard import.
+- **DC Agent:** Outbound-only HTTP POST with JSON + pre-shared API key. Push-based snapshots (like Datadog/Grafana Agent pattern).
+- **Multi-tenant:** RLS via `SET LOCAL app.current_org` on every connection checkout. Dedicated `infracanvas_app` role.
+- **CLI to API shared models:** Monorepo path dependency — CLI Python modules importable by FastAPI directly.
+- **Artifact storage:** Neon for scalars (scan metadata), R2 for blobs (scan JSON, HTML). Write Neon first, R2 second.
 
-**Standard patterns (skip phase research):**
-- Phase 1: Supabase Auth + Next.js via `@supabase/ssr` — well-documented
-- Phase 3: Next.js dashboard + TanStack Query — established pattern
-- Phase 6: ReactFlow diff rendering — builds on existing models
+## Suggested Phase Structure
+
+| # | Phase | Goal | Research Flag |
+|---|-------|------|---------------|
+| 2 | Canvas v1.0 | Azure + policy engine + 30 rules + shadow infra + cost | Skip research |
+| 3 | FlowMap v1.0 | DC Agent + hybrid topology + asymmetric routing | Needs research (Cisco NETCONF compat) |
+| 4 | SaaS + CostLens | FastAPI + Neon + Clerk + Stripe + shared cost allocation | Skip research |
+| 5 | Enterprise | Compliance + SSO + self-hosted + OPA/Rego | Needs research (OPA integration, Helm) |
+
+## Open Questions
+
+1. Should CLI and FastAPI share a `infracanvas-core` PyPI package for Pydantic models?
+2. DC Agent auth: pre-shared API key (v1) vs mTLS certificate (Phase 5 Enterprise)?
+3. Logfire free tier limits — verify before committing as observability solution.
+4. Security rule schema: add `framework_ids: list[str]` field before Phase 2 begins.
 
 ---
-*Research completed: 2026-04-15*
-*Ready for roadmap: yes*
+*Synthesized: 2026-04-15 from STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md*

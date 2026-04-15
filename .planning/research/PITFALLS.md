@@ -1,256 +1,449 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** IaC Visualization SaaS — CLI-to-SaaS transition for developer tooling
+**Domain:** Hybrid Cloud Infrastructure Intelligence Platform (IaC visualization, network topology analysis, DC device integration)
 **Researched:** 2026-04-15
-**Confidence:** HIGH (grounded in codebase analysis + known CLI-to-SaaS patterns)
+**Confidence:** HIGH (grounded in codebase analysis + domain-specific research)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: CLI Auth Token Stored Insecurely, Breaking Enterprise Adoption
+### Pitfall 1: HCL Parser Silent Failures Create Ghost Infrastructure Diagrams
 
 **What goes wrong:**
-The `login` command writes an API token to a local config file (e.g., `~/.infracanvas/config.json` or `.infracanvas.yml`) without regard for OS credential stores. Enterprise users hit security review blocks — their CI/CD policies flag plaintext tokens in config files. Individual users accidentally commit the token to version control when `.infracanvas.yml` is project-scoped rather than user-scoped.
+`python-hcl2` silently fails on approximately 15% of complex real-world Terraform modules. Common triggers: conditional expressions inside dynamic blocks, `templatefile()` calls in variable defaults, complex `for` expressions as object keys, two provider blocks with the same name, and unclosed strings that cause exponential parse time. The parser returns a partial result or empty dict rather than raising. The diagram renders with missing resources and edges. The user's security score reflects 70% of their infrastructure but shows no warning.
+
+This is confirmed as a pre-existing issue in the codebase (`cli/infracanvas/parser/hcl.py` uses `except Exception: return` patterns per CONCERNS.md).
 
 **Why it happens:**
-Quickest path to a working `login` command is writing a JSON file to a config directory. Developers solve their own problem (local dev) and defer "do it right" to later. Later never comes.
+python-hcl2 is a Lark-based parser implementing the HCL2 grammar, not Terraform's actual evaluator. Terraform expressions are lazily evaluated at plan time — values like `var.name`, `module.output`, `local.computed` are not literal strings. A pure lexer/parser cannot resolve them and must decide: fail hard or return a partial result. python-hcl2 chooses partial results.
 
-**How to avoid:**
-Use OS keychain integrations from day one: macOS Keychain, Linux libsecret (via `keyring` Python package), Windows Credential Manager. The `keyring` library (`pip install keyring`) abstracts all three. Store only a token reference in config files, never the token value itself. For CI/CD, support `INFRACANVAS_API_KEY` environment variable as the authoritative override (no disk write at all).
+**Consequences:**
+- Security findings missed (resources not in graph cannot be scored)
+- Drift detection false negatives (missing resources appear as deletions on next scan)
+- In SaaS context: users trust incomplete security scores to gate deployments
+
+**Prevention:**
+1. Never swallow parser exceptions. Log the failing file path and the exception message to a structured `parse_warnings` list on every scan result.
+2. Add an integration test corpus of 20+ real-world Terraform modules (pulled from Terraform Registry examples) that must parse without warnings.
+3. For expressions that cannot be resolved (unbound variables), record the attribute as `"<unresolved: var.name>"` rather than dropping the resource entirely. Preserve the node in the graph with a "values unavailable" badge.
+4. Consider migrating the parser to `tfparse` (cloud-custodian), which wraps the actual Terraform binary for expression evaluation — higher fidelity at the cost of requiring `terraform` on PATH, which is acceptable for CI/CD use.
 
 **Warning signs:**
-- `login` command writes anything sensitive to a file path ending in `.yml`, `.json`, `.toml`
-- No mention of `keyring` or env var fallback in the `push` command implementation
-- Users asking "where is my token stored?" in GitHub issues
+- Resource count in diagram differs from `terraform state list | wc -l` by more than 5%
+- `dynamic` blocks in user's .tf files produce fewer nodes than expected
+- Users report "my RDS instance is missing" from the diagram
 
-**Phase to address:**
-CLI auth implementation phase (when building `login` and `push` commands). Cannot be retrofitted without breaking existing users' stored tokens.
+**Phase:** Phase 2 (Canvas v1.0) pre-work. Blocking. Must be fixed before Azure parser work begins or the same pattern propagates.
 
 ---
 
-### Pitfall 2: Viewer Code Diverges Between CLI HTML Export and SaaS Dashboard
+### Pitfall 2: Module Graph Resolution Requires Multi-Pass — Single-Pass Parsers Break on Cross-Module References
 
 **What goes wrong:**
-The React viewer (`viewer/`) starts as a single-file HTML export. When the SaaS dashboard is built, someone creates a new React component that duplicates viewer logic for the "live" dashboard view. Security findings render differently in the CLI export vs. the web dashboard. Bug fixes to one don't propagate to the other. In 6 months you have two rendering paths with different behavior for the same data.
+Terraform modules reference each other: `module.vpc.subnet_id` in one file references an `output "subnet_id"` block in `modules/vpc/main.tf`. A single-pass parser that reads files sequentially cannot resolve these references. Resources that depend on module outputs appear as disconnected nodes. The dependency graph has false negative edges. Topology analysis built on this incomplete graph produces incorrect path computations in FlowMap.
 
 **Why it happens:**
-The existing viewer is Vite-built as a standalone bundle injected via `window.__INFRACANVAS_DATA__`. The SaaS dashboard is a Next.js app. These feel like different contexts so developers build separately rather than extracting a shared package.
+Phase 1 CLI was built for flat Terraform in a single directory. Module resolution requires a two-pass strategy: first pass builds a symbol table (all outputs, variables, locals), second pass resolves cross-file references. This is non-trivial to retrofit once the parser's output schema is locked.
 
-**How to avoid:**
-Extract `viewer/src/` into a shared library (`packages/infracanvas-viewer`) before starting SaaS work. The library exports a `<InfracanvasViewer graph={...} />` React component that takes `graph` as a prop instead of reading from `window`. Both the HTML export (Vite bundle) and the Next.js dashboard import from this package. This is a monorepo boundary decision that must be made before SaaS development starts — changing it later requires coordinated rewrites.
+**Consequences:**
+- VPC/subnet grouping breaks when subnet IDs come from a child module
+- Security findings for resources in child modules may be missed
+- FlowMap network path tracer receives incorrect topology data, producing wrong asymmetric routing classifications
+
+**Prevention:**
+Before Azure parser work (Phase 2), add multi-pass resolution to the existing parser:
+1. Walk all `.tf` files, collect all `output`, `variable`, `local`, and `module` blocks into a symbol table keyed by module path.
+2. Second pass resolves interpolations against the symbol table. Unresolvable references (dynamic values known only at plan time) are recorded as unresolved, not dropped.
+3. Add a test fixture with a 3-level module hierarchy and assert all cross-module edges are present in the graph output.
 
 **Warning signs:**
-- "Fixed in SaaS dashboard but not CLI export" appearing in commit messages
-- Separate `components/DiagramCanvas.tsx` files in both `viewer/` and `apps/web/`
-- Security finding display logic copy-pasted across two directories
+- Module source paths in the graph are present but show no edges to consumer resources
+- A `module.vpc.vpc_id` reference resolves to an empty string in the parsed output
+- Users with module-heavy repos report empty or sparse diagrams
 
-**Phase to address:**
-Before any SaaS frontend work begins — must be the first architectural decision of the SaaS milestone.
+**Phase:** Phase 2 pre-work. Required before FlowMap topology integration (Phase 3) since FlowMap depends on accurate AWS resource graph.
 
 ---
 
-### Pitfall 3: Scan Artifact Storage Schema Locked In Too Early
+### Pitfall 3: Network Topology Accuracy Requires Handling BGP Asymmetry as a First-Class Concept, Not an Edge Case
 
 **What goes wrong:**
-Scan results are stored as JSON blobs in Supabase Storage (object storage). When scan comparison, history diffing, and point-in-time diagram viewing are added in later phases, the team discovers the blob structure does not support efficient retrieval of specific fields (e.g., "show me just the security findings for scan X"). Every query loads the entire blob, then filters in application code. At scale (user with 500 scans), this becomes a performance and cost problem.
+BGP asymmetric routing is the norm, not the exception, in enterprise networks. Traffic from A to B follows a different path than traffic from B to A by design — inbound traffic is influenced by BGP attributes (MED, local preference, AS path prepending) that are independent on each end. Tools that model network paths as bidirectional symmetric edges will misclassify every intentionally asymmetric BGP path as a problem, producing false positives that lose user trust immediately.
+
+The deeper trap: a path tracer that works on static routes (AWS VPC route tables, TGW route tables) appears to work in demos but silently fails in real DC environments where BGP local-pref overrides static route decisions.
 
 **Why it happens:**
-First instinct is to store `json.dumps(scan_result)` as a single artifact. It works immediately. The structural inadequacy only becomes visible when building the history timeline and comparison features.
+Static route analysis is deterministic and tractable. BGP path selection requires knowledge of the full BGP RIB from each router's perspective, which requires querying each device individually. Most visualization tools stop at the route table layer.
 
-**How to avoid:**
-Design the scan storage schema with all known downstream features in mind before writing a single migration. The schema must support: (1) metadata queryable in PostgreSQL (timestamp, resource count, finding count by severity, security score), (2) full graph JSON in Supabase Storage for viewer rendering, (3) security findings indexable by resource ID for comparison diffs. Store metadata in a `scans` table with foreign keys to `projects` and `users`, store the graph blob as a Storage object with a reference key in the `scans` table. Never store the full blob in the database column.
+**Consequences:**
+- FlowMap shows false asymmetry alerts on correctly-configured enterprise networks
+- Engineers lose trust in the tool after the first alert storm
+- The tool is deprecated internally within weeks of deployment
+
+**Prevention:**
+1. The FlowMap data model must separate forward path and return path from the beginning. `NetworkPath` should have `forward_hops: List[PathHop]` and `return_hops: List[PathHop]` as separate fields — never a single `path` field.
+2. Asymmetric routing detector must classify divergence by cause: `BGP_LOCAL_PREF` (expected, policy-driven), `BGP_MED` (expected, policy-driven), `ROUTE_LEAK` (unexpected), `MISSING_RETURN` (unexpected). Only the latter two should alert.
+3. DC Collector Agent must collect BGP RIB table (`show bgp ipv4 unicast`) alongside route table data — the RIB is required to reconstruct BGP path selection decisions.
+4. Provide a suppress-by-rule mechanism: annotation in the DC site config, or a policy in `.infracanvas.yml` that whitelists known-asymmetric paths.
 
 **Warning signs:**
-- Migration that adds a column to `scans` table to store `findings_json` text after initial schema is live
-- API endpoints loading full scan blob to return only the scan score
-- No `scans` table — only an `artifacts` bucket in Supabase Storage
+- `NetworkPath` data model has a single `hops` field (not `forward_hops` / `return_hops`)
+- DC Collector Agent only collects `show ip route`, not `show bgp` output
+- FlowMap demo uses only AWS TGW topology (symmetric by design) — no physical DC with BGP
 
-**Phase to address:**
-Database schema design phase — must be finalized before the first `/push` API endpoint is implemented.
+**Phase:** Phase 3 design, before any FlowMap data model code is written.
 
 ---
 
-### Pitfall 4: Injected Window Data Becomes an XSS Vector in SaaS
+### Pitfall 4: DC Agent Enterprise Deployment Blocked by Security Approval Process
 
 **What goes wrong:**
-The existing viewer reads from `window.__INFRACANVAS_DATA__` without validation (confirmed in CONCERNS.md: `viewer/src/App.tsx` lines 15-16). In the CLI export context this is acceptable — data comes from the user's own scan. In the SaaS context, this data comes from a server API. If the Next.js page injects server data into the page without sanitization, an XSS vector opens: a malicious scan result with script content in resource names or attribute values could execute in other users' browsers on the shared SaaS domain.
+In enterprise data centres, a "read-only agent" still requires a Change Advisory Board (CAB) approval process that takes 4–12 weeks. The approval requires: a formal description of every network protocol used, every port opened, every credential required, data residency documentation, an audit trail of what the agent reads, and sign-off from the security team. If the agent is deployed and begins collecting data before security review, it will be recalled and the vendor relationship damaged.
+
+Specific blockers observed in practice:
+- Security teams reject agents that require `privilege 15` (full admin) access on Cisco devices, even in read-only mode
+- `NETCONF` requires enabling a service (`netconf-yang` or `netconf agent ssh`) on the device that may not be permitted by the network baseline configuration
+- SSH key distribution to network devices requires a formal access request in most enterprises
+- Outbound connections from DC devices to cloud APIs require firewall rule changes (weeks)
 
 **Why it happens:**
-The injection pattern is copy-pasted from the CLI export without reconsidering the trust model. In SaaS, the data origin is different — it was stored by a different user, potentially with adversarial content.
+Developers test against lab environments where they have full control. Lab devices have no change management, no security review. The friction only appears in the first real enterprise deployment.
 
-**How to avoid:**
-In the SaaS context, pass graph data through React props (server-side rendered or fetched via API) rather than window injection. Add input validation at the FastAPI layer: resource names and attribute values must be strings within length limits, no HTML or script content. Add Content Security Policy headers in the Next.js middleware. The `window.__INFRACANVAS_DATA__` pattern should only exist in the CLI HTML export path.
+**Consequences:**
+- First enterprise customer takes 3 months to deploy, not 1 week
+- The agent design is modified late to satisfy security requirements, introducing architectural debt
+- Enterprise deals are delayed 1–2 quarters waiting for CAB approval
+
+**Prevention:**
+1. Minimum privilege design: create a dedicated read-only user on Cisco IOS XE/XR with exactly the commands needed. Document this as a Cisco IOS command list in the onboarding docs. The commands are: `show ip route`, `show bgp ipv4 unicast`, `show interfaces`, `show version`, `show cdp neighbors`, and (for ASA) REST API read-only role. No `privilege 15` required for read-only data collection.
+2. Provide a "security review packet" as part of the agent distribution: architecture diagram, data flow diagram, ports opened (outbound 443 only), credential scope, data retention policy, and a formal description of what data is collected and what is not (no configuration writes, no ACL changes).
+3. SSH is always available as the fallback transport. NETCONF is preferred but optional. Design the agent to degrade gracefully: if NETCONF is not enabled, fall back to SSH command parsing. This removes the need to enable a new service on the device.
+4. Support an "air-gapped" mode: agent writes collected data to a local JSON file rather than sending to cloud. Security team reviews the file before approving outbound connectivity.
 
 **Warning signs:**
-- Next.js `_document.tsx` or a page file using raw HTML injection to embed scan data
-- No CSP headers in `next.config.js` or middleware
-- Shared viewer component reading from `window` instead of props
+- Agent documentation says "requires `privilege 15` access"
+- First enterprise prospect says "our security team needs to review this" and there is no security packet to send them
+- Agent requires NETCONF to be explicitly enabled and there is no SSH fallback
 
-**Phase to address:**
-SaaS viewer integration phase, before any public sharing feature is enabled.
+**Phase:** Phase 3 DC Agent design. The security review packet must exist before the first enterprise conversation.
 
 ---
 
-### Pitfall 5: Stripe Webhook Handling Done After Billing UI is Built
+### Pitfall 5: Multi-Tenant Scan Artifact Isolation Breaks Under Connection Pool Session State
 
 **What goes wrong:**
-The billing integration adds Stripe checkout and shows a "Pro" badge in the dashboard. But Stripe webhook handling (subscription created, payment failed, subscription cancelled, trial ended) is left as a follow-up. Users subscribe, their payment fails on month 2, their account still has Pro access because the webhook handler was never built. Churn through failed payments goes undetected.
+PostgreSQL Row Level Security (RLS) isolates scan artifacts by tenant correctly in theory. In practice, PgBouncer (or any connection pooler) leaks session state between requests. RLS works via `SET LOCAL app.current_tenant = 'org_123'` which must be set on every connection before any query. In transaction-mode pooling (the default for PgBouncer), the session variable set in one transaction can persist into the next tenant's transaction if the variable is not explicitly cleared.
+
+Additional trap: the table owner (the `postgres` superuser role used by migrations) bypasses RLS by default. If migrations are applied with the superuser role and application queries also run as superuser (common in development), RLS policies are silently bypassed in tests.
 
 **Why it happens:**
-The happy path (user subscribes, sees Pro features) is built and demoed. Webhooks feel like edge cases. They get added "in the next sprint." For a solo founder, that sprint keeps getting pushed.
+Developers test with a single user and never hit cross-tenant access. The RLS policy appears to work. The session leak is invisible until two concurrent users with different tenants share the same pooled connection in production.
 
-**How to avoid:**
-Treat webhook handling as part of the billing feature definition, not a separate task. Before shipping Stripe checkout, implement handlers for at minimum: `customer.subscription.created`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`. Use Stripe CLI for local webhook testing during development. Store subscription status in the `users` table and check it on every Pro-gated API request — never trust client-side `isPro` state.
+**Consequences:**
+- Tenant A can read Tenant B's scan artifacts (security incident)
+- Compliance audit failure (SOC2 CC6.1 violated)
+- Regulatory exposure if scan artifacts contain sensitive resource attributes
+
+**Prevention:**
+1. Use Neon's built-in connection pooling (Neon Serverless driver) rather than self-managed PgBouncer. Neon's pooler is session-mode aware.
+2. Create a dedicated application role (`infracanvas_app`) that has neither `SUPERUSER` nor `BYPASSRLS`. All application queries run as this role. Migrations run as a separate privileged role.
+3. Every API handler that queries the database must set the tenant context before any query: `SET LOCAL app.current_org_id = ?`. Use a middleware/dependency injection pattern that enforces this on every request — not an opt-in pattern per endpoint.
+4. Write a CI test that: (1) creates two tenants, (2) inserts a scan for Tenant A, (3) sets session context to Tenant B, (4) asserts the scan is not visible.
+5. Enable `FORCE ROW LEVEL SECURITY` on all tables that contain scan artifacts. Without this, the table owner bypasses RLS.
 
 **Warning signs:**
-- Billing feature marked complete with only checkout implemented
-- Pro feature access checked by reading a hardcoded value rather than querying `subscription_status` from the database
-- No `stripe listen` step in the local development setup instructions
+- Database migrations applied with the same role as application queries
+- No `SET LOCAL app.current_org_id` in API request middleware
+- RLS tests only test single-user access, not cross-tenant access
 
-**Phase to address:**
-Billing integration phase. Webhooks are acceptance criteria for the billing feature, not an optional add-on.
+**Phase:** Phase 4 (SaaS Dashboard) database schema design. Must be in place before the first scan upload endpoint is deployed.
 
 ---
 
-### Pitfall 6: CLI `push` Command Couples Scan Format to API Version
+### Pitfall 6: Viewer Bundle Divergence Between CLI HTML Export and SaaS Dashboard
 
 **What goes wrong:**
-The CLI sends scan results to the FastAPI backend in a format that matches the internal Python data structures (Pydantic models). When the API evolves — new fields, renamed keys, restructured findings — the CLI breaks for users on older versions. Because the CLI is pip-installed and users do not auto-update, you end up supporting multiple API versions simultaneously or breaking all CLI users on every backend deploy.
+The CLI HTML export bundles the React viewer via `vite-plugin-singlefile` into a self-contained HTML file (~5MB target). The SaaS dashboard is a Next.js app. These feel like different delivery targets, so developers build a new DiagramCanvas component in the Next.js app rather than reusing the CLI viewer. Within three months, there are two rendering paths for the same graph data. Security finding severity badges render differently. Edge routing logic diverges. A bug fixed in one is not fixed in the other.
+
+Secondary trap: the `window.__INFRACANVAS_DATA__` injection pattern used in CLI export is re-used in the SaaS context. In SaaS, this data comes from a server API that was populated by a different user — a script injection risk if resource names or attribute values contain script content.
 
 **Why it happens:**
-The first `push` implementation serializes whatever `scan_result` returns directly to JSON and POSTs it. No versioning is designed because there is only one version at launch.
+The path-of-least-resistance in Next.js is to build components in the app directory. The CLI viewer's Vite build configuration makes it feel like a separate project, not a library. No one creates the monorepo boundary early enough to make sharing the natural choice.
 
-**How to avoid:**
-Version the push API from day one: `/api/v1/scans`. Design a stable, documented `ScanPayload` schema that is the CLI's external contract. The FastAPI endpoint validates against this schema (Pydantic), not against internal models. Maintain this schema separately from internal data structures. When internals change, adapt the v1 endpoint rather than changing the schema. Add `cli_version` and `payload_version` fields to every push request so the API can handle migration logic later.
+**Consequences:**
+- Bug fix backlog doubles (every viewer fix must be applied to two codebases)
+- CLI export and SaaS dashboard have different visual behavior — confuses users who switch between them
+- Script injection risk in SaaS if window injection pattern is copied
+
+**Prevention:**
+1. Before any SaaS frontend work begins, extract `viewer/src/` into a workspace package: `packages/infracanvas-viewer`. Export a single component: `<InfracanvasViewer graph={InfracanvasGraph} />` that accepts graph data as a prop.
+2. The CLI Vite build imports from `packages/infracanvas-viewer` and wraps it with a thin bootstrap that reads from `window.__INFRACANVAS_DATA__`.
+3. The Next.js SaaS app imports from `packages/infracanvas-viewer` and passes graph data via React props from an API fetch.
+4. The `window` injection pattern must never exist in the SaaS application — all data flows through React props.
+5. Add a test that renders the viewer component with the same graph fixture in both the Vite and Next.js environments and asserts identical node/edge counts.
 
 **Warning signs:**
-- Push endpoint path without version prefix: `POST /api/scans`
-- `ScanPayload` Pydantic model imported directly from internal scanning modules
-- No documented schema for the push payload
+- A DiagramCanvas.tsx or InfraGraph.tsx file exists in both `viewer/src/` and `apps/web/components/`
+- The SaaS page uses raw script injection to load graph data
+- "Fixed in web, not in CLI export" appears in commit messages
 
-**Phase to address:**
-CLI `push` command implementation phase. API versioning must be in the initial design.
+**Phase:** First action of Phase 4 (SaaS Dashboard), before any Next.js component is built.
 
 ---
 
-### Pitfall 7: Auth Session Not Propagated Correctly Across Next.js and FastAPI
+### Pitfall 7: Cost Estimation Accuracy Erodes Due to Pricing API Staleness and Shared Resource Attribution
 
 **What goes wrong:**
-The auth provider (Supabase Auth or Clerk) issues a JWT. The Next.js frontend reads this correctly via the auth SDK. But the FastAPI backend must independently verify the JWT on every API request. A common mistake: the Next.js server-side routes forward requests to FastAPI without including the `Authorization: Bearer <token>` header. FastAPI cannot verify the user, falls back to anonymous access, and either returns 401s or (worse) silently serves unscoped data.
+Two distinct accuracy problems compound each other:
+
+**Staleness:** Cloud provider pricing APIs are updated weekly by Infracost's pipeline. AWS pricing pages update without notice. Instance type retirement, Savings Plans discounts, regional pricing variations (us-west-2 vs eu-central-1), and data transfer fees are frequently wrong in any cached pricing dataset. The hardcoded `us-east-1` pricing in the existing codebase (per PROJECT.md CONCERNS) means all multi-region estimates are wrong by default.
+
+**Shared cost attribution:** Transit Gateway charges are per-attachment and per-GB processed. ExpressRoute charges are per circuit-hour. Checkpoint Firewall throughput costs are shared across all traffic passing through. There is no single correct formula for allocating these costs to individual workloads — every formula is an approximation that will be disputed by someone. Building cost allocation that looks precise (two decimal places) but is methodologically approximate creates user trust problems when the number differs from the actual AWS bill.
 
 **Why it happens:**
-Developers test the frontend and backend separately. The Next.js pages work (auth SDK handles sessions). The FastAPI endpoints are tested with Postman using manually pasted tokens. The integration — Next.js server-side code forwarding auth headers to FastAPI — is never explicitly tested as a unit.
+Phase 1 cost estimation was built with hardcoded `us-east-1` pricing for simplicity (acknowledged in PROJECT.md). The problem is deferred. When multi-region and shared cost features are built, the pricing data pipeline and attribution methodology are designed under time pressure without enough domain depth.
 
-**How to avoid:**
-Write an integration test on day one that: (1) authenticates a test user with Supabase/Clerk, (2) calls a Next.js API route that proxies to FastAPI, (3) verifies FastAPI returns scoped data for that user. FastAPI should use a dependency (`get_current_user`) that extracts and verifies the JWT on every protected endpoint. Never trust user ID from request body — always derive it from the verified JWT.
+**Consequences:**
+- Cost estimates for non-us-east-1 resources are wrong by 5–40% depending on region and instance type
+- Users compare CostLens shared cost attribution to their AWS Cost Explorer and find different numbers — they stop trusting the tool
+- Enterprise customers with FinOps teams reject the tool because the methodology is not documented
+
+**Prevention:**
+1. Replace hardcoded pricing with the Infracost Cloud Pricing API (self-hostable, weekly-updated, 3M+ prices). This is a one-time integration that solves staleness. Do not build a custom pricing scraper.
+2. Multi-region cost estimation must be region-parameterized from the start. Every pricing lookup must take a `(resource_type, region, instance_type)` tuple — never a default region constant.
+3. For shared cost allocation (TGW, ExpressRoute, Firewall), be explicit about the methodology in the UI: "TGW cost allocated proportionally by GB processed per attachment (estimate)." Show the formula. Do not show a single number without the methodology.
+4. Add a "cost confidence" indicator per resource: HIGH (on-demand, fixed hourly rate), MEDIUM (data transfer estimate), LOW (shared allocation). This is more useful to FinOps users than false precision.
 
 **Warning signs:**
-- FastAPI endpoint that accepts `user_id` as a request body field rather than deriving it from the JWT
-- Next.js server component that calls FastAPI with `fetch(url)` without attaching the session token
-- Auth works in the browser but API calls from server components return 401
+- `PRICING_REGION = "us-east-1"` constant anywhere in the codebase when multi-region support is being built
+- CostLens UI shows cost to two decimal places without any methodology footnote
+- No integration tests that assert pricing data is fetched from an external API rather than a hardcoded dict
 
-**Phase to address:**
-Auth infrastructure phase — must be proven before any data endpoints are built.
+**Phase:** Phase 4 (CostLens), before any cost display is rendered in the SaaS dashboard.
 
 ---
 
-### Pitfall 8: Silent Failures From Existing Codebase Become User Trust Failures in SaaS
+### Pitfall 8: Open-Source CLI Core Creates a Fork Vector That Erodes Commercial Moat
 
 **What goes wrong:**
-CONCERNS.md documents that the HCL parser silently swallows exceptions and the config file silently ignores validation errors. These are acceptable annoyances in a CLI where the user sees some output. In SaaS, a scan that silently skips 30% of files appears to succeed — the user sees a diagram and security score. They trust it. In reality, the scan is incomplete. A user relying on the security score to gate a deployment misses critical findings. This is a trust-destroying incident.
+The MIT-licensed CLI core (parser, layout, icons, basic HTML export, JSON schema) is the acquisition channel for Pro/Team/Enterprise. The risk is a fork that adds just enough of the commercial features (basic security rules, simple cost estimation) to satisfy the majority of free users, eliminating the upgrade pressure. This has occurred to HashiCorp (OpenTofu), Redis (Valkey), and Elasticsearch (OpenSearch) — all infrastructure developer tools.
+
+The specific InfraCanvas risk: the parser, graph builder, and ReactFlow viewer are the hardest parts to build. If those are MIT, a determined contributor (or a funded competitor) can add 10 more security rules and a simple cost table, ship it as "InfraCanvas Community," and capture the free tier permanently.
 
 **Why it happens:**
-Known tech debt is deprioritized in favor of building new SaaS features. The assumption is "users know it is a CLI tool." SaaS users have different expectations — a web dashboard implies production quality.
+Open-core is the correct PLG strategy for developer tools. The mistake is drawing the open/commercial boundary in the wrong place — too much capability in the open tier undercuts the commercial tier.
 
-**How to avoid:**
-Fix all silent failure modes before the first SaaS scan can be processed: (1) HCL parser must log which files failed and why, (2) config validation errors must surface to the user, (3) scan results must include a `parse_warnings` field that the SaaS dashboard displays prominently. The dashboard should show "X files could not be parsed — results may be incomplete" rather than a clean success state. Treat this as blocking for SaaS launch.
+**Consequences:**
+- Free tier users have no incentive to upgrade
+- A community fork captures mindshare and the GitHub star graph
+- Enterprise buyers use the fork to avoid vendor lock-in concerns
+
+**Prevention:**
+The boundary between open and commercial must be drawn at capability leverage points, not at feature count:
+- **Open (MIT):** HCL parser, resource graph builder, ReactFlow viewer, JSON schema, basic CLI commands (`scan`, `export`). These are infrastructure — necessary but not the product.
+- **Commercial:** Security engine (rules beyond the 10 included in open), FlowMap topology collection and path analysis, DC Collector Agent, CostLens allocation, SaaS backend, team features. These are the value delivery.
+- Add proprietary behavioral elements to the open components that make the commercial features work better (e.g., the graph JSON schema is MIT, but the schema includes extension points only the commercial engine uses). This makes forking the open core less useful without the commercial engine.
+- Do not open-source the security rule schema or the network findings schema in the first year. Schema lock-in is a moat.
+- If a fork emerges, respond with community engagement (blog posts, Discord), not legal threats. Legal responses harm developer reputation and accelerate the fork.
 
 **Warning signs:**
-- `cli/infracanvas/parser/hcl.py` still has `except Exception: return` patterns when SaaS milestone starts
-- FastAPI `/push` endpoint stores scan results without checking for `parse_warnings`
-- SaaS dashboard shows a green checkmark for scans with parser failures
+- GitHub issues requesting security rules as a community contribution ("can we add rules as plugins?")
+- A fork appears on GitHub with more stars than the original within 6 months
+- Enterprise prospect asks "can we fork the CLI and host internally without a license?"
 
-**Phase to address:**
-Bug fix phase before SaaS milestone begins — must be resolved as pre-work.
-
----
-
-## Technical Debt Patterns
-
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Hardcode `us-east-1` pricing in SaaS cost display | Avoid building region detection | Cost estimates for 60%+ of user infrastructure are wrong; user complaints and churn | Never in SaaS — users pay for accurate data |
-| Store Stripe `price_id` as a string constant in code | Simple to ship | Adding new tiers requires code deploy, not config change | Acceptable for MVP with exactly 2 tiers; unacceptable if tiers change often |
-| Use Supabase Storage public bucket for scan artifacts | Zero auth code on storage layer | Any user can read any scan artifact if they guess the path | Never — storage must be private with signed URLs |
-| Single Supabase project for dev and prod | No setup overhead | A bad migration in dev destroys prod data | Never — always separate Supabase projects for dev/prod |
-| Skip idempotency on `/push` endpoint | Simpler implementation | CLI retry on network failure creates duplicate scans | MVP acceptable if CLI has no retry logic; must fix before adding CI/CD webhooks |
-| Use Next.js API routes as a pass-through proxy to FastAPI | Single auth surface, avoids CORS | Adds latency; both services must run locally | Acceptable pattern for SaaS; simplifies auth header forwarding |
-| JWT verification as middleware in FastAPI rather than per-endpoint decorator | Less code, automatic coverage | Easy to forget to apply to new routers | Middleware approach is actually preferred — less risk than decorator-per-endpoint |
+**Phase:** Defined at project launch (Phase 1). The open/commercial boundary must be in the LICENSE file and README before the first public release.
 
 ---
 
-## Integration Gotchas
+### Pitfall 9: Solo Founder Operational Load Collapses Under Service Proliferation
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Supabase Auth + FastAPI | FastAPI tries to verify Supabase JWT with wrong secret (service role key instead of JWT secret) | Verify JWT using Supabase JWT secret from project settings, not the service role key; use `python-jose` or `PyJWT` |
-| Supabase Storage + signed URLs | Generating signed URLs server-side that expire in 60 seconds, causing viewer to break mid-session | Generate signed URLs with at least 1-hour expiry for viewer sessions; regenerate on scan page load |
-| Stripe + Supabase | Storing Stripe `customer_id` only in Stripe metadata, not in the `users` table | Always write `stripe_customer_id` to `users` table on `customer.created` webhook — Stripe metadata is not a database |
-| Clerk/Supabase Auth + CLI | CLI `login` flow uses browser OAuth redirect but the CLI has no web server to receive the redirect | Implement device authorization flow (device code grant) or use API key generation in the dashboard that users paste into CLI |
-| ReactFlow + scan artifacts from API | Loading full scan graph JSON directly into ReactFlow state causes re-renders on every polling tick | Stabilize graph identity with `useMemo` keyed on scan ID, not the full graph object |
-| FastAPI + Supabase | Using Supabase Python client for database queries in an async FastAPI app | Supabase Python client is synchronous; use `asyncpg` or SQLAlchemy async for non-blocking FastAPI performance |
+**What goes wrong:**
+The current stack has 8+ external services: Vercel, Railway/Fly.io, Neon, Cloudflare R2, Upstash Redis, Clerk, Stripe, and GitHub Actions. Each service has: a billing account, a secrets rotation cycle, an incident/status page to monitor, and a support escalation path. When any service has an incident, debugging requires correlating logs across 5 dashboards simultaneously. At 3 AM with an Enterprise customer SLA, this is not manageable for one person.
 
----
+The specific failure mode: adding observability as an afterthought. Without centralized logging from the start, a FlowMap topology collection failure in the DC Agent (Go binary, remote execution) produces no actionable error signal. The engineer spends hours SSH-ing into customer environments with no telemetry.
 
-## Performance Traps
+**Why it happens:**
+Each service is added for a good reason (R2 for egress costs, Upstash for serverless Redis, Neon for scale-to-zero). The operational complexity of the combination is not evaluated at addition time.
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Loading full scan graph JSON to render scan list (history page) | History page slow; 10MB+ transferred for a 20-row list | Store metadata (resource count, finding count, score, timestamp) in `scans` table columns; load blob only for viewer | At ~20 scans per user |
-| No pagination on `/api/projects/{id}/scans` | Memory spike on server; client freezes loading large lists | Always paginate with `?limit=20&cursor=<scan_id>` | At ~50 scans per project |
-| Synchronous HCL parsing in FastAPI request handler | API request blocks for 30+ seconds on large Terraform repos | Parse in a background task (FastAPI `BackgroundTasks` or Celery); return `scan_id` immediately, poll for status | On any project with >100 .tf files |
-| ReactFlow re-renders entire graph on filter change | Viewer sluggish with >200 nodes | Separate node visibility (opacity) from node re-creation; only recompute layout on structural changes | At ~200 nodes in the graph (confirmed O(n2) in CONCERNS.md) |
-| Supabase Realtime for scan status polling | WebSocket overhead for a feature used once per scan | Use simple HTTP polling with exponential backoff; Realtime is overkill for this pattern | At ~100 concurrent users |
+**Consequences:**
+- Incident response time degrades as service count grows
+- Solo founder spends 30% of time on operational tasks instead of product development
+- First Enterprise customer SLA breach due to inability to diagnose distributed failure
 
----
+**Prevention:**
+1. Add structured logging + error tracking before Phase 4 goes live. Sentry (Python SDK + JavaScript SDK) covers both FastAPI errors and Next.js errors in one dashboard. The free tier is sufficient until $5K MRR.
+2. Set a hard rule: every new external service must replace an existing one or remove a significant maintenance burden. No net additions after Phase 4 launch.
+3. For the DC Agent specifically: agent must send structured JSON telemetry to the SaaS backend on every collection cycle — success/failure, bytes collected, connection method used, errors encountered. This is the only observability path for remote Go binaries.
+4. Runbook for each critical failure mode must exist before the first enterprise customer onboards. Not after.
+5. Use Railway or Fly.io's built-in metrics (CPU, memory, request rate) as the primary operational dashboard — do not add a separate APM tool until MRR justifies it.
 
-## Security Mistakes
+**Warning signs:**
+- Phase 4 ships without Sentry installed
+- DC Agent returns exit code 1 with no structured error output
+- More than 8 distinct vendor billing dashboards in use simultaneously
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Serving scan artifacts from a public Supabase Storage bucket | Any user who guesses the path can read any customer's Terraform resource structure, including sensitive attribute values | Always use private buckets with RLS policies; generate signed URLs server-side with short expiry |
-| Trusting `user_id` from JWT `sub` without checking project membership | User A can read User B's scans by knowing the scan ID | Every data query must enforce ownership: `WHERE project.user_id = current_user_id`; never accept scan IDs without ownership verification |
-| Storing Terraform plan JSON verbatim in Supabase | Plan JSON may contain sensitive values (AWS account IDs, ARNs, resource attributes that may include connection strings) | Scrub sensitive fields before storage; filter known-sensitive attribute names from plan before persisting |
-| Share links with sequential or predictable IDs | Enumeration attack exposes all shared diagrams | Use UUID v4 or a 32-character random slug for share link identifiers; never use integer IDs |
-| API keys in CLI config files world-readable | Other processes or users on shared machines can read tokens | Store tokens with `keyring`; if writing to file, set `chmod 600` on creation |
-| No rate limiting on `/push` endpoint | A buggy CI/CD pipeline floods the database with duplicate scans | Rate limit by API key: max 60 pushes per hour; return `429` with `Retry-After` header |
+**Phase:** Phase 4 pre-work (before SaaS launch). Sentry installation is a pre-launch checklist item.
 
 ---
 
-## UX Pitfalls
+## Moderate Pitfalls
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Showing a success state for scans with parse warnings | User trusts incomplete security scores; makes decisions on partial data | Show a "Scan incomplete" banner with a count of skipped files and a link to troubleshooting docs |
-| Requiring users to run `infracanvas push` separately from `scan` | Friction breaks CI/CD adoption; users forget to push | Add `--push` flag to `scan` command: `infracanvas scan . --push` combines scan and upload in one command |
-| Sharing a view link that requires the recipient to sign up | Share links lose value; IaC security reviews happen with external stakeholders | Shared diagram links must be fully accessible without login; add optional password protection, not a login requirement |
-| No indication of scan freshness on the dashboard | Users do not know if the diagram reflects current infrastructure | Show "Last scanned: 3 days ago" with a visual age indicator; highlight if scan is older than 7 days |
-| Scan comparison UI built without zoom synchronization | Side-by-side diffs are unusable if both scans are 500-node graphs | Link zoom/pan state between comparison panels; highlight only changed nodes by default, fade unchanged ones |
+### Pitfall 10: ReactFlow Layout Performance Collapses at 500+ Nodes
+
+**What goes wrong:**
+The existing codebase has a confirmed O(n²) layout issue (per PROJECT.md CONCERNS). ReactFlow's built-in layout algorithms recompute positions for all nodes on every structural change. At 200 nodes this is noticeable. At 500 nodes (a medium-sized enterprise Terraform project) the browser tab hangs for 3–8 seconds on filter changes and re-renders. This is documented in ReactFlow's own GitHub discussions and is a known limitation of synchronous layout in the main thread.
+
+**Prevention:**
+1. Move layout computation to a Web Worker. The graph structure is serializable — send nodes/edges to a worker, receive computed positions, update React state once. This eliminates main-thread blocking.
+2. Use `elkjs` (Eclipse Layout Kernel, WASM port) for layout rather than any pure-JS implementation. ELK handles graphs of 1000+ nodes with better performance characteristics.
+3. Implement viewport culling: only render nodes that intersect the current viewport (`onlyRenderVisibleElements` prop). Off-screen nodes are present in the graph data but not in the DOM.
+4. On filter changes, update node opacity/visibility without triggering layout recomputation. Layout should only run on structural changes (nodes added/removed), not visual changes (show/hide by type).
+
+**Warning signs:**
+- Layout computation runs synchronously on the React render thread
+- Filter panel causes a visible repaint delay with a 200-node graph in the demo
+- No Web Worker in the viewer build configuration
+
+**Phase:** Phase 2 (Canvas v1.0) before large infrastructure demos are attempted.
 
 ---
 
-## "Looks Done But Isn't" Checklist
+### Pitfall 11: Cisco IOS vs IOS XE vs IOS XR NETCONF Behavioral Differences Break DC Agent
 
-- [ ] **CLI `login` command:** Token stored securely via keyring or env var — verify no plaintext token in any config file on disk
-- [ ] **CLI `push` command:** Payload schema is versioned — verify endpoint is `/api/v1/scans`, not `/api/scans`
-- [ ] **Stripe billing:** Webhook handlers for `payment_failed` and `subscription.deleted` implemented — verify by simulating failed payment with Stripe CLI
-- [ ] **Scan storage:** Metadata queryable in PostgreSQL without loading the artifact blob — verify history page loads in under 200ms for a user with 50 scans
-- [ ] **Share links:** Accessible without login, with no sequential or predictable ID — verify by opening share link in incognito; verify ID is UUID or random slug
-- [ ] **FastAPI auth:** Every protected endpoint derives `user_id` from JWT, not from request body — verify by sending a valid JWT for User A with `user_id` of User B in the body; confirm User A's data is returned
-- [ ] **Supabase Storage:** Scan artifact bucket is private — verify by attempting to access a storage URL directly without a signed URL
-- [ ] **Parse failures surfaced:** SaaS dashboard shows warning when scan has skipped files — verify by pushing a scan that includes a malformed .tf file
-- [ ] **Viewer code shared:** Only one `DiagramCanvas` component exists in the codebase — verify no viewer logic is duplicated in `apps/web/`
+**What goes wrong:**
+Cisco has three distinct operating systems with different NETCONF implementations. IOS XE 16.3+ supports NETCONF on port 830 with `netconf-yang` enabled. IOS XR uses a different YANG model namespace. Classic IOS may have a legacy NETCONF implementation that is incompatible with RFC 6241. Device firmware versions within the same OS family have breaking changes — a NETCONF query that works on IOS XE 16.12.4 returns a `bad-element` error on IOS XE 17.3.1a (confirmed in Cisco community forums).
+
+Additionally, `show bgp ipv4 unicast` parsing via SSH fallback differs in output format between IOS and IOS XR — the regex patterns are not portable.
+
+**Prevention:**
+1. DC Agent must detect the device OS and version at connection time and route requests through OS-specific adapters. Do not write a "universal" NETCONF query that tries to work across all Cisco platforms.
+2. Maintain a compatibility matrix (tested OS versions) in the agent repository. Fail explicitly with a clear error for untested versions rather than silently returning incomplete data.
+3. For SSH fallback, use structured output where possible (`show bgp ipv4 unicast | json` on NX-OS, `show ip route | xml` on IOS XE 16.3+) rather than regex parsing of human-readable output.
+4. Ship the agent with a `diagnose` subcommand that validates connectivity and reports the detected OS, version, and supported collection methods before any production collection is attempted.
+
+**Warning signs:**
+- DC Agent has a single NETCONF query path without OS-version branching
+- SSH fallback uses regex on `show bgp` output without OS-version detection
+- No `diagnose` or `--dry-run` mode in the agent
+
+**Phase:** Phase 3 (FlowMap, DC Collector Agent design).
+
+---
+
+### Pitfall 12: Terraform Workspace and Provider Alias Handling Produces Duplicate Resource Nodes
+
+**What goes wrong:**
+Terraform workspaces allow the same configuration to be applied multiple times with different variable values (e.g., `prod` and `staging` workspaces). Provider aliases allow multiple AWS accounts or regions in a single configuration (`provider "aws" { alias = "us-west" region = "us-west-2" }`). A parser that does not handle these creates duplicate resource nodes with identical IDs — the graph has two `aws_vpc.main` nodes that are actually different resources in different regions or accounts.
+
+**Prevention:**
+1. Resource IDs in the graph must be qualified by workspace and provider alias: `aws:us-east-1:default:aws_vpc.main` not just `aws_vpc.main`.
+2. When workspace is unknown (no `terraform.tfvars` file read), show a workspace selector UI in the viewer that lets users specify which workspace they are viewing.
+3. Provider alias detection: parse all `provider` blocks and build a map of alias to region. Qualify resource nodes with their provider alias.
+
+**Warning signs:**
+- Graph contains two nodes with identical resource addresses
+- Provider alias is parsed but not included in node IDs
+- PROJECT.md notes "Terragrunt / workspaces — not supported at launch" — ensure this is an explicit message to users, not a silent parsing failure
+
+**Phase:** Phase 2 (Canvas v1.0) — must be resolved before multi-region support is added.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 13: Single-File HTML Export Exceeds 5MB with Complex Infrastructure
+
+**What goes wrong:**
+`vite-plugin-singlefile` inlines all JS, CSS, and data into one HTML file. The ReactFlow bundle + React + Zustand + Tailwind + embedded graph data grows quickly. At 500 resources with security findings, the JSON data alone is 1–2MB. Gzip is not applied to HTML files loaded from `file://` URLs (disk). The browser parses 5–8MB of inline JavaScript synchronously on tab open.
+
+**Prevention:**
+1. Separate the viewer bundle (JS/CSS) from the graph data. Inject data as a `<script id="infracanvas-data" type="application/json">` tag rather than a JS variable assignment. JSON parsing is faster than JS evaluation.
+2. Strip all development-only code from the production bundle (`process.env.NODE_ENV === 'production'` tree-shaking).
+3. Compress graph data before embedding: `LZ-string` provides browser-compatible LZ compression that reduces JSON size by 60–70% for repetitive infrastructure JSON. Decompress at runtime.
+4. Set a hard file size budget of 5MB (per PROJECT.md performance requirements). Add a CI check that fails if the export exceeds 5MB.
+
+**Warning signs:**
+- HTML export file is over 5MB for a 200-resource project
+- No build-time bundle size analysis configured in Vite
+
+**Phase:** Phase 2 (Canvas v1.0) — set up size budget before Azure resources inflate the bundle further.
+
+---
+
+### Pitfall 14: Cloudflare R2 Signed URL Expiry Breaks Viewer Mid-Session
+
+**What goes wrong:**
+R2 signed URLs have a maximum expiry of 7 days and are generated at API request time. If the signed URL is generated with a short expiry (60 seconds, for security), the viewer component that embeds the URL will fail to load graph data for any user who opens the tab after 60 seconds. This produces a blank diagram with no error message unless explicitly handled.
+
+**Prevention:**
+1. Generate signed URLs with a minimum 4-hour expiry for any URL embedded in a viewer response.
+2. The Next.js API route that returns scan data must always return a fresh signed URL — never cache the URL itself. Cache the scan metadata, not the signed URL.
+3. Add a viewer-level error boundary that detects a 403 response on the graph data fetch and prompts the user to refresh rather than showing a blank canvas.
+
+**Phase:** Phase 4 (SaaS Dashboard) — must be in the scan detail page implementation.
+
+---
+
+### Pitfall 15: API Key Scoping Allows Cross-Team Resource Access
+
+**What goes wrong:**
+Clerk API keys, when not explicitly scoped to an organization, default to user-scoped. A CI/CD pipeline that generates an API key for scan uploads uses the key of the engineer who set up the pipeline. When that engineer leaves the organization, the key is revoked, and the pipeline breaks. More seriously: if a Team member accidentally creates a user-scoped key (instead of org-scoped), that key can access all their personal projects including projects outside the team's organization.
+
+**Prevention:**
+1. In the SaaS dashboard, API key creation must require explicit scope selection (user vs. organization). Default to organization scope for keys created in an organization context.
+2. The FastAPI key validation middleware must enforce that any key used to push a scan to a project belongs to an organization that owns that project — never allow a user-scoped key to write to an organization project.
+3. On engineer offboarding, organization-scoped keys are automatically rotated if the departing member was the creator. Add this to the team management UI.
+
+**Phase:** Phase 4 (SaaS Dashboard) — API key UI and FastAPI key validation middleware.
+
+---
+
+## Pre-Existing Pitfalls From CLI Codebase (Carry-Forward)
+
+These were identified in the original codebase analysis and must be resolved before SaaS phases begin.
+
+### CLI Auth Token Stored Insecurely
+Token written to plaintext config file. Use OS keychain (`keyring` Python package) + `INFRACANVAS_API_KEY` env var override for CI/CD. **Phase: Phase 2 pre-work.**
+
+### Viewer Code Split Risk
+`viewer/src/` is currently a standalone Vite app. Extract to `packages/infracanvas-viewer` before any Next.js work begins. **Phase: First action of Phase 4.**
+
+### Scan Artifact Storage Schema Locked In Too Early
+Store scan metadata (counts, scores, timestamps) in queryable PostgreSQL columns. Store the full graph blob in R2. Never store the blob as a database column. **Phase: Phase 4 database design.**
+
+### Injected Window Data as Script Vector in SaaS
+`window.__INFRACANVAS_DATA__` is acceptable for CLI HTML export (user's own data). In SaaS, data must flow through React props from an API fetch — never through window injection. **Phase: Phase 4 viewer integration.**
+
+### Stripe Webhook Handling Missing
+`customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded` handlers are acceptance criteria for billing, not optional follow-up work. **Phase: Phase 4 billing.**
+
+### CLI Push Command Couples Scan Format to API Version
+Version the push API from day one: `POST /api/v1/scans`. Include `cli_version` and `payload_version` in every push payload. **Phase: Phase 4 API design.**
+
+### Auth Session Not Propagated Next.js to FastAPI
+Write an integration test on day one: Next.js server component to FastAPI with valid JWT returns user-scoped data. **Phase: Phase 4 auth infrastructure.**
+
+### Silent Parse Failures Become Trust Failures in SaaS
+Fix all `except Exception: return` patterns in `cli/infracanvas/parser/hcl.py` before SaaS launch. Surface parse warnings in the dashboard. **Phase: Phase 2 pre-work.**
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Most Likely Pitfall | Mitigation |
+|-------------|-------------------|------------|
+| Canvas v1.0 — Azure parser | Replicates python-hcl2 silent failure pattern from AWS parser | Fix silent failures (Pitfall 1) before starting Azure work |
+| Canvas v1.0 — multi-region cost | Hardcoded us-east-1 pricing | Replace with Infracost pricing API before multi-region ships |
+| Canvas v1.0 — ReactFlow at scale | O(n²) layout on large projects | Web Worker + ELK layout before any 500-node demo |
+| FlowMap — data model design | Single `hops` field on NetworkPath | Forward/return path separation required from day one |
+| FlowMap — DC Collector Agent | Requires privilege 15 / no SSH fallback | Read-only role + SSH fallback + security packet |
+| FlowMap — BGP analysis | False asymmetry alerts on BGP policy-driven routing | BGP RIB collection + cause classification |
+| SaaS Dashboard — shared viewer | DiagramCanvas duplicated in Next.js app | Extract shared package before first Next.js component |
+| SaaS Dashboard — RLS | PgBouncer session leak exposes tenant data | Neon pooler + FORCE ROW LEVEL SECURITY |
+| SaaS Dashboard — cost display | False precision without methodology | Confidence indicators + methodology footnotes |
+| SaaS Dashboard — launch | No error observability for distributed failures | Sentry + DC Agent telemetry before first customer |
+| Enterprise — open-source fork | Security rules contributed back, reducing upgrade pressure | Commercial boundary at rules engine, not CLI |
 
 ---
 
@@ -258,40 +451,31 @@ Bug fix phase before SaaS milestone begins — must be resolved as pre-work.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Viewer code diverged between CLI and SaaS | HIGH | Audit diff between both implementations; merge into shared package; update both consumers; regression test HTML export |
-| Scan artifact schema locked in wrong structure | HIGH | Write migration script to re-process existing scan blobs; add metadata columns to `scans` table; backfill from blobs; update all API endpoints |
-| Token stored in plaintext config file | MEDIUM | Release CLI update that reads existing config, migrates to keyring, deletes plaintext file; announce migration in release notes |
-| Public Supabase storage bucket discovered | HIGH | Immediately set bucket to private; audit access logs; notify affected users; issue signed URLs for all active share links |
-| Stripe webhooks never implemented | MEDIUM | Implement handlers immediately; reconcile Stripe subscription state against database; manually fix affected accounts |
-| API not versioned, breaking CLI users | HIGH | Maintain the original unversioned endpoint indefinitely as the v1 equivalent; add `/v2/` with new schema; update CLI to detect API version |
-
----
-
-## Pitfall-to-Phase Mapping
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Silent parse failures visible in SaaS | Pre-SaaS bug fix phase | Push a scan with a malformed .tf file; dashboard shows warning banner |
-| Viewer code divergence | First SaaS phase (shared viewer package extraction) | Only one `DiagramCanvas` in codebase; CLI export and SaaS dashboard render identically |
-| Scan artifact storage schema | Database schema design phase (before first push endpoint) | History page loads under 200ms for 50 scans; no blob loaded for list view |
-| Window-injected data XSS risk in SaaS | SaaS viewer integration phase | CSP headers present; viewer reads from props, not window injection |
-| Stripe webhook gaps | Billing integration phase | Simulated failed payment removes Pro access within 1 minute |
-| CLI push API unversioned | CLI push command implementation phase | Endpoint is `/api/v1/scans`; `cli_version` field present in payload |
-| Auth header not propagated Next.js to FastAPI | Auth infrastructure phase | Integration test confirms Next.js server component to FastAPI returns user-scoped data |
-| CLI token stored insecurely | CLI auth implementation phase | `keyring` used; no token in any file readable via `cat` |
-| Supabase public bucket | Infrastructure setup phase | Direct storage URL returns 403; signed URL required for access |
-| Synchronous HCL parsing blocks API | Background task phase | `POST /scans` returns `scan_id` immediately; status polled separately |
+| Silent HCL parse failures in production | HIGH | Add parse warnings to all historical scans; flag affected scans in UI; re-scan required to get accurate results |
+| Viewer code diverged | HIGH | Audit both implementations; extract shared package; coordinate CLI + SaaS release |
+| BGP false positive alert storm | HIGH | Emergency suppression toggle; post-mortem with customer; redesign path classifier |
+| Tenant data exposed via RLS bypass | CRITICAL | Immediate rollback; audit access logs; notify affected tenants; security incident report |
+| DC Agent rejected by security team | MEDIUM | Deliver security packet; remove privilege 15 requirement; redesign as SSH-only if needed |
+| Cost estimates disputed by FinOps team | MEDIUM | Add methodology documentation; switch to Infracost API; add confidence indicators |
+| Open-source fork captures free tier | LOW-MEDIUM | Community engagement + feature acceleration; not legal escalation |
+| Service proliferation causes SLA breach | MEDIUM | Add Sentry immediately; build runbooks; reduce service count on next infrastructure review |
 
 ---
 
 ## Sources
 
-- Codebase analysis: `.planning/codebase/CONCERNS.md` — confirmed existing silent failure modes, security issues, performance bottlenecks (HIGH confidence)
-- Project context: `.planning/PROJECT.md` — stack decisions, feature scope, constraints (HIGH confidence)
-- CLI-to-SaaS transition patterns: Training knowledge on common failure modes including token storage, API versioning, webhook incompleteness (MEDIUM confidence — well-documented class of failures)
-- IaC tooling domain specifics: Terraform plan JSON structure, HCL parsing edge cases, Supabase Storage + signed URL behavior (HIGH confidence)
-- Supabase + FastAPI integration: Async client limitations, RLS gotchas, JWT verification with Supabase JWT secret (MEDIUM confidence — verify implementation details against Supabase docs)
+- Codebase analysis: `.planning/PROJECT.md` — stack decisions, confirmed CONCERNS (HIGH confidence)
+- python-hcl2 known issues: GitHub amplify-education/python-hcl2 issues #76, #149, #150, #253 — exponential parse time, conditional statement failures, duplicate block failures (HIGH confidence)
+- BGP asymmetric routing: Noction BGP blog, RIPE Labs BGPPlay documentation — BGP asymmetry as normal behaviour, detection approaches (HIGH confidence)
+- PostgreSQL RLS pitfalls: permit.io RLS implementation guide, AWS multi-tenant RLS blog, thenile.dev RLS blog — PgBouncer session leaks, FORCE ROW LEVEL SECURITY, superuser bypass (HIGH confidence)
+- Cisco NETCONF compatibility: Cisco community forums (IOS XE 17.3.1a breaking change), Cisco NX-OS programmability guide — version-specific NETCONF behaviours (MEDIUM confidence — verify against target device baseline)
+- ReactFlow performance: xyflow/xyflow GitHub discussions #4975, #4617, #3044 — confirmed performance limits and mitigation strategies (HIGH confidence)
+- Infracost pricing API: infracost/infracost GitHub, IBM-Cloud/infracost-cloud-pricing-api — weekly update cycle, pricing API architecture (HIGH confidence)
+- Open-source fork risk: The New Stack "Forks, Clouds and the New Economics of Open Source Licensing", DEV Community "Open Source in 2026: The Fork Wars Are Getting Ugly" — HashiCorp/OpenTofu, Redis/Valkey precedents (HIGH confidence)
+- Solo founder operational complexity: DEV Community solo founder SaaS infrastructure post — service proliferation risks (MEDIUM confidence)
+- vite-plugin-singlefile limitations: GitHub richardtallent/vite-plugin-singlefile — storage limitations, size considerations (HIGH confidence)
+- Clerk multi-tenant API key scoping: Clerk official docs, clerk.com blog "Add API Key support" — org vs user scope behaviour (HIGH confidence)
 
 ---
-*Pitfalls research for: IaC Visualization SaaS — CLI-to-SaaS transition*
+*Pitfalls research for: InfraCanvas — hybrid cloud infrastructure intelligence platform*
 *Researched: 2026-04-15*

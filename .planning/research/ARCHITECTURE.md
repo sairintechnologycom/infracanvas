@@ -1,548 +1,558 @@
-# Architecture Research
+# Architecture Patterns
 
-**Domain:** CLI-to-SaaS IaC Visualization Platform
+**Project:** InfraCanvas
 **Researched:** 2026-04-15
-**Confidence:** HIGH (well-established patterns for this stack combination)
+**Domain:** Hybrid Cloud Infrastructure Intelligence Platform (CLI + DC Agent + SaaS)
+**Overall Confidence:** HIGH — patterns are well-established across CSPM, network observability, and multi-tenant SaaS domains
 
-## Standard Architecture
+---
 
-### System Overview
+## System Overview
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                             CLIENT TIER                                   │
-├──────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────┐   ┌────────────────────────────────┐   │
-│  │    Python CLI (existing)     │   │   Next.js Dashboard (new)      │   │
-│  │  infracanvas scan ./tf       │   │   app.infracanvas.io           │   │
-│  │  infracanvas push            │   │   Server Components + Client   │   │
-│  │  infracanvas login           │   │   ReactFlow viewer (shared)    │   │
-│  └──────────────┬───────────────┘   └──────────────┬─────────────────┘   │
-│                 │ HTTPS + API token                 │ HTTPS               │
-├─────────────────┼─────────────────────────────────────────────────────────┤
-│                 │          API TIER (Vercel Services)                      │
-├─────────────────┼─────────────────────────────────────────────────────────┤
-│                 │                                   │                     │
-│  ┌──────────────▼───────────────────────────────────▼─────────────────┐  │
-│  │                FastAPI Backend  /api/*                              │  │
-│  │   POST /api/scans           GET /api/scans/{id}                    │  │
-│  │   GET  /api/projects        POST /api/projects                     │  │
-│  │   POST /api/auth/token      GET  /api/shares/{slug}                │  │
-│  │   POST /api/webhooks/ci     GET  /api/projects/{id}/scans          │  │
-│  └──────────────────────────────────────────────────────────────────┬─┘  │
-│                                                                      │    │
-├──────────────────────────────────────────────────────────────────────┼────┤
-│                       DATA TIER                                       │    │
-├──────────────────────────────────────────────────────────────────────┼────┤
-│  ┌───────────────────────────┐   ┌─────────────────────────────┐    │    │
-│  │   Supabase PostgreSQL     │   │   Supabase Object Storage   │◄───┘    │
-│  │   users, projects, scans  │   │   scan JSON artifacts        │         │
-│  │   findings, shares,       │   │   (one file per scan)        │         │
-│  │   api_tokens              │   │                              │         │
-│  └───────────────────────────┘   └──────────────────────────────┘         │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Key Constraint |
-|-----------|----------------|----------------|
-| Python CLI | Parse Terraform, analyze, produce `ResourceGraph` JSON, push to SaaS | Must remain pip-installable; no browser dependency |
-| FastAPI backend | Auth token validation, scan ingestion, project CRUD, sharing, webhooks | Deployed as Vercel service at `/api` prefix |
-| Next.js frontend | Dashboard UI, diagram rendering, team management, billing | Deployed as Vercel service at `/` prefix |
-| Supabase Postgres | Relational data: users, projects, scans metadata, findings aggregates | Row-level security enforced at DB level |
-| Supabase Storage | Raw `ResourceGraph` JSON blobs keyed by scan ID | Scans can be large (hundreds of nodes); avoid storing in Postgres rows |
-| ReactFlow Viewer | Interactive diagram rendering — shared between CLI HTML export and SaaS dashboard | Must work in both embedded HTML and Next.js page contexts |
-
-## Recommended Project Structure
+InfraCanvas spans three deployment contexts and five components. The binding constraint that shapes everything is the DC Agent's outbound-only, read-only access model.
 
 ```
-infracanvas/
-├── cli/                          # existing Python CLI (unchanged structure)
-│   └── infracanvas/
-│       ├── main.py               # add: login, push commands
-│       ├── auth/
-│       │   └── token.py          # new: store/retrieve API token (~/.infracanvas/token)
-│       └── api_client.py         # new: HTTP client for SaaS API
-│
-├── viewer/                       # existing React viewer source (shared)
-│   └── src/                      # UNCHANGED — same components used by SaaS
-│       ├── App.tsx               # data source abstraction added (window vs props)
-│       ├── store.ts
-│       └── components/
-│
-├── web/                          # new: Next.js frontend (Vercel service /)
-│   ├── app/
-│   │   ├── (auth)/               # login, signup routes
-│   │   ├── (dashboard)/          # protected routes
-│   │   │   ├── projects/
-│   │   │   ├── scans/[id]/
-│   │   │   └── settings/
-│   │   ├── share/[slug]/         # public share page (no auth)
-│   │   └── api/                  # Next.js route handlers (thin — proxy to FastAPI or Supabase direct)
-│   ├── components/
-│   │   ├── viewer/               # ReactFlow viewer wrapper (consumes shared viewer/)
-│   │   └── ui/                   # dashboard chrome, nav, tables
-│   └── lib/
-│       ├── supabase.ts           # Supabase browser client
-│       └── api.ts                # typed API client for FastAPI
-│
-├── api/                          # new: FastAPI backend (Vercel service /api)
-│   ├── main.py                   # FastAPI app, router mounting
-│   ├── routers/
-│   │   ├── auth.py               # POST /api/auth/token (CLI device flow)
-│   │   ├── projects.py           # CRUD /api/projects
-│   │   ├── scans.py              # POST /api/scans (ingest), GET /api/scans/{id}
-│   │   ├── shares.py             # POST /api/shares, GET /api/shares/{slug}
-│   │   └── webhooks.py           # POST /api/webhooks/ci (CI/CD auto-scan)
-│   ├── models/
-│   │   ├── scan.py               # Pydantic: ScanCreate, ScanResponse
-│   │   ├── project.py
-│   │   └── share.py
-│   ├── middleware/
-│   │   └── auth.py               # JWT validation (Supabase JWT) + API token validation
-│   ├── services/
-│   │   ├── storage.py            # Supabase Storage upload/download
-│   │   └── supabase.py           # Supabase admin client
-│   └── pyproject.toml            # independent Python deps (fastapi, supabase-py, pydantic)
-│
-├── supabase/                     # Supabase local dev + migrations
-│   ├── migrations/
-│   └── seed.sql
-│
-└── vercel.json                   # experimentalServices config
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Developer Workstation                                                        │
+│                                                                              │
+│  cli/ (Python 3.12)                                                          │
+│  parser → graph → security → cost → drift → network → export                │
+│       │                                          │                           │
+│       │ builds                                   │ bundles                   │
+│       ▼                                          ▼                           │
+│  viewer/ (React 18)  ←──────────────────── viewer/ (React 18)               │
+│  [lib mode → dashboard import]           [app mode → single HTML]           │
+│       │                                                                      │
+│       │ HTTPS (optional upload)                                              │
+└───────┼──────────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SaaS (Railway / Fly.io + Vercel)                                             │
+│                                                                              │
+│  api/ (FastAPI)  ←→  Neon PostgreSQL (RLS)                                  │
+│                  ←→  Cloudflare R2   (scan artifacts)                       │
+│                  ←→  Upstash Redis   (cache, arq queue)                     │
+│                  ←→  Clerk           (auth, SSO)                             │
+│       │                                                                      │
+│       │ HTTPS                                                                │
+│       ▼                                                                      │
+│  dashboard/ (Next.js 14 on Vercel)                                          │
+│  ← imports viewer/ components                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+        ▲
+        │ HTTPS outbound only (push topology snapshots)
+        │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Customer Data Centre                                                         │
+│                                                                              │
+│  dc-agent/ (Go binary)                                                       │
+│  Cisco Router (NETCONF/SSH) ─┐                                               │
+│  Cisco ASA/FTD  (REST)       ├─→ DCTopologySnapshot → HTTPS POST → api/    │
+│  Cisco FMC      (REST)       │                                               │
+│  NetFlow UDP listener ───────┘                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Structure Rationale
+---
 
-- **`cli/` unchanged structure:** Existing commands keep working. Only `main.py` (new subcommands) and two new files (`auth/token.py`, `api_client.py`) are added.
-- **`viewer/` shared:** The ReactFlow viewer source is consumed by both the CLI HTML export (via Vite build → single-file HTML) and the Next.js dashboard (via dynamic import or direct component use). This prevents divergence of the diagram UI.
-- **`api/` as independent Python service:** FastAPI in a separate directory with its own `pyproject.toml` so Vercel builds it independently from the CLI. Keeps CLI and API deps separate.
-- **`web/` Next.js route groups:** `(auth)` and `(dashboard)` use Next.js route groups so the dashboard layout (sidebar, nav) only wraps protected pages.
-- **`supabase/`:** Local Supabase CLI for migration tracking. Schema lives in code, not managed through the dashboard.
+## Component Boundaries
 
-## Architectural Patterns
+| Component | Responsibility | Communicates With | Language / Runtime |
+|-----------|---------------|-------------------|--------------------|
+| `cli/` | Parse Terraform HCL/JSON, build resource graph, run security/cost/drift rules, assemble FlowMap data, export HTML | `viewer/` (build-time); `api/` (optional HTTPS upload) | Python 3.12, Typer, Pydantic v2, NetworkX |
+| `viewer/` | Render Canvas, FlowMap, CostLens interactively | CLI (receives JSON via `window.__GRAPH_DATA__`); `dashboard/` (via React import) | React 18, @xyflow/react, Zustand, Tailwind |
+| `dc-agent/` | Collect Cisco device topology + NetFlow, push snapshot | `api/` (outbound HTTPS POST only) | Go, single binary |
+| `api/` | Scan storage, project/team CRUD, auth validation, DC snapshot ingestion, async analysis, webhooks | `cli/`, `dc-agent/`, `dashboard/` | Python FastAPI, asyncpg, arq |
+| `dashboard/` | Team views, scan history, billing UI, shared links | `api/` (REST); mounts `viewer/` components | Next.js 14 App Router, shadcn/ui, TanStack Query |
 
-### Pattern 1: API Token Device Flow for CLI Auth
+### Critical Boundary Rules
 
-**What:** CLI does `infracanvas login`, which opens a browser to the SaaS dashboard. User approves in browser, a short-lived code is exchanged for a long-lived API token. Token is stored in `~/.infracanvas/token`. Subsequent CLI commands (push, etc.) include `Authorization: Bearer <token>` header.
+1. **DC Agent is outbound-only, read-only.** It pushes topology snapshots to `api/`. The API never initiates connections into customer DCs. No inbound firewall rules required on the customer side. No cloud credentials ever pass through dc-agent.
 
-**When to use:** Any CLI tool that needs to authenticate against a web service without embedding credentials in the shell.
+2. **CLI is offline-capable by default.** All analysis runs locally against `.tf` files and terraform plan output. API upload is optional. The CLI must remain pip-installable and fully functional with zero network access.
 
-**Trade-offs:** Familiar pattern (same as `gh auth login`, `vercel login`). Slightly more complex than "paste an API key" but produces a better UX and tokens can be scoped and revoked.
+3. **Viewer is data-source-agnostic.** It receives a single JSON blob (`InfraGraph`). The delivery mechanism — embedded `<script>` in HTML or a fetch call from the dashboard — is decoupled from viewer internals via a data provider interface.
 
-**Implementation sketch:**
-```python
-# cli/infracanvas/auth/token.py
-TOKEN_PATH = Path.home() / ".infracanvas" / "token"
+4. **API enforces all multi-tenant isolation.** Neon RLS is the authoritative isolation boundary. FastAPI middleware sets the `app.current_tenant` Postgres session variable from the Clerk JWT on every connection checkout. SQLAlchemy never writes explicit `WHERE org_id =` on tenant-owned tables.
 
-def save_token(token: str) -> None:
-    TOKEN_PATH.parent.mkdir(exist_ok=True)
-    TOKEN_PATH.write_text(token)
-    TOKEN_PATH.chmod(0o600)
+5. **No cloud credentials stored anywhere in SaaS.** CLI reads credentials from the local environment (AWS_PROFILE, AZURE credentials env vars). DC Agent uses device credentials from its local config file. Zero credential storage in Neon or R2.
 
-def load_token() -> str | None:
-    if TOKEN_PATH.exists():
-        return TOKEN_PATH.read_text().strip()
-    return None
-```
-
-```python
-# cli/infracanvas/main.py — new commands
-@app.command()
-def login():
-    """Authenticate with InfraCanvas SaaS."""
-    # POST /api/auth/device/start → get device_code, verification_url
-    # open browser to verification_url
-    # poll /api/auth/device/token until approved
-    # save token to ~/.infracanvas/token
-
-@app.command()
-def push(path: Path):
-    """Upload scan results to InfraCanvas dashboard."""
-    token = load_token()
-    if not token:
-        console.print("[red]Not logged in. Run: infracanvas login[/red]")
-        raise SystemExit(1)
-    graph = _run_scan(path, ...)
-    api_client.push_scan(graph, token)
-```
-
-### Pattern 2: Scan Ingestion — Metadata in Postgres, Blob in Storage
-
-**What:** When the CLI pushes a scan, FastAPI stores lightweight metadata (scan ID, project ID, timestamp, finding counts, score summary, cost total) in Postgres and the full `ResourceGraph` JSON as a blob in Supabase Storage. The dashboard loads metadata from Postgres for lists/timelines and fetches the blob only when rendering a diagram.
-
-**When to use:** Always when dealing with structured data that has a large associated payload (graphs can be hundreds of KB for large Terraform repos). Avoids JSONB columns becoming a performance liability.
-
-**Trade-offs:** Slightly more complex retrieval (two round trips for diagram view). Pays off immediately — storage is cheap, Postgres rows stay fast for list queries.
-
-**Data path:**
-```
-CLI push scan →
-  POST /api/scans  (ResourceGraph JSON in body) →
-    FastAPI:
-      1. validate JWT/token → resolve user_id
-      2. generate scan_id (UUID)
-      3. upload JSON to Storage: scans/{project_id}/{scan_id}.json
-      4. extract summary fields → INSERT into scans table
-      5. return { scan_id, project_id, dashboard_url }
-```
-
-### Pattern 3: Shared ReactFlow Viewer as a Component Package
-
-**What:** The existing `viewer/src/` components are built as a proper React component library (not just a Vite app entry point). The CLI HTML export uses it via the existing Vite single-file build. The Next.js dashboard imports the same components directly.
-
-**When to use:** Any time the same interactive UI needs to work in two hosting contexts (embedded HTML vs. web app).
-
-**Trade-offs:** Requires a minor refactor of the viewer entry point to export a `<InfraCanvas data={graph} />` component in addition to the existing `window.__INFRACANVAS_DATA__` bootstrap. Small change, high value — avoids maintaining two diagram implementations.
-
-**Implementation sketch:**
-```typescript
-// viewer/src/App.tsx — modified
-interface AppProps {
-  data?: ResourceGraph;  // when used as component (SaaS)
-}
-
-export function InfraCanvasViewer({ data }: AppProps) {
-  const graph = data ?? (window as any).__INFRACANVAS_DATA__;
-  // ... existing render logic
-}
-
-// CLI HTML export: still uses window.__INFRACANVAS_DATA__ injection
-// Next.js: import { InfraCanvasViewer } from '@infracanvas/viewer'
-```
-
-The viewer becomes an internal package or is imported via relative path in the monorepo. No npm publish required for v1.
-
-### Pattern 4: Row-Level Security (RLS) for Multi-Tenant Data
-
-**What:** Supabase Postgres enforces data isolation at the database level via RLS policies. Users can only SELECT/INSERT/UPDATE their own projects and scans. Shared diagrams have a separate `shares` table with a `is_public` flag and optional `password_hash`.
-
-**When to use:** Any SaaS with multiple users accessing the same database. RLS is non-negotiable — without it, a bug in application code can expose other users' data.
-
-**Implementation sketch:**
-```sql
--- scans table RLS
-ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users see own scans" ON scans
-  FOR SELECT USING (
-    project_id IN (
-      SELECT id FROM projects WHERE owner_id = auth.uid()
-      UNION
-      SELECT project_id FROM team_members WHERE user_id = auth.uid()
-    )
-  );
-```
-
-**Trade-offs:** Adds complexity to schema design. Worth it — provides defense-in-depth against application bugs.
+---
 
 ## Data Flow
 
-### Flow 1: CLI Scan Push
+### Flow 1: Local CLI Scan (fully offline)
 
 ```
-Developer runs: infracanvas push ./terraform
-         │
-         ▼
-CLI: _run_scan() → ResourceGraph (full annotated graph)
-         │
-         ▼
-CLI: api_client.push_scan(graph, token)
-  → POST https://app.infracanvas.io/api/scans
-    Headers: Authorization: Bearer <api_token>
-    Body: { project_id, graph: ResourceGraph }
-         │
-         ▼
-FastAPI /api/scans (POST):
-  1. Validate Bearer token → resolve user_id
-  2. Verify project_id belongs to user
-  3. Generate scan_id (UUIDv4)
-  4. Upload graph JSON → Supabase Storage: scans/{project_id}/{scan_id}.json
-  5. Extract summary → INSERT INTO scans (id, project_id, created_at,
-     finding_count, score, cost_monthly, node_count, storage_path)
-  6. Return { scan_id, dashboard_url }
-         │
-         ▼
-CLI: prints "Scan uploaded: https://app.infracanvas.io/scans/{scan_id}"
+.tf files + optional plan.json
+  ↓
+cli/parser      (python-hcl2 → Pydantic InfraNode[], InfraEdge[])
+  ↓
+cli/graph       (NetworkX DiGraph: nodes=resources, edges=depends_on)
+  ↓
+cli/security    (rule engine: pure functions (InfraGraph) → Finding[])
+cli/cost        (pricing tables → CostEstimate[] per node)
+cli/drift       (plan JSON diff → DriftDelta[] overlaid on graph)
+  ↓
+cli/export      (Jinja2: inlines viewer bundle + JSON blob → report.html)
+                 window.__GRAPH_DATA__ = { graph, findings, costs, drift }
 ```
 
-### Flow 2: Dashboard Diagram View
+Output: A self-contained HTML file. No server. No API calls. Viewer bootstraps from `window.__GRAPH_DATA__`.
+
+### Flow 2: DC Agent Collection (customer data centre → SaaS)
 
 ```
-User navigates to: /scans/{scan_id}
-         │
-         ▼
+Cisco devices in customer DC
+  ↓
+dc-agent/collector
+  NETCONF <get> / <get-config> over SSH (Cisco IOS-XE, NX-OS)
+  SSH fallback: parse "show" command output for older IOS
+  ASA REST API: interface configs, NAT rules, ACLs
+  FMC REST API: security policies, VPN, routing
+  NetFlow UDP listener: passive flow records (5-tuple + byte counts)
+  ↓
+dc-agent/snapshot
+  Assembles DCTopologySnapshot{
+    site_id, collected_at,
+    devices[]: DeviceNode{id, type, interfaces[], routes[], acls[]},
+    flows[]:   FlowRecord{src, dst, proto, bytes, packets}
+  }
+  ↓
+HTTPS POST /api/v1/dc-snapshots
+  Auth: per-site API token (stored in agent config file)
+  Retry: exponential backoff, local queue if API unreachable
+  Idempotent: re-posting same snapshot overwrites, not appends
+```
+
+Agent runs inside customer DC on a lightweight VM or container. Default polling: topology every 5 min, NetFlow every 1 min.
+
+### Flow 3: FlowMap Path Tracing
+
+```
+Inputs (already collected, no live API calls during trace):
+  - AWS topology:   TGW route tables, VPC routes, NACLs, Direct Connect (from CLI aws-collector)
+  - Azure topology: vWAN, Secure Hub, vNet peering, ExpressRoute (from CLI azure-collector)
+  - DC snapshot:    from dc-agent push (stored in Neon/R2) or local file
+  - Checkpoint data: optional (policies, NAT, VPN)
+
+cli/network/graph_builder.py:
+  Merges all topology into a single HybridGraph (NetworkX)
+  Nodes: cloud resources + DC devices + cross-connect edges (DX, ExpressRoute)
+  Edge weights: latency estimate, hop count, bandwidth cap
+
+cli/network/path_tracer.py:
+  Forward path:  Dijkstra source → destination on HybridGraph
+  Return path:   same algorithm on reverse-direction edge weights
+  Asymmetry:     compare forward hops vs return hops
+                 classify root cause (NAT asymmetry, BGP preference, ECMP)
+  Emit:          NetworkPath{ forward[], return[], asymmetric: bool, cause }
+                 NetworkFinding[] (NET-001 through NET-012)
+```
+
+Path tracer is deterministic and offline-capable — it operates on the merged in-memory graph from collected snapshots.
+
+### Flow 4: SaaS Scan Upload
+
+```
+CLI: infracanvas push --project <id>
+  ↓
+POST /api/v1/scans  (multipart: scan JSON metadata + graph JSON artifact)
+  Auth: Bearer CLI API token (issued via Clerk device flow)
+  ↓
+FastAPI /api/v1/scans:
+  1. Validate Clerk JWT → extract org_id + user_id
+  2. Verify project_id ∈ user's orgs
+  3. generate scan_id (UUIDv7)
+  4. Upload graph JSON → R2: scans/{org_id}/{project_id}/{scan_id}.json
+  5. INSERT INTO scans (id, org_id, project_id, node_count, finding_count,
+                         score, cost_monthly, storage_key, source, git_ref)
+  6. Enqueue arq job: enrich_scan(scan_id)  [async: live pricing refresh, compliance mapping]
+  7. Return 201 { scan_id, dashboard_url }
+```
+
+### Flow 5: Dashboard Diagram View
+
+```
+User navigates → /projects/{project_id}/scans/{scan_id}
+  ↓
 Next.js Server Component:
-  1. Supabase server client (with user session cookie)
-  2. SELECT * FROM scans WHERE id = {scan_id} → metadata row
-  3. Verify access (RLS handles this)
-  4. Return scan metadata as page props
-         │
-         ▼
-Next.js Client Component (diagram page):
-  1. Receives metadata as props
-  2. Fetch scan blob: GET /api/scans/{scan_id}/graph
-         │
-         ▼
-FastAPI GET /api/scans/{scan_id}/graph:
-  1. Validate session JWT
-  2. Fetch blob from Supabase Storage
-  3. Return ResourceGraph JSON
-         │
-         ▼
-<InfraCanvasViewer data={graph} /> renders ReactFlow diagram
+  Clerk session → org_id + user_id
+  GET /api/v1/scans/{scan_id} → scan metadata (Neon, RLS enforced)
+  ↓
+Client Component:
+  GET /api/v1/scans/{scan_id}/graph → R2 artifact (FastAPI proxies, adds Cache-Control)
+  ↓
+<InfraCanvasViewer data={graph} /> renders Canvas / FlowMap / CostLens tabs
 ```
 
-### Flow 3: CLI Authentication (Device Flow)
+### Flow 6: Multi-Tenant Isolation
 
 ```
-User runs: infracanvas login
-         │
-         ▼
-CLI: POST /api/auth/device/start
-  → { device_code, user_code, verification_url, expires_in }
-         │
-CLI: opens browser to verification_url
-         │
-CLI: polls GET /api/auth/device/token?device_code={code} every 5s
-         │
-                    ┌─── User completes auth in browser ───┐
-                    │  1. Login via Supabase Auth           │
-                    │  2. Approve device authorization      │
-                    │  3. Server mints API token            │
-                    └──────────────────────────────────────┘
-         │
-CLI: poll returns { api_token }
-CLI: saves token → ~/.infracanvas/token
-CLI: prints "Logged in. Token stored."
+Every FastAPI request:
+  Clerk JWT middleware → extract org_id
+  DB connection checkout:
+    SET LOCAL app.current_org = '{org_id}'
+  All queries on RLS-enabled tables execute with Neon enforcing:
+    USING (org_id = current_setting('app.current_org')::uuid)
+  FastAPI handlers write NO explicit org_id WHERE clauses on tenant tables.
+  Migration user is postgres superuser (bypasses RLS).
+  Application user is restricted role (RLS enforced, no BYPASSRLS).
 ```
 
-### Flow 4: Shareable Diagram Links
+---
+
+## The Viewer Dual-Build Problem
+
+The viewer must work in two radically different contexts:
+
+| Context | Build Mode | Data Source | Auth | Routing |
+|---------|------------|-------------|------|---------|
+| CLI HTML export | `vite-plugin-singlefile` app build | `window.__GRAPH_DATA__` injected inline | None | None (static file) |
+| SaaS Dashboard | Vite lib mode → ES module | `fetch('/api/v1/scans/{id}/graph')` via ApiDataProvider | Clerk session | Next.js App Router |
+
+**Solution: Data Provider Abstraction + Dual Build Targets**
 
 ```
-User clicks "Share" on dashboard
-         │
-         ▼
-Next.js: POST /api/shares
-  Body: { scan_id, is_public, password? }
-         │
-         ▼
-FastAPI:
-  1. Generate slug (nanoid, 8 chars)
-  2. INSERT INTO shares (slug, scan_id, is_public, password_hash)
-  3. Return { url: https://app.infracanvas.io/share/{slug} }
-         │
-         ▼
-Anyone visits /share/{slug}:
-  No auth required (Next.js public route)
-  FastAPI: GET /api/shares/{slug}
-    → verify is_public (or password)
-    → fetch scan blob from Storage
-    → return ResourceGraph
-  Page renders viewer in read-only mode
+viewer/
+  src/
+    providers/
+      StaticDataProvider.tsx     # reads window.__GRAPH_DATA__; used by CLI HTML
+      ApiDataProvider.tsx        # fetches from URL prop; used by dashboard
+    components/
+      Canvas.tsx
+      FlowMap.tsx
+      CostLens.tsx
+    InfraCanvasViewer.tsx        # root component; accepts dataProvider prop
+    main.tsx                     # CLI entry: instantiates StaticDataProvider
+
+  vite.config.app.ts             # singlefile build → report.html (used by CLI export)
+  vite.config.lib.ts             # lib build → dist/index.js (used by dashboard import)
 ```
 
-### Flow 5: CI/CD Webhook Auto-Scan
+The CLI export injects `window.__GRAPH_DATA__` and uses `main.tsx`. The dashboard imports `InfraCanvasViewer` and passes `ApiDataProvider` as a prop. No code duplication. No two implementations to keep in sync.
+
+---
+
+## Recommended Monorepo Structure
 
 ```
-CI system (GitHub Actions, etc.):
-  POST https://app.infracanvas.io/api/webhooks/ci
-  Headers: Authorization: Bearer <project_webhook_token>
-  Body: { terraform_archive_url OR plan_json_url }
-         │
-         ▼
-FastAPI /api/webhooks/ci:
-  1. Validate webhook token → resolve project_id
-  2. Download artifact from provided URL
-  3. Spawn background task: run scan pipeline (reuse CLI Python logic)
-  4. Store result same as CLI push flow
-  5. Return 202 Accepted { job_id }
-         │
-         ▼
-(async) POST project webhook URL (if configured): { scan_id, summary }
+infracanvas/
+  cli/                     # Python 3.12 package
+    infracanvas/
+      parser/              # HCL + plan JSON parsing
+      graph/               # NetworkX graph builder
+      security/            # rule engine (pure functions)
+      cost/                # pricing tables + estimator
+      drift/               # plan diff → DriftDelta
+      network/             # FlowMap: collectors, path tracer, findings
+      export/              # HTML template + Jinja2 + asset injection
+      api_client.py        # HTTPS client for SaaS upload
+    pyproject.toml
+
+  viewer/                  # React 18 shared component library
+    src/
+    vite.config.app.ts     # → single HTML (CLI export)
+    vite.config.lib.ts     # → ES module (dashboard import)
+    package.json
+
+  dc-agent/                # Go binary
+    cmd/agent/main.go
+    internal/
+      collector/           # NETCONF, SSH, ASA REST, FMC REST
+      netflow/             # UDP listener + flow aggregation
+      snapshot/            # DCTopologySnapshot serialization
+      push/                # HTTPS client with retry + local queue
+    go.mod
+
+  api/                     # FastAPI backend
+    app/
+      routers/             # scans, projects, teams, shares, webhooks, dc_snapshots
+      models/              # Pydantic: ScanCreate, ScanResponse, DCSnapshot, ...
+      middleware/          # Clerk JWT validation, tenant context
+      services/            # R2 storage, arq tasks, Neon helpers
+    migrations/            # Alembic
+    pyproject.toml
+
+  dashboard/               # Next.js 14 App Router (Vercel)
+    app/
+      (auth)/              # Clerk sign-in, sign-up
+      (dashboard)/         # protected: projects, scans, teams, billing
+        projects/
+        scans/[id]/        # diagram view → imports viewer/
+        settings/
+      share/[slug]/        # public share page (no auth)
+    components/
+      viewer-wrapper/      # thin wrapper around viewer/ lib import
+      ui/                  # shadcn/ui components, nav, tables
+    package.json
+
+  vercel.json              # experimentalServices (if using Vercel for both)
+  .planning/
 ```
 
-Note: Step 3 reuses the existing CLI Python analysis modules by importing them directly. FastAPI and CLI share the same `ResourceGraph` models — no serialization boundary between them.
+---
 
-## Database Schema
+## Patterns to Follow
+
+### Pattern 1: Rule Engine as Pure Functions
+
+Security rules, network findings, and cost rules are pure functions: `(InfraGraph) → Finding[]`. No I/O. No side effects.
+
+**Why:** Unit-testable without infrastructure. Safe to run in parallel (ThreadPoolExecutor). New rules added by adding a function — no registration, no plugin system needed at v1.
+
+```python
+def rule_s3_public_read(graph: InfraGraph) -> list[Finding]:
+    return [
+        Finding(rule="S3-001", severity="HIGH", resource=node.id,
+                detail="Bucket ACL is public-read")
+        for node in graph.nodes_by_type("aws_s3_bucket")
+        if node.attrs.get("acl") == "public-read"
+    ]
+```
+
+### Pattern 2: Push-Pull Topology Snapshot (no streaming in v1)
+
+DC Agent pushes `DCTopologySnapshot` on a schedule. API stores it. CLI and path tracer read from stored snapshots — they do not make live device calls.
+
+**Why:** Outbound-only constraint eliminates server-initiated push. 5-minute polling is sufficient for infrastructure topology change rates. Streaming (NETCONF event subscriptions, RFC 5277) is valid for v2/Enterprise but adds complexity and requires newer IOS versions.
+
+### Pattern 3: Unified Graph Model
+
+One canonical `InfraGraph` (NetworkX DiGraph) flows through the entire CLI pipeline. Each analysis module reads from it and writes to a separate `FindingsStore` — modules do not couple to each other.
+
+```
+InfraGraph
+  nodes: InfraNode(id, type, provider, region, attrs: dict)
+  edges: InfraEdge(source, target, relationship: str)
+
+FindingsStore
+  findings: list[Finding]
+  by_resource: dict[node_id, list[Finding]]
+  by_rule: dict[rule_id, list[Finding]]
+```
+
+For FlowMap, the DC topology is merged into a `HybridGraph` that extends `InfraGraph` with `DCDevice` nodes and cross-connect edges. The path tracer operates on `HybridGraph` only.
+
+### Pattern 4: Arq Background Jobs for Async SaaS Work
+
+Uploads trigger arq background jobs for work that must not block the API response: live pricing refresh, compliance mapping, FlowMap enrichment from DC snapshots.
+
+**Why:** FastAPI handlers return 201/202 immediately. arq (asyncio task queue backed by Upstash Redis) processes enrichment asynchronously. Solo-founder constraint rules out separate worker infrastructure — arq runs as a subprocess alongside FastAPI on the same dyno.
+
+### Pattern 5: Per-Site API Tokens for DC Agent Auth
+
+Each DC site gets an API token issued from the dashboard (Settings → DC Sites → Add Site). Token is stored in the agent's config file. Token can be revoked from the dashboard. Tokens are scoped to a single `site_id` within the org's Neon partition.
+
+**Why:** Long-lived agent connections cannot use browser session cookies. Short-lived OAuth tokens would require token refresh infrastructure inside the agent. Per-site tokens are simple, revocable, and match the pattern used by Datadog Agent, Grafana Agent, etc.
+
+---
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Storing Cloud Credentials in SaaS
+
+**What goes wrong:** AWS/Azure credentials stored in Neon or R2 to enable server-side cloud API calls.
+**Consequences:** Credential breach is existential for a security-focused product. Target persona (Platform Engineers) will not adopt.
+**Instead:** CLI reads credentials from local environment. DC Agent uses local device credentials. No cloud credentials ever leave the user's environment.
+
+### Anti-Pattern 2: Two Separate Viewer Codebases
+
+**What goes wrong:** One React app for CLI HTML export, a second implementation inside Next.js.
+**Consequences:** Feature parity diverges immediately. Bug fixed in one, missed in the other. Double test surface.
+**Instead:** Single viewer package with dual Vite build targets + swappable data providers (see Viewer section above).
+
+### Anti-Pattern 3: Tenant Filtering in FastAPI Handlers
+
+**What goes wrong:** `WHERE org_id = current_user.org_id` written in every SQLAlchemy query.
+**Consequences:** Any missed clause causes cross-tenant data leak. At scale, human error is guaranteed.
+**Instead:** SET LOCAL Postgres session variable on every connection checkout. Enable RLS on all tenant-owned tables. Neon enforces isolation regardless of query code.
+
+### Anti-Pattern 4: Storing Full InfraGraph JSON in Neon
+
+**What goes wrong:** `JSONB` column on the `scans` table holds the full graph.
+**Consequences:** 500KB-2MB blobs bloat Neon rows. List queries on `scans` slow dramatically. Backup size balloons.
+**Instead:** Scalar summary fields in Neon (`node_count`, `finding_count`, `score`, `cost_monthly`). Full graph JSON stored as a flat object in Cloudflare R2. Dashboard fetches R2 artifact only for diagram view.
+
+### Anti-Pattern 5: Re-implementing CLI Analysis in FastAPI
+
+**What goes wrong:** The parser, security rules, and cost estimation are re-implemented inside FastAPI for the CI/CD webhook flow.
+**Consequences:** Two implementations diverge. Rules added to CLI don't appear in SaaS webhook scans.
+**Instead:** `api/` imports `cli/infracanvas/` as a local package (monorepo path dependency). arq background jobs call the same Python analysis modules.
+
+### Anti-Pattern 6: NETCONF Event Streaming in DC Agent v1
+
+**What goes wrong:** Using NETCONF subscription streams (RFC 5277) for real-time updates.
+**Consequences:** Not universally supported across Cisco IOS versions. Significantly increases agent complexity. Streaming adds no value over 5-min polling for infrastructure topology.
+**Instead:** Periodic `<get>` / `<get-config>` RPC calls. SSH `show` command fallback for older IOS. Streaming deferred to Enterprise phase.
+
+---
+
+## Database Schema (Core Tables)
 
 ```sql
--- Core tables (Postgres via Supabase)
+-- Neon PostgreSQL (serverless, scales to zero)
+-- Application role: restricted (RLS enforced)
+-- Migration role:   postgres superuser (bypasses RLS)
 
-users           -- managed by Supabase Auth (auth.users)
+organizations
+  id           UUID PRIMARY KEY
+  name         TEXT
+  slug         TEXT UNIQUE
+  plan         TEXT    -- free | pro | team | enterprise
+  created_at   TIMESTAMPTZ
+
+-- RLS: visible only to members
+CREATE POLICY "org_isolation" ON projects
+  USING (org_id = current_setting('app.current_org')::uuid);
 
 projects
-  id            UUID PRIMARY KEY
-  owner_id      UUID REFERENCES auth.users
-  name          TEXT
-  slug          TEXT UNIQUE          -- URL-friendly identifier
-  created_at    TIMESTAMPTZ
-
-team_members                         -- Team tier only
-  project_id    UUID REFERENCES projects
-  user_id       UUID REFERENCES auth.users
-  role          TEXT (owner|admin|viewer)
+  id           UUID PRIMARY KEY
+  org_id       UUID REFERENCES organizations  -- RLS tenant key
+  name         TEXT
+  slug         TEXT
+  created_at   TIMESTAMPTZ
 
 scans
-  id            UUID PRIMARY KEY
-  project_id    UUID REFERENCES projects
-  created_at    TIMESTAMPTZ
-  source        TEXT (cli|ci|webhook)
-  node_count    INT
+  id           UUID PRIMARY KEY  -- UUIDv7 (sortable by time)
+  org_id       UUID REFERENCES organizations  -- RLS tenant key
+  project_id   UUID REFERENCES projects
+  created_at   TIMESTAMPTZ
+  source       TEXT    -- cli | ci | webhook
+  node_count   INT
   finding_count INT
-  score         NUMERIC(4,2)         -- 0-100
-  cost_monthly  NUMERIC(10,2)
-  storage_path  TEXT                 -- scans/{project_id}/{scan_id}.json
-  git_ref       TEXT NULL            -- branch/commit if provided by CI
+  score        NUMERIC(4,2)
+  cost_monthly NUMERIC(10,2)
+  storage_key  TEXT    -- R2 path: scans/{org_id}/{project_id}/{scan_id}.json
+  git_ref      TEXT NULL
+
+dc_snapshots
+  id           UUID PRIMARY KEY
+  org_id       UUID REFERENCES organizations  -- RLS tenant key
+  site_id      UUID REFERENCES dc_sites
+  collected_at TIMESTAMPTZ
+  storage_key  TEXT    -- R2 path: dc-snapshots/{org_id}/{site_id}/{ts}.json
+  device_count INT
+  flow_count   INT
+
+dc_sites
+  id           UUID PRIMARY KEY
+  org_id       UUID REFERENCES organizations  -- RLS tenant key
+  name         TEXT
+  token_hash   TEXT UNIQUE  -- SHA-256 of API token; never store plaintext
 
 shares
-  id            UUID PRIMARY KEY
-  slug          TEXT UNIQUE (8 chars)
-  scan_id       UUID REFERENCES scans
-  is_public     BOOLEAN DEFAULT true
+  id           UUID PRIMARY KEY
+  org_id       UUID REFERENCES organizations  -- RLS tenant key
+  scan_id      UUID REFERENCES scans
+  slug         TEXT UNIQUE  -- 8-char nanoid
+  is_public    BOOLEAN DEFAULT true
   password_hash TEXT NULL
-  created_at    TIMESTAMPTZ
-  expires_at    TIMESTAMPTZ NULL
+  expires_at   TIMESTAMPTZ NULL
+  created_at   TIMESTAMPTZ
 
-api_tokens                           -- for CLI and CI/CD
-  id            UUID PRIMARY KEY
-  user_id       UUID REFERENCES auth.users
-  project_id    UUID NULL            -- NULL = personal token, set = project webhook token
-  token_hash    TEXT UNIQUE          -- store hash, never plaintext
-  label         TEXT
-  last_used_at  TIMESTAMPTZ NULL
-  created_at    TIMESTAMPTZ
+api_tokens                    -- CLI + CI tokens (not DC agent tokens)
+  id           UUID PRIMARY KEY
+  org_id       UUID REFERENCES organizations
+  user_id      UUID           -- Clerk user ID
+  token_hash   TEXT UNIQUE
+  label        TEXT
+  last_used_at TIMESTAMPTZ NULL
+  created_at   TIMESTAMPTZ
 ```
 
-## Vercel Services Configuration
+---
 
-```json
-{
-  "experimentalServices": {
-    "web": {
-      "entrypoint": "web",
-      "routePrefix": "/"
-    },
-    "api": {
-      "entrypoint": "api/main.py",
-      "routePrefix": "/api"
-    }
-  }
-}
-```
+## Build Order (Component Dependency Chain)
 
-FastAPI route handlers are declared without the `/api` prefix (e.g. `@router.get("/scans/{id}")`). Vercel strips the prefix before forwarding. The Next.js frontend calls `/api/scans/{id}` which routes to FastAPI.
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 0-200 users | Current design works as-is. Vercel serverless + Supabase free/pro tier handles this with no changes. Single FastAPI service. |
-| 200-2,000 users | Add Supabase connection pooling (PgBouncer). Add Redis cache for scan metadata reads (Upstash fits the Vercel + no-infra constraint). Paginate scan history queries. |
-| 2,000+ users | Split scan ingestion into a queue-backed worker (separate from the API service). Storage costs become a factor — add lifecycle policies to archive old scans. |
-
-### Scaling Priorities
-
-1. **First bottleneck: Supabase connection limits.** Serverless functions open connections per invocation. Supabase Pro has 60 direct connections. Hit this around 50-100 concurrent users. Fix: enable Supabase connection pooler (Supabase provides this — no Pgpool to operate).
-2. **Second bottleneck: Scan blob size.** Large Terraform repos produce 500KB-2MB JSON blobs. Storage cost is negligible, but download latency for the diagram view matters. Fix: gzip blobs on upload, decompress on download. Add a 30-second CDN cache on the storage signed URL.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Re-implementing Analysis Logic in FastAPI
-
-**What people do:** Re-write the Terraform parsing and analysis pipeline in FastAPI for the CI/CD webhook flow, thinking the CLI code is "not web-friendly."
-
-**Why it's wrong:** The CLI analysis modules (`parser/`, `graph/`, `security/`, `cost/`, `drift/`) are pure Python with no I/O side effects. They can be imported directly into FastAPI background tasks. Duplicating this logic means two implementations diverge over time.
-
-**Do this instead:** The `api/` directory imports from `cli/infracanvas/` as a local package. Use a shared `pyproject.toml` workspace or add the CLI as a path dependency. The data contract (`ResourceGraph`) is already Pydantic — it serializes cleanly over HTTP.
-
-### Anti-Pattern 2: Storing Full ResourceGraph JSON in Postgres
-
-**What people do:** Use a `JSONB` column on the `scans` table to store the full graph data.
-
-**Why it's wrong:** Scans for large Terraform repos are 500KB-2MB. Postgres JSONB is optimized for querying inside JSON, not for storing and retrieving large blobs. Row bloat degrades index performance on the `scans` table. Backup size balloons.
-
-**Do this instead:** Store only scalar summary fields in Postgres. Store the blob in Supabase Storage (S3-compatible). Retrieve with a signed URL or via FastAPI proxy. Postgres rows stay tiny, list queries stay fast.
-
-### Anti-Pattern 3: Using Next.js API Routes as the Sole Backend
-
-**What people do:** Skip FastAPI, implement all API logic in Next.js API routes (or App Router route handlers).
-
-**Why it's wrong:** For InfraCanvas specifically, the analysis pipeline is Python. The CI/CD webhook needs to invoke Python analysis. Business logic that starts in Next.js route handlers will eventually need to be duplicated in Python, or the Next.js routes become a thin proxy to Python anyway. Better to start with FastAPI as the authoritative backend.
-
-**Do this instead:** Keep Next.js route handlers as a thin layer for Supabase Auth session management and any Next.js-specific needs (revalidation, etc.). All business logic and data access lives in FastAPI.
-
-### Anti-Pattern 4: Pulling Graph Data Client-Side for Every View
-
-**What people do:** On every page load of a scan view, fetch the full ResourceGraph blob from Storage directly from the browser.
-
-**Why it's wrong:** Supabase Storage signed URLs need to be generated server-side (or require client auth tokens). Large blobs over slow connections produce poor UX. No opportunity to add caching.
-
-**Do this instead:** Use Next.js Server Components to pre-load scan metadata. Proxy the graph blob through FastAPI with a response cache header. The viewer component receives the data as a prop after one clean server-side fetch.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Supabase Auth | Supabase JS client in Next.js; JWT validation in FastAPI (`python-jose`) | Use Supabase JWT secret to validate tokens in FastAPI without a round-trip |
-| Supabase Storage | `supabase-py` storage client in FastAPI; signed URLs for direct browser download if needed | Bucket: `scans` (private), objects: `{project_id}/{scan_id}.json` |
-| Supabase Postgres | `asyncpg` or `supabase-py` in FastAPI; Supabase JS client in Next.js server components | RLS policies enforce tenant isolation at DB level |
-| Stripe (billing) | Webhooks → FastAPI `/api/billing/webhook`; Stripe Customer Portal link from dashboard | Store `stripe_customer_id` and `plan` on users table |
-| GitHub Actions (CI/CD) | POST to `/api/webhooks/ci` with project token | Document as part of CLI README |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| CLI ↔ FastAPI | HTTPS REST, JSON body (`ResourceGraph`), Bearer token auth | CLI is a client — no shared process, no shared memory |
-| Next.js ↔ FastAPI | HTTPS REST at `/api/*` (same Vercel deployment, different service) | Next.js server components call FastAPI server-side; client calls go through same domain, no CORS |
-| FastAPI ↔ Supabase | `supabase-py` (Supabase SDK) + `asyncpg` for direct Postgres if needed | Use Supabase service role key in FastAPI (server-side only, never exposed to browser) |
-| Next.js ↔ Supabase | Supabase JS client with user session cookie (Supabase Auth) | Use anon key + RLS; server components use service role for admin operations |
-| CLI ↔ CLI viewer | `window.__INFRACANVAS_DATA__` injection in HTML template | Existing mechanism; unchanged for offline/local use |
-| Next.js ↔ ReactFlow viewer | Direct React component import from shared `viewer/src/` | Viewer refactored to export `<InfraCanvasViewer data={graph} />` |
-
-## Build Order (Phase Dependencies)
-
-The components have a strict dependency order. Building out of order produces integration dead ends:
+Components have strict build dependencies. Building out of order creates integration dead ends.
 
 ```
-Phase 1: Database schema + Supabase setup
-         └── Required by: everything else
+Tier 0 — Shared Contracts (no dependencies)
+  cli/infracanvas/models.py     InfraGraph, InfraNode, Finding, NetworkPath (Pydantic)
+  JSON schema for InfraGraph    shared between Python and TypeScript
 
-Phase 2: FastAPI skeleton + auth middleware
-         └── Requires: Phase 1
-         └── Required by: CLI push, Next.js API calls
+Tier 1 — Core Data Producers (depend only on Tier 0)
+  cli/parser                    HCL → InfraGraph
+  cli/security                  InfraGraph → Finding[]
+  cli/cost                      InfraGraph → CostEstimate[]
+  cli/drift                     plan JSON + InfraGraph → DriftDelta[]
 
-Phase 3: CLI login + push commands
-         └── Requires: Phase 2 (/api/auth, /api/scans)
-         └── This validates the core CLI→SaaS data flow end-to-end
+Tier 2 — Viewer (depends on Tier 0 JSON schema for fixture data)
+  viewer/                       Can be built and tested with fixture JSON
+                                Dual build targets established here
 
-Phase 4: Next.js dashboard (projects, scan list, diagram view)
-         └── Requires: Phase 1 (data exists), Phase 2 (API endpoints)
-         └── Viewer refactor (shared component) happens here
+Tier 3 — CLI Export (depends on Tier 1 + Tier 2)
+  cli/export                    Bundles viewer app build + graph JSON → report.html
+                                End-to-end CLI flow fully working at this tier
 
-Phase 5: Sharing + scan history + comparison
-         └── Requires: Phase 4 (base dashboard working)
+Tier 4 — Network Layer (extends Tier 0 + Tier 1)
+  cli/network                   FlowMap data model, AWS/Azure collectors, path tracer
+  dc-agent/                     Go binary: NETCONF, SSH, ASA REST, FMC REST, NetFlow push
 
-Phase 6: CI/CD webhook + billing
-         └── Requires: Phase 3 (scan ingestion proven), Phase 4 (dashboard)
-         └── Billing can be done independently of webhook
+Tier 5 — SaaS API (depends on Tier 0 data models for DB schema)
+  api/                          FastAPI, Neon, R2, Clerk, arq
+                                DC snapshot ingestion endpoint needed before DC agent can be tested end-to-end
+
+Tier 6 — SaaS Dashboard (depends on Tier 2 viewer + Tier 5 API)
+  dashboard/                    Next.js 14, imports viewer/ lib build, calls api/
+
+Tier 7 — Advanced SaaS Features (stable Tier 5 + Tier 6 required)
+  CostLens cross-cloud cost allocation
+  Compliance framework engine
+  CI/CD webhook + Slack alerts
+  Share link system
+  Scan history + comparison
 ```
 
-**Critical path:** Database → FastAPI auth → CLI push → Dashboard viewer. Everything else branches from this spine.
+**Critical path for MVP:** Tier 0 → Tier 1 → Tier 2 → Tier 3 (CLI self-contained) → Tier 5 → Tier 6 (SaaS).
+
+**Tier 4 (DC Agent + Network Layer)** is independent of Tier 5/6 for data collection; it requires Tier 5 for end-to-end push. DC Agent can be developed in parallel with Tier 5 if the snapshot API contract is agreed first.
+
+**Key implication:** Viewer (Tier 2) must be a standalone dual-build package from the start, even before the SaaS dashboard exists. Retrofitting this later requires significant refactoring.
+
+---
+
+## Integration Points and Risks
+
+| Integration | Pattern | Risk | Mitigation |
+|-------------|---------|------|------------|
+| Viewer dual-build (HTML + lib) | Two Vite configs, shared src/ | Vite lib mode and app mode may conflict on globals | Separate config files; E2E test for both CLI HTML export and dashboard render as CI gates |
+| DC Agent → API auth | Per-site long-lived API token | Token compromise gives DC topology read access | Scope tokens to single site_id; revocation via dashboard; tokens stored as SHA-256 hash in Neon |
+| NETCONF on older Cisco IOS | `<get>` RPC over SSH | IOS < 15.x has inconsistent or absent NETCONF | SSH + `show` command parser as mandatory fallback; detect NETCONF capability via hello exchange |
+| Neon serverless cold start | ~500ms on first connection after idle | Cold starts visible in CLI upload + webhook flows | Upstash Redis session ping as keep-alive; connection pool pre-warm on FastAPI startup |
+| RLS bypass via migration user | Alembic runs as superuser | Migration bugs could create data accessible without RLS | App connection role has no BYPASSRLS; separate CI check verifies RLS policies exist on all tenant tables |
+| R2 + Neon consistency | R2 upload succeeds, Neon INSERT fails | Orphaned R2 objects with no scan record | Write Neon record first; R2 upload second; schedule periodic R2 orphan cleanup job |
+| CLI imports from api/ (monorepo) | Path dependency in pyproject.toml | Import path breaks in PyInstaller standalone binary | Test PyInstaller build in CI; shared models extracted to a third `infracanvas-models` package if needed |
+
+---
+
+## Scalability Considerations
+
+| Concern | MVP (0–200 users) | Growth (200–2000) | Scale (2000+) |
+|---------|------------------|-------------------|----------------|
+| DB connections | Neon built-in pooler | Neon pooler sufficient | PgBouncer if > 1000 concurrent |
+| Scan artifact storage | R2 flat objects, no prefix index | R2 + Neon metadata index | R2 lifecycle policy to archive scans > 90 days |
+| Background processing | arq workers co-located with API | arq workers on separate dyno | Horizontal arq worker scale-out |
+| DC Agent throughput | 1 agent per site, 5-min polling | Same | Same — agent is stateless; horizontal by site |
+| Viewer render performance | ReactFlow with cached layout positions | Same | Web Worker for layout; canvas fallback > 2000 nodes |
+| API hosting | Railway Starter ($5/mo) | Railway Pro or Fly.io | Fly.io multi-region |
+
+---
 
 ## Sources
 
-- Existing codebase architecture: `.planning/codebase/ARCHITECTURE.md`
-- Project requirements: `.planning/PROJECT.md`
-- Vercel Services documentation (from plugin context): `experimentalServices` with `routePrefix` and independent service builds
-- Supabase RLS, Storage, and Auth patterns: HIGH confidence (well-documented, stable APIs)
-- Device flow auth pattern: HIGH confidence (used by GitHub CLI, Vercel CLI, standard OAuth 2.0 Device Authorization Grant — RFC 8628)
-- FastAPI + Supabase integration patterns: HIGH confidence (stable, widely used combination as of training cutoff August 2025)
+- [Hybrid Multi-cloud Network Observability Reference Architecture — Datadog](https://www.datadoghq.com/architecture/hybrid-cloud-network-observability/)
+- [FastAPI Multi-Tenant SaaS: Row-Level Security Without Pain](https://medium.com/@hjparmar1944/fastapi-multi-tenant-saas-row-level-security-without-pain-9ef960085bf4)
+- [Multi-tenant data isolation with PostgreSQL Row Level Security — AWS Blog](https://aws.amazon.com/blogs/database/multi-tenant-data-isolation-with-postgresql-row-level-security/)
+- [Shipping multi-tenant SaaS using Postgres Row-Level Security — Nile](https://www.thenile.dev/blog/multi-tenant-rls)
+- [vite-plugin-singlefile](https://github.com/richardtallent/vite-plugin-singlefile)
+- [Infrastructure Drift Detection — Spacelift](https://spacelift.io/blog/drift-detection)
+- [Juniper go-netconf: NETCONF implementation in Go](https://github.com/Juniper/go-netconf)
+- [Cisco NX-OS Programmability Guide: NETCONF Agent](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/93x/progammability/guide/b-cisco-nexus-9000-series-nx-os-programmability-guide-93x/)
+- [Asymmetric routing detection and traceroute analysis — Obkio](https://obkio.com/blog/traceroutes-internet-traffic-is-asymmetrical/)
+- [Cloud Security Posture Management Architecture — Security Boulevard](https://securityboulevard.com/2026/03/cloud-security-posture-management-in-2026/)
 
 ---
-*Architecture research for: InfraCanvas CLI-to-SaaS platform*
-*Researched: 2026-04-15*
+*Researched: 2026-04-15 | InfraCanvas hybrid cloud intelligence platform — Architecture dimension*
