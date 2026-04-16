@@ -61,8 +61,9 @@ Plans:
   3. Shadow infrastructure (live AWS API vs state) is flagged with dashed borders and estimated cost; no silent parse failures occur on complex modules
   4. All 30 AWS security rules and all 10 Azure rules carry compliance framework tags (CIS, NIST, SOC2, PCI-DSS) visible in findings output
   5. A `.infracanvas.yml` custom policy (required tags, allowed regions, naming patterns) causes `infracanvas scan --policy ./policies` to fail in CI with a non-zero exit code
-**Plans:** 8 plans
+**Plans:** 9 plans
 Plans:
+- [ ] 02-00-PLAN.md — Wave 0: Test stubs for Nyquist compliance (all new test files created before implementation)
 - [ ] 02-01-PLAN.md — Data model extensions + HCL parser hardening (Finding source/framework_ids, SecurityRule framework_ids, parse error collection)
 - [ ] 02-02-PLAN.md — Azure parser + security rules + viewer icon config (10 resource types, AZ-001 through AZ-010, azureServiceConfig.ts)
 - [ ] 02-03-PLAN.md — AWS security rule expansion + staleness checks (SEC-011 through SEC-030, compliance tags on all rules, RST-01/RST-02)

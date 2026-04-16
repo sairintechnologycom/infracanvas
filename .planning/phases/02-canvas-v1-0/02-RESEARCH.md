@@ -779,22 +779,19 @@ Standard control mappings for the existing 10 AWS rules + 20 new + 10 Azure:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Infracost API (CST-01 deferred)**
+1. **Infracost API (CST-01 deferred)** (RESOLVED)
    - What we know: CONTEXT.md defers the API integration decision to the planner; static pricing fallback exists
-   - What's unclear: Does the requirement checkbox for CST-01 ("Infracost pricing API integration with static pricing fallback") require ANY Infracost API attempt, or is static-only sufficient?
-   - Recommendation: Treat static pricing as the primary implementation; add a `--infracost-api-key` optional flag that when provided fetches real prices. This satisfies the acceptance criterion with zero-config default.
+   - Resolution: Static pricing is the Phase 2 implementation. Infracost API deferred per CONTEXT.md. Plan 05 implements static pricing with region multipliers.
 
-2. **Azure VM Attribute Shape — v3 vs v4 azurerm provider**
-   - What we know: The azurerm provider had major breaking changes between v3 and v4 (released 2024). `azurerm_virtual_machine` vs `azurerm_linux_virtual_machine`/`azurerm_windows_virtual_machine` split.
-   - What's unclear: Which VM resource type(s) to support — the legacy `azurerm_virtual_machine` or the newer split types?
-   - Recommendation: Support all three (`azurerm_virtual_machine`, `azurerm_linux_virtual_machine`, `azurerm_windows_virtual_machine`) in the parser; map all three to the `virtual_machine` type group for icon/color.
+2. **Azure VM Attribute Shape — v3 vs v4 azurerm provider** (RESOLVED)
+   - What we know: The azurerm provider had major breaking changes between v3 and v4 (released 2024).
+   - Resolution: Support all three (`azurerm_virtual_machine`, `azurerm_linux_virtual_machine`, `azurerm_windows_virtual_machine`). Plan 02 implements this in azure.py and azureServiceConfig.ts.
 
-3. **python-hcl2 Partial Results Behavior**
+3. **python-hcl2 Partial Results Behavior** (RESOLVED)
    - What we know: STATE.md states "python-hcl2 returns partial results on ~15% of complex modules"
-   - What's unclear: Is the partial result behavior version-specific? Does upgrading to python-hcl2 v6.x (which added HCL2 reconstruction) help?
-   - Recommendation: Test with real-world complex Terraform fixtures (conditional expressions, `for_each`, dynamic blocks) before upgrading. The hardening in Pattern 1 (per-file error collection) is more important than version upgrades.
+   - Resolution: Plan 01 hardens with per-file error collection (broad `except Exception` catch + `parse_errors` list). No python-hcl2 version upgrade needed for Phase 2.
 
 ---
 
