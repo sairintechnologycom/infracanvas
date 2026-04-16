@@ -9,6 +9,15 @@ from infracanvas.parser.plan import PlanChange
 
 HOURS_PER_MONTH = 730
 
+# CST-03: Region price multipliers relative to us-east-1
+REGION_MULTIPLIERS: dict[str, float] = {
+    "us-east-1": 1.0, "us-east-2": 1.0, "us-west-1": 1.1, "us-west-2": 1.0,
+    "eu-west-1": 1.1, "eu-west-2": 1.12, "eu-central-1": 1.12,
+    "ap-southeast-1": 1.15, "ap-northeast-1": 1.12, "ap-south-1": 1.0,
+    "East US": 1.0, "West US": 1.05, "West Europe": 1.1,
+    "North Europe": 1.1, "Southeast Asia": 1.15,
+}
+
 # EC2 on-demand hourly rates (us-east-1)
 EC2_PRICES: dict[str, float] = {
     "t3.micro": 0.0104, "t3.small": 0.0208, "t3.medium": 0.0416,
@@ -102,12 +111,29 @@ class CostEstimator:
     """Annotate resource nodes with cost estimates."""
 
     def estimate(self, graph: ResourceGraph) -> ResourceGraph:
-        """Annotate each node.cost and update summary.estimated_monthly_cost."""
+        """Annotate each node.cost with region-aware pricing and update summary."""
         total = 0.0
+        group_costs: dict[str, float] = {}
         for node in graph.nodes:
-            node.cost = _estimate_resource(node.type, node.attributes)
+            base = _estimate_resource(node.type, node.attributes)
+            # CST-03: apply region multiplier
+            multiplier = REGION_MULTIPLIERS.get(node.region, 1.0) if node.region else 1.0
+            adjusted = round(base.monthly_usd * multiplier, 2)
+            basis = base.basis
+            if node.region and multiplier != 1.0:
+                basis += f" ({node.region} x{multiplier})"
+            node.cost = CostEstimate(
+                monthly_usd=adjusted,
+                currency=base.currency,
+                basis=basis,
+            )
             total += node.cost.monthly_usd
+            # CST-02: group-level aggregation
+            if node.group:
+                group_costs[node.group] = group_costs.get(node.group, 0.0) + node.cost.monthly_usd
         graph.summary.estimated_monthly_cost = round(total, 2)
+        # Store group costs in metadata for viewer consumption
+        graph.metadata["group_costs"] = {k: round(v, 2) for k, v in group_costs.items()}
         return graph
 
     def delta(self, graph: ResourceGraph, changes: list[PlanChange]) -> float:

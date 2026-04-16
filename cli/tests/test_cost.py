@@ -92,13 +92,65 @@ class TestCostEstimator:
         assert delta == round(-0.045 * HOURS_PER_MONTH, 2)
 
 
-@pytest.mark.skip("Wave 0 stub — implementation in Plan 05")
 class TestRegionMultiplier:
-    def test_us_east_1_no_change(self): ...
-    def test_eu_west_1_higher(self): ...
-    def test_unknown_region_defaults_to_1(self): ...
+    def test_us_east_1_no_change(self):
+        """CST-03-A: us-east-1 has multiplier 1.0."""
+        node = ResourceNode(
+            id="aws_instance.web", type="aws_instance", name="web",
+            provider="aws", region="us-east-1",
+            attributes={"instance_type": "t3.medium"},
+        )
+        graph = ResourceGraph(nodes=[node])
+        estimator = CostEstimator()
+        estimator.estimate(graph)
+        # t3.medium = $0.0416/hr * 730 = $30.37
+        assert node.cost.monthly_usd == pytest.approx(30.37, abs=0.1)
+
+    def test_eu_west_1_higher(self):
+        """CST-03-B: eu-west-1 has 1.1x multiplier."""
+        node = ResourceNode(
+            id="aws_instance.web", type="aws_instance", name="web",
+            provider="aws", region="eu-west-1",
+            attributes={"instance_type": "t3.medium"},
+        )
+        graph = ResourceGraph(nodes=[node])
+        estimator = CostEstimator()
+        estimator.estimate(graph)
+        base = 0.0416 * 730
+        expected = round(base * 1.1, 2)
+        assert node.cost.monthly_usd == pytest.approx(expected, abs=0.1)
+
+    def test_unknown_region_defaults_to_1(self):
+        """CST-03-C: Unknown region uses multiplier 1.0."""
+        node = ResourceNode(
+            id="aws_instance.web", type="aws_instance", name="web",
+            provider="aws", region="unknown-region",
+            attributes={"instance_type": "t3.medium"},
+        )
+        graph = ResourceGraph(nodes=[node])
+        estimator = CostEstimator()
+        estimator.estimate(graph)
+        assert node.cost.monthly_usd == pytest.approx(30.37, abs=0.1)
 
 
-@pytest.mark.skip("Wave 0 stub — implementation in Plan 05")
 class TestGroupCostAggregation:
-    def test_group_costs_in_metadata(self): ...
+    def test_group_costs_in_metadata(self):
+        """CST-02-A: Group costs aggregated in graph.metadata."""
+        nodes = [
+            ResourceNode(
+                id="aws_instance.web", type="aws_instance", name="web",
+                provider="aws", group="vpc-main",
+                attributes={"instance_type": "t3.medium"},
+            ),
+            ResourceNode(
+                id="aws_instance.api", type="aws_instance", name="api",
+                provider="aws", group="vpc-main",
+                attributes={"instance_type": "t3.medium"},
+            ),
+        ]
+        graph = ResourceGraph(nodes=nodes)
+        estimator = CostEstimator()
+        estimator.estimate(graph)
+        assert "group_costs" in graph.metadata
+        assert "vpc-main" in graph.metadata["group_costs"]
+        assert graph.metadata["group_costs"]["vpc-main"] > 0
