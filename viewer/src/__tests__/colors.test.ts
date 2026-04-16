@@ -3,10 +3,10 @@ import { getResourceColor, getHighestSeverity, severityColors, driftColors } fro
 
 describe('getResourceColor', () => {
   it('returns correct color for known types', () => {
-    expect(getResourceColor('aws_vpc')).toBe('#3b82f6');
-    expect(getResourceColor('aws_s3_bucket')).toBe('#22c55e');
-    expect(getResourceColor('aws_instance')).toBe('#f97316');
-    expect(getResourceColor('aws_lambda_function')).toBe('#eab308');
+    expect(getResourceColor('aws_vpc')).toBe('#8C4FFF');          // Networking
+    expect(getResourceColor('aws_s3_bucket')).toBe('#3F8624');    // Storage
+    expect(getResourceColor('aws_instance')).toBe('#FF9900');     // Compute
+    expect(getResourceColor('aws_lambda_function')).toBe('#FF9900'); // Compute
   });
 
   it('returns default gray for non-AWS types', () => {

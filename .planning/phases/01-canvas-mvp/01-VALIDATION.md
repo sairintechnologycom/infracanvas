@@ -1,7 +1,7 @@
 ---
 phase: 1
 slug: canvas-mvp
-status: draft
+status: complete
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-04-16
@@ -38,36 +38,36 @@ created: 2026-04-16
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 1-01-00 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_graph.py::TestNetworkFinding -x -q` | ✅ W0 | ⬜ pending |
-| 1-01-01 | 01 | 1 | CLI-01 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-01-02 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-01-03 | 01 | 1 | PRS-01 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ⬜ pending |
-| 1-01-04 | 01 | 1 | PRS-02 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ⬜ pending |
-| 1-01-05 | 01 | 1 | PRS-03 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ⬜ pending |
-| 1-01-06 | 01 | 1 | PRS-04 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ⬜ pending |
-| 1-01-07 | 01 | 1 | PRS-05 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-02-01 | 02 | 1 | GRF-01 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ⬜ pending |
-| 1-02-02 | 02 | 1 | GRF-02 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ⬜ pending |
-| 1-02-03 | 02 | 1 | GRF-03 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ⬜ pending |
-| 1-03-01 | 03 | 2 | SEC-01 | T-1-01 | Security rules produce findings for known-bad configs | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ⬜ pending |
-| 1-03-02 | 03 | 2 | SEC-02 | T-1-01 | Rules don't produce false positives on secure configs | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ⬜ pending |
-| 1-03-03 | 03 | 2 | SEC-03 | T-1-01 | All 10+ rules have test coverage | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ⬜ pending |
-| 1-03-04 | 03 | 2 | SEC-04 | T-1-01 | N/A | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ⬜ pending |
-| 1-04-01 | 04 | 2 | SCR-01 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-04-02 | 04 | 2 | SCR-02 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-04-03 | 04 | 2 | SCR-03 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-05-01 | 05 | 3 | VWR-01 | — | N/A | unit | `cd viewer && npm test` | ✅ | ⬜ pending |
-| 1-05-02 | 05 | 3 | VWR-02 | — | N/A | unit | `cd viewer && npm test` | ✅ | ⬜ pending |
-| 1-05-03 | 05 | 3 | VWR-03 | — | N/A | unit | `cd viewer && npm test` | ✅ | ⬜ pending |
-| 1-05-04 | 05 | 3 | VWR-04 | — | N/A | unit | `cd viewer && npm test` | ✅ | ⬜ pending |
-| 1-05-05 | 05 | 3 | VWR-05 | — | N/A | unit | `cd viewer && npm test` | ✅ | ⬜ pending |
-| 1-05-06 | 05 | 3 | VWR-06 | T-1-02 | Blurred findings don't leak content to DOM | unit | `cd viewer && npm test` | ❌ W0 | ⬜ pending |
-| 1-06-01 | 06 | 3 | EXP-01 | — | N/A | unit | `python -m pytest tests/test_export.py -x -q` | ✅ | ⬜ pending |
-| 1-06-02 | 06 | 3 | EXP-02 | — | N/A | unit | `python -m pytest tests/test_export.py -x -q` | ✅ | ⬜ pending |
-| 1-07-01 | 07 | 4 | REL-01 | — | N/A | integration | `pip install -e . && infracanvas --version` | ✅ | ⬜ pending |
-| 1-07-02 | 07 | 4 | REL-02 | — | N/A | integration | `pip install infracanvas` (CI) | ❌ W0 | ⬜ pending |
-| 1-07-03 | 07 | 4 | REL-03 | — | N/A | manual | GitHub Actions publish workflow | ❌ W0 | ⬜ pending |
-| 1-07-04 | 07 | 4 | REL-04 | — | N/A | manual | Show HN draft review + submission | ✅ | ⬜ pending |
+| 1-01-00 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_graph.py::TestNetworkFinding -x -q` | ✅ W0 | ✅ green |
+| 1-01-01 | 01 | 1 | CLI-01 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ✅ | ✅ green |
+| 1-01-02 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ✅ | ✅ green |
+| 1-01-03 | 01 | 1 | PRS-01 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ✅ green |
+| 1-01-04 | 01 | 1 | PRS-02 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ✅ green |
+| 1-01-05 | 01 | 1 | PRS-03 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ✅ green |
+| 1-01-06 | 01 | 1 | PRS-04 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ✅ green |
+| 1-01-07 | 01 | 1 | PRS-05 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ✅ green |
+| 1-02-01 | 02 | 1 | GRF-01 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ✅ green |
+| 1-02-02 | 02 | 1 | GRF-02 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ✅ green |
+| 1-02-03 | 02 | 1 | GRF-03 | — | N/A | unit | `python -m pytest tests/test_builder.py -x -q` | ✅ | ✅ green |
+| 1-03-01 | 03 | 2 | SEC-01 | T-1-01 | Security rules produce findings for known-bad configs | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ✅ green |
+| 1-03-02 | 03 | 2 | SEC-02 | T-1-01 | Rules don't produce false positives on secure configs | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ✅ green |
+| 1-03-03 | 03 | 2 | SEC-03 | T-1-01 | All 10+ rules have test coverage | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ✅ green |
+| 1-03-04 | 03 | 2 | SEC-04 | T-1-01 | N/A | unit | `python -m pytest tests/test_security.py -x -q` | ✅ | ✅ green |
+| 1-04-01 | 04 | 2 | SCR-01 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ✅ | ✅ green |
+| 1-04-02 | 04 | 2 | SCR-02 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ✅ | ✅ green |
+| 1-04-03 | 04 | 2 | SCR-03 | — | N/A | unit | `python -m pytest tests/test_scorer.py -x -q` | ✅ | ✅ green |
+| 1-05-01 | 05 | 3 | VWR-01 | — | N/A | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-05-02 | 05 | 3 | VWR-02 | — | N/A | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-05-03 | 05 | 3 | VWR-03 | — | N/A | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-05-04 | 05 | 3 | VWR-04 | — | N/A | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-05-05 | 05 | 3 | VWR-05 | — | N/A | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-05-06 | 05 | 3 | VWR-06 | T-1-02 | Blurred findings don't leak content to DOM | unit | `cd viewer && npm test` | ✅ | ✅ green |
+| 1-06-01 | 06 | 3 | EXP-01 | — | N/A | unit | `python -m pytest tests/test_export.py -x -q` | ✅ | ✅ green |
+| 1-06-02 | 06 | 3 | EXP-02 | — | N/A | unit | `python -m pytest tests/test_export.py -x -q` | ✅ | ✅ green |
+| 1-07-01 | 07 | 4 | REL-01 | — | N/A | integration | `pip install -e . && infracanvas --version` | ✅ | ✅ green |
+| 1-07-02 | 07 | 4 | REL-02 | — | N/A | integration | `pip install infracanvas` (CI) | ✅ | ✅ green |
+| 1-07-03 | 07 | 4 | REL-03 | — | N/A | manual | GitHub Actions publish workflow | ✅ | ✅ green |
+| 1-07-04 | 07 | 4 | REL-04 | — | N/A | manual | Show HN draft review + submission | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -76,11 +76,11 @@ created: 2026-04-16
 ## Wave 0 Requirements
 
 - [x] `cli/tests/test_graph.py::TestNetworkFinding` — stubs for CLI-02 (NetworkFinding model, ResourceGraph v2.0) — **covered by Plan 01-01 Task 0**
-- [ ] `cli/tests/test_cli.py` — stubs for CLI-01, CLI-02 (browser open, CI detection, serve command)
-- [ ] `cli/tests/test_scorer.py` — stubs for SCR-01, SCR-02, SCR-03 (score card dimensions, HTML output)
-- [ ] `viewer/src/__tests__/FreeGate.test.tsx` — stubs for VWR-06 (blur/gate rendering)
-- [ ] `.github/workflows/publish.yml` — PyPI Trusted Publisher workflow skeleton
-- [ ] `Formula/infracanvas.rb` — Homebrew formula stub
+- [x] `cli/tests/test_cli.py` — stubs for CLI-01, CLI-02 (browser open, CI detection, serve command)
+- [x] `cli/tests/test_scorer.py` — stubs for SCR-01, SCR-02, SCR-03 (score card dimensions, HTML output)
+- [x] `viewer/src/__tests__/FreeGate.test.tsx` — stubs for VWR-06 (blur/gate rendering)
+- [x] `.github/workflows/publish.yml` — PyPI Trusted Publisher workflow skeleton
+- [x] `Formula/infracanvas.rb` — Homebrew formula stub
 
 ---
 
@@ -101,8 +101,8 @@ created: 2026-04-16
 - [x] All tasks have `<automated>` verify or Wave 0 dependencies
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify
 - [x] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ✅ PASSED — 2026-04-16 — 162 Python + 30 TS tests green

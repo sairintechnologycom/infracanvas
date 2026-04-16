@@ -41,7 +41,7 @@ metrics:
 | 1 | PyPI packaging + GHA workflow + Homebrew formula + LICENSE | 35c0144 | cli/pyproject.toml, .github/workflows/cli-release.yml, Formula/infracanvas.rb, LICENSE |
 | 2 | README with installation, quick start, Show HN framing | b59b40c | README.md |
 | 3 | Show HN submission draft (REL-04) | cc65606 | SHOW_HN_DRAFT.md |
-| 4 | Checkpoint: Visual verification | — | AWAITING HUMAN VERIFY |
+| 4 | Checkpoint: Visual verification | — | APPROVED 2026-04-16 |
 
 ## What Was Built
 
