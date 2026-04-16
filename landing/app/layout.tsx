@@ -10,6 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://infracanvas.dev'),
   title: 'InfraCanvas — Your infrastructure, visualised',
   description:
     'One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, cost, and drift — across AWS, Azure, and physical data centres.',
