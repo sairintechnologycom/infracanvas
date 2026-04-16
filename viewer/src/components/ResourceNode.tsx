@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ResourceNode as ResourceNodeData } from '../types';
 import { AwsIcon } from './icons/AwsIcon';
-import { severityColors, driftColors, getHighestSeverity } from '../lib/colors';
+import { severityColors, driftColors, getHighestSeverity, getResourceColor } from '../lib/colors';
 import { useStore } from '../store';
 
 type ResourceNodeProps = NodeProps & {
@@ -47,8 +47,9 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
 
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.97)',
+          background: '#1a2535',
           border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
+          borderLeft: `3px solid ${getResourceColor(data.type)}`,
           borderRadius: 8,
           padding: '9px 11px 8px',
           opacity: isDeleted ? 0.45 : 1,
@@ -70,7 +71,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             style={{
               fontSize: 9,
               fontFamily: 'ui-monospace, monospace',
-              color: '#475569',
+              color: '#7a9abf',
               letterSpacing: '0.04em',
               fontWeight: 600,
             }}
@@ -170,8 +171,8 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
                 width: 22,
                 height: 22,
                 borderRadius: 5,
-                background: 'rgba(34,197,94,0.12)',
-                border: '1px solid rgba(34,197,94,0.35)',
+                background: 'rgba(46,204,113,0.12)',
+                border: '1px solid rgba(46,204,113,0.38)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

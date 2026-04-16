@@ -67,58 +67,67 @@ export const ZONE_COLORS: Record<ZoneType, {
   label: string;
 }> = {
   internet: {
-    background: 'rgba(100, 116, 139, 0.08)',
-    border: 'rgba(100, 116, 139, 0.25)',
-    label: '#94a3b8',
+    background: 'rgba(100, 120, 160, 0.05)',
+    border: 'rgba(140, 160, 200, 0.28)',
+    label: '#8fa8cc',
   },
   vpc: {
-    background: 'rgba(30, 41, 59, 0.60)',
-    border: 'rgba(59, 130, 246, 0.35)',
-    label: '#60a5fa',
+    background: 'rgba(119, 91, 163, 0.10)',
+    border: 'rgba(119, 91, 163, 0.55)',
+    label: '#a882dc',
   },
   az: {
     background: 'transparent',
-    border: 'rgba(100, 116, 139, 0.30)',
-    label: '#94a3b8',
+    border: 'rgba(140, 155, 180, 0.28)',
+    label: '#7a92b4',
   },
   public_subnet: {
-    background: 'rgba(34, 197, 94, 0.07)',
-    border: 'rgba(34, 197, 94, 0.30)',
-    label: '#4ade80',
+    background: 'rgba(0, 153, 77, 0.07)',
+    border: 'rgba(0, 153, 77, 0.40)',
+    label: '#2ecc71',
   },
   private_subnet: {
-    background: 'rgba(59, 130, 246, 0.07)',
-    border: 'rgba(59, 130, 246, 0.30)',
-    label: '#60a5fa',
+    background: 'rgba(0, 115, 187, 0.07)',
+    border: 'rgba(0, 115, 187, 0.38)',
+    label: '#4a9fd4',
   },
   data_subnet: {
-    background: 'rgba(168, 85, 247, 0.07)',
-    border: 'rgba(168, 85, 247, 0.30)',
-    label: '#c084fc',
+    background: 'rgba(140, 79, 255, 0.07)',
+    border: 'rgba(140, 79, 255, 0.32)',
+    label: '#a07ddb',
   },
   regional: {
-    background: 'rgba(30, 41, 59, 0.40)',
-    border: 'rgba(100, 116, 139, 0.25)',
-    label: '#94a3b8',
+    background: 'rgba(50, 80, 130, 0.07)',
+    border: 'rgba(73, 144, 200, 0.30)',
+    label: '#6ba3cc',
   },
 };
 
 const resourceTypeColors: Record<string, string> = {
-  aws_vpc: '#3b82f6',
-  aws_subnet: '#06b6d4',
-  aws_security_group: '#ef4444',
-  aws_instance: '#f97316',
-  aws_s3_bucket: '#22c55e',
-  aws_rds_instance: '#a855f7',
-  aws_db_instance: '#a855f7',
-  aws_lambda_function: '#eab308',
-  aws_alb: '#6366f1',
-  aws_lb: '#6366f1',
-  aws_kms_key: '#ec4899',
-  aws_iam_role: '#64748b',
-  aws_iam_policy: '#64748b',
-  aws_cloudfront_distribution: '#0ea5e9',
-  aws_dynamodb_table: '#14b8a6',
+  // Compute — AWS orange
+  aws_instance:              '#FF9900',
+  aws_lambda_function:       '#FF9900',
+  // Storage — AWS green
+  aws_s3_bucket:             '#3F8624',
+  // Database — AWS blue
+  aws_rds_instance:          '#2E73B8',
+  aws_db_instance:           '#2E73B8',
+  aws_dynamodb_table:        '#2E73B8',
+  // Networking — AWS purple
+  aws_vpc:                   '#8C4FFF',
+  aws_subnet:                '#8C4FFF',
+  aws_alb:                   '#8C4FFF',
+  aws_lb:                    '#8C4FFF',
+  aws_internet_gateway:      '#8C4FFF',
+  aws_nat_gateway:           '#8C4FFF',
+  aws_eip:                   '#8C4FFF',
+  // Security — AWS red
+  aws_security_group:        '#DD344C',
+  aws_kms_key:               '#DD344C',
+  aws_iam_role:              '#DD344C',
+  aws_iam_policy:            '#DD344C',
+  // CDN
+  aws_cloudfront_distribution: '#7B2FBE',
 };
 
 export function getResourceColor(resourceType: string): string {

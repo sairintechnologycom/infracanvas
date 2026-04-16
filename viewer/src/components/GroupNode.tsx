@@ -53,6 +53,9 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 6,
+          textTransform: 'uppercase' as const,
+          letterSpacing: '0.06em',
+          opacity: data.zoneType === 'az' ? 0.80 : undefined,
         }}
       >
         {data.zoneType === 'vpc' && <ArchitectureGroupVirtualprivatecloudVPC size={16} />}
