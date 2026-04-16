@@ -1,0 +1,23 @@
+- id: SEC-015
+  title: "IAM Role Allows Wildcard Principal or Action"
+  severity: critical
+  resource_types: ["aws_iam_role"]
+  framework_ids: ["CIS-1.16", "NIST-AC-6", "SOC2-CC6.3", "PCI-DSS-7.1"]
+  condition:
+    attribute: "assume_role_policy"
+    operator: "contains"
+    value: "\"*\""
+  remediation: "Restrict the assume_role_policy to specific trusted principals with least privilege"
+  description: "IAM role trust policy contains a wildcard (*) which grants unrestricted assume-role access"
+
+- id: SEC-028
+  title: "IAM Role Missing Permissions Boundary"
+  severity: info
+  resource_types: ["aws_iam_role"]
+  framework_ids: ["NIST-AC-6", "SOC2-CC6.3"]
+  condition:
+    attribute: "permissions_boundary"
+    operator: "not_exists"
+    values: []
+  remediation: "Attach a permissions boundary policy to limit the maximum permissions the role can grant"
+  description: "IAM role has no permissions boundary, allowing it to grant any permission it holds"

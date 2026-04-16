@@ -1,0 +1,13 @@
+- id: SEC-024
+  title: "CloudFront Distribution Allows Insecure HTTP"
+  severity: medium
+  resource_types: ["aws_cloudfront_distribution"]
+  framework_ids: ["CIS-5.5", "NIST-SC-8", "SOC2-CC6.7", "PCI-DSS-4.1"]
+  condition:
+    attribute: "viewer_protocol_policy"
+    operator: "in"
+    values:
+      - "allow-all"
+      - "http"
+  remediation: "Set viewer_protocol_policy to 'redirect-to-https' or 'https-only' on all cache behaviors"
+  description: "CloudFront distribution allows unencrypted HTTP connections from viewers"

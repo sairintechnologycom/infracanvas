@@ -1,0 +1,23 @@
+- id: SEC-025
+  title: "SQS Queue Missing Encryption"
+  severity: medium
+  resource_types: ["aws_sqs_queue"]
+  framework_ids: ["CIS-2.6.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
+  condition:
+    attribute: "kms_master_key_id"
+    operator: "not_exists"
+    values: []
+  remediation: "Set kms_master_key_id to a KMS key ARN to enable server-side encryption for the queue"
+  description: "SQS queue does not have server-side encryption enabled with a KMS key"
+
+- id: SEC-026
+  title: "SNS Topic Missing Encryption"
+  severity: medium
+  resource_types: ["aws_sns_topic"]
+  framework_ids: ["CIS-2.6.2", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
+  condition:
+    attribute: "kms_master_key_id"
+    operator: "not_exists"
+    values: []
+  remediation: "Set kms_master_key_id to a KMS key ARN to enable server-side encryption for the topic"
+  description: "SNS topic does not have server-side encryption enabled with a KMS key"

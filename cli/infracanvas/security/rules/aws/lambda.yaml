@@ -1,0 +1,31 @@
+- id: SEC-016
+  title: "Lambda Function Not Deployed in VPC"
+  severity: medium
+  resource_types: ["aws_lambda_function"]
+  framework_ids: ["CIS-5.1", "NIST-SC-7", "SOC2-CC6.6"]
+  condition:
+    attribute: "vpc_config"
+    operator: "not_exists"
+    values: []
+  remediation: "Deploy Lambda function inside a VPC with appropriate security groups and subnets"
+  description: "Lambda function is not deployed inside a VPC, limiting network isolation controls"
+
+- id: SEC-017
+  title: "Lambda Function Using End-of-Life Runtime"
+  severity: high
+  resource_types: ["aws_lambda_function"]
+  framework_ids: ["NIST-SA-22", "SOC2-CC7.1", "PCI-DSS-6.2"]
+  condition:
+    attribute: "runtime"
+    operator: "in"
+    values:
+      - "python3.8"
+      - "python3.9"
+      - "nodejs14.x"
+      - "nodejs16.x"
+      - "nodejs18.x"
+      - "ruby2.7"
+      - "java8"
+      - "dotnet6"
+  remediation: "Upgrade Lambda runtime to a currently supported version (python3.12, nodejs20.x, java21)"
+  description: "Lambda function uses a runtime that has reached or is approaching end-of-life"

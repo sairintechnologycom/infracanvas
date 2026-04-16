@@ -1,0 +1,47 @@
+- id: SEC-011
+  title: "S3 Bucket Public Access Block Missing"
+  severity: critical
+  resource_types: ["aws_s3_bucket_public_access_block"]
+  framework_ids: ["CIS-2.1.5", "NIST-SC-7", "SOC2-CC6.1", "PCI-DSS-1.2"]
+  condition:
+    attribute: "block_public_acls"
+    operator: "not_equals"
+    value: true
+  remediation: "Set block_public_acls = true, block_public_policy = true, ignore_public_acls = true, restrict_public_buckets = true"
+  description: "S3 bucket public access block is not fully configured, allowing potential public exposure"
+
+- id: SEC-012
+  title: "S3 Bucket Versioning Disabled"
+  severity: medium
+  resource_types: ["aws_s3_bucket"]
+  framework_ids: ["CIS-2.1.3", "NIST-CP-10", "SOC2-CC9.1"]
+  condition:
+    attribute: "versioning.enabled"
+    operator: "not_equals"
+    value: true
+  remediation: "Enable versioning on S3 bucket to protect against accidental deletion and overwrites"
+  description: "S3 bucket does not have versioning enabled, risking data loss from accidental deletion"
+
+- id: SEC-013
+  title: "S3 Bucket Logging Disabled"
+  severity: info
+  resource_types: ["aws_s3_bucket"]
+  framework_ids: ["CIS-2.1.4", "NIST-AU-2", "SOC2-CC7.2"]
+  condition:
+    attribute: "logging"
+    operator: "not_exists"
+    values: []
+  remediation: "Enable server access logging to capture all requests made to the bucket"
+  description: "S3 bucket does not have server access logging configured"
+
+- id: SEC-030
+  title: "S3 Bucket Missing Lifecycle Policy"
+  severity: info
+  resource_types: ["aws_s3_bucket"]
+  framework_ids: ["NIST-CM-8", "SOC2-CC6.3"]
+  condition:
+    attribute: "lifecycle_rule"
+    operator: "not_exists"
+    values: []
+  remediation: "Add lifecycle rules to manage object retention and transition to lower-cost storage tiers"
+  description: "S3 bucket has no lifecycle policy configured, which may lead to unnecessary storage costs"

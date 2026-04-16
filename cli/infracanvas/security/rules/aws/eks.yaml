@@ -1,0 +1,27 @@
+- id: SEC-021
+  title: "EKS Cluster Running End-of-Life Kubernetes Version"
+  severity: high
+  resource_types: ["aws_eks_cluster"]
+  framework_ids: ["NIST-SA-22", "SOC2-CC7.1", "PCI-DSS-6.2"]
+  condition:
+    attribute: "version"
+    operator: "in"
+    values:
+      - "1.24"
+      - "1.25"
+      - "1.26"
+      - "1.27"
+  remediation: "Upgrade EKS cluster to a supported Kubernetes version (1.29 or later)"
+  description: "EKS cluster is running a Kubernetes version that has reached end-of-life"
+
+- id: SEC-022
+  title: "EKS Cluster Secrets Not Encrypted"
+  severity: high
+  resource_types: ["aws_eks_cluster"]
+  framework_ids: ["CIS-5.3.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
+  condition:
+    attribute: "encryption_config"
+    operator: "not_exists"
+    values: []
+  remediation: "Configure encryption_config with a KMS key to encrypt Kubernetes secrets at rest"
+  description: "EKS cluster does not have envelope encryption configured for Kubernetes secrets"

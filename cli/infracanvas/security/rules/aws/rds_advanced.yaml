@@ -1,0 +1,35 @@
+- id: SEC-018
+  title: "RDS Instance Missing Deletion Protection"
+  severity: medium
+  resource_types: ["aws_db_instance"]
+  framework_ids: ["NIST-CP-10", "SOC2-CC9.1", "PCI-DSS-12.3"]
+  condition:
+    attribute: "deletion_protection"
+    operator: "not_equals"
+    value: true
+  remediation: "Set deletion_protection = true to prevent accidental database deletion"
+  description: "RDS instance does not have deletion protection enabled, risking accidental data loss"
+
+- id: SEC-019
+  title: "RDS Instance Missing Backup Retention"
+  severity: high
+  resource_types: ["aws_db_instance"]
+  framework_ids: ["CIS-2.3.3", "NIST-CP-9", "SOC2-CC9.1", "PCI-DSS-9.5"]
+  condition:
+    attribute: "backup_retention_period"
+    operator: "equals"
+    value: 0
+  remediation: "Set backup_retention_period to at least 7 days to enable point-in-time recovery"
+  description: "RDS instance has automated backups disabled (backup_retention_period = 0)"
+
+- id: SEC-020
+  title: "RDS Instance Missing Enhanced Monitoring"
+  severity: info
+  resource_types: ["aws_db_instance"]
+  framework_ids: ["NIST-AU-12", "SOC2-CC7.2"]
+  condition:
+    attribute: "monitoring_interval"
+    operator: "equals"
+    value: 0
+  remediation: "Set monitoring_interval to 60 or less and provide a monitoring_role_arn for enhanced monitoring"
+  description: "RDS instance does not have enhanced monitoring enabled, reducing operational visibility"

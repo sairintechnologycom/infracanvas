@@ -1,0 +1,11 @@
+- id: SEC-027
+  title: "DynamoDB Table Missing Point-in-Time Recovery"
+  severity: medium
+  resource_types: ["aws_dynamodb_table"]
+  framework_ids: ["NIST-CP-9", "SOC2-CC9.1", "PCI-DSS-9.5"]
+  condition:
+    attribute: "point_in_time_recovery.enabled"
+    operator: "not_equals"
+    value: true
+  remediation: "Enable point_in_time_recovery block with enabled = true to allow restore to any point in the last 35 days"
+  description: "DynamoDB table does not have point-in-time recovery enabled, risking permanent data loss"

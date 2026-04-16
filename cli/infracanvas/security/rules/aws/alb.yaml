@@ -1,0 +1,11 @@
+- id: SEC-023
+  title: "ALB Missing HTTP to HTTPS Redirect"
+  severity: high
+  resource_types: ["aws_alb", "aws_lb"]
+  framework_ids: ["CIS-5.5", "NIST-SC-8", "SOC2-CC6.7", "PCI-DSS-4.1"]
+  condition:
+    attribute: "redirect_action"
+    operator: "not_exists"
+    values: []
+  remediation: "Add an HTTP listener rule that redirects all traffic to HTTPS with a 301 redirect"
+  description: "Application Load Balancer does not have an HTTP to HTTPS redirect configured"

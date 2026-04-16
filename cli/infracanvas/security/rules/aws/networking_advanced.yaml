@@ -1,0 +1,11 @@
+- id: SEC-014
+  title: "Security Group Allows Unrestricted Egress"
+  severity: medium
+  resource_types: ["aws_security_group"]
+  framework_ids: ["CIS-5.4", "NIST-SC-7", "SOC2-CC6.6", "PCI-DSS-1.2"]
+  condition:
+    attribute: "egress.cidr_blocks"
+    operator: "list_contains_cidr"
+    values: ["0.0.0.0/0"]
+  remediation: "Restrict egress rules to specific IP ranges and required ports to prevent data exfiltration"
+  description: "Security group allows unrestricted outbound traffic to 0.0.0.0/0"

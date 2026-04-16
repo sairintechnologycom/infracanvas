@@ -1,0 +1,11 @@
+- id: SEC-029
+  title: "KMS Key Missing Deletion Window"
+  severity: medium
+  resource_types: ["aws_kms_key"]
+  framework_ids: ["CIS-3.9", "NIST-SC-12", "SOC2-CC6.7", "PCI-DSS-3.6"]
+  condition:
+    attribute: "deletion_window_in_days"
+    operator: "not_exists"
+    values: []
+  remediation: "Set deletion_window_in_days to 30 to give a recovery window before permanent key deletion"
+  description: "KMS key does not have a deletion window configured, risking immediate permanent deletion"
