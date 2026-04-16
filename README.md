@@ -1,61 +1,96 @@
 # InfraCanvas
 
-> One command. Full picture. Every blind spot visible.
+**One command. Complete infrastructure picture. Security scores included.**
 
-Interactive Terraform architecture diagrams with security findings, drift detection, and cost estimates.
+Run one command against your Terraform directory and get an interactive diagram with VPC grouping, security findings, and a letter-graded Report Card — all in a single shareable HTML file.
 
-```
+```bash
 pip install infracanvas
+infracanvas scan ./your-terraform-directory
+# Browser opens with interactive diagram + security score
 ```
 
-## Quickstart
+---
+
+## Report Card
+
+`infracanvas score` gives your infrastructure a credit score — an A–F letter grade across 5 dimensions, shareable on Slack or in a PR.
 
 ```bash
-# Interactive HTML diagram with security annotations
-infracanvas scan ./terraform
-
-# Shareable security score card
 infracanvas score ./terraform
-
-# Drift detection from terraform plan
-infracanvas plan ./terraform --planfile plan.json
 ```
 
-## Features
+Dimensions scored: **Security · Encryption · IAM Hygiene · Cost Efficiency · Tagging**
 
-### Architecture Diagrams
-Generates tiered VPC layouts with security groups, subnets, and regional services — automatically arranged by network topology.
+Like a credit score for your cloud: instant signal, no manual correlation. Share it on Slack, paste it in a PR, or attach it to a post-incident review.
+
+---
+
+## Quick Start
 
 ```bash
-infracanvas scan ./terraform --format html
+# 1. Install
+pip install infracanvas
+
+# 2. Scan your Terraform directory
+infracanvas scan ./your-terraform-directory
+
+# 3. Browser opens with interactive diagram + security score
 ```
 
-### Security Scanning
-10 built-in rules covering S3, IAM, RDS, EC2, KMS, and networking. Each finding includes severity, evidence, and remediation guidance.
+---
+
+## What You Get
+
+- **Interactive infrastructure diagram** — VPC grouping, subnets, security groups, auto-arranged by network topology
+- **Security findings** — severity badges (Critical / High / Medium / Info) with remediation guidance
+- **Infrastructure Report Card** — A–F letter grade across 5 dimensions (Security, Encryption, IAM Hygiene, Cost Efficiency, Tagging)
+- **Single-file HTML** — share with anyone, no server, no dependencies
+- **Drift detection** — overlay `terraform plan` changes on the diagram (added / changed / deleted)
+- **Cost estimates** — per-resource and per-group (us-east-1)
+
+> Finding details and score breakdowns require a founding member subscription ($49/mo) — [infracanvas.dev](https://infracanvas.dev)
+
+---
+
+## Installation
 
 ```bash
-infracanvas scan ./terraform --ci --severity high
-# Exit code 0: no findings at or above threshold
-# Exit code 1: findings found
-# Exit code 2: parse error
+# PyPI (recommended)
+pip install infracanvas
+
+# Homebrew (coming soon)
+brew install infracanvas/infracanvas/infracanvas
+
+# From source
+git clone https://github.com/infracanvas/infracanvas
+cd infracanvas && pip install -e cli/
 ```
 
-### Drift Detection
-Overlay `terraform plan` changes on the architecture diagram. See added, changed, and deleted resources with cost delta.
+---
 
-```bash
-terraform plan -out=plan.bin && terraform show -json plan.bin > plan.json
-infracanvas plan ./terraform --planfile plan.json
-```
+## Commands
 
-### Security Score Card
-Letter-graded score across encryption, networking, IAM, and logging categories.
+| Command | Description |
+|---------|-------------|
+| `infracanvas scan <dir>` | Generate interactive HTML diagram with security findings |
+| `infracanvas score <dir>` | Generate shareable Report Card (A–F letter grade) |
+| `infracanvas plan <dir> --planfile plan.json` | Overlay terraform plan changes on diagram |
+| `infracanvas serve <dir>` | Serve live-updating diagram in browser |
+| `infracanvas export <dir>` | Export JSON graph for tooling integration |
 
-```bash
-infracanvas score ./terraform --format json
-```
+---
 
-## Security Rules
+## Supported AWS Resources (15)
+
+`aws_instance` · `aws_s3_bucket` · `aws_security_group` · `aws_vpc` · `aws_subnet` ·
+`aws_internet_gateway` · `aws_nat_gateway` · `aws_lb` · `aws_rds_instance` ·
+`aws_lambda_function` · `aws_iam_role` · `aws_iam_policy` · `aws_kms_key` ·
+`aws_cloudfront_distribution` · `aws_ebs_volume`
+
+---
+
+## Security Rules (10 built-in)
 
 | ID | Severity | Title |
 |----|----------|-------|
@@ -70,18 +105,23 @@ infracanvas score ./terraform --format json
 | SEC-009 | Medium | KMS Key Rotation Disabled |
 | SEC-010 | Info | Missing Required Tags |
 
+---
+
 ## CI/CD Integration
 
-### GitHub Actions
-
 ```yaml
-- name: InfraCanvas Security Scan
+- name: InfraCanvas Security Gate
   run: |
     pip install infracanvas
     infracanvas scan ./terraform --ci --severity high
+    # Exit 0: no findings at or above threshold
+    # Exit 1: findings found
+    # Exit 2: parse error
 ```
 
-### Configuration File
+---
+
+## Configuration
 
 Create `.infracanvas.yml` in your project root:
 
@@ -93,39 +133,19 @@ open_browser: false
 output_dir: ./reports
 ```
 
-## Install
-
-```bash
-# PyPI (recommended)
-pip install infracanvas
-
-# Homebrew
-brew install infracanvas
-
-# Binary
-curl -sSL https://infracanvas.dev/install.sh | bash
-
-# Docker
-docker run --rm -v $(pwd):/workspace infracanvas/infracanvas scan /workspace
-```
-
-## Comparison
-
-| Feature | InfraCanvas | Brainboard | Pluralith | Hava.io | Cloudcraft |
-|---------|:-----------:|:----------:|:---------:|:-------:|:----------:|
-| Free tier | Unlimited | Limited | Limited | No | Limited |
-| Security scanning | 10 rules | No | No | No | No |
-| Drift detection | Yes | No | Yes | No | No |
-| Cost estimation | Yes | No | No | Yes | Yes |
-| Offline / CLI | Yes | No | Yes | No | No |
-| Score card | Yes | No | No | No | No |
-| Open source | Yes | No | No | No | No |
+---
 
 ## Requirements
 
 - Python 3.12+
 - Terraform files (`.tf`) in the target directory
 
+---
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
+
+## Contributing
+
+Issues and PRs welcome. See [infracanvas.dev](https://infracanvas.dev) for the roadmap.
