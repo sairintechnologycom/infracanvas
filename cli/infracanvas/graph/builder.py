@@ -28,8 +28,16 @@ def _create_nodes(
     for res in parsed.resources:
         resource_id = f"{res.resource_type}.{res.name}"
         provider = res.resource_type.split("_")[0] if "_" in res.resource_type else "unknown"
-        region = str(res.attributes.get("region", ""))
-        group = _determine_group(res.attributes, module=res.module, region=region)
+
+        if provider == "azurerm":
+            from infracanvas.parser.azure import normalize_azure_attrs
+            attrs = normalize_azure_attrs(res.resource_type, res.attributes)
+            region = str(attrs.get("region", ""))
+        else:
+            attrs = res.attributes
+            region = str(attrs.get("region", ""))
+
+        group = _determine_group(attrs, module=res.module, region=region)
 
         node = ResourceNode(
             id=resource_id,
@@ -39,7 +47,7 @@ def _create_nodes(
             module=res.module,
             region=region,
             group=group,
-            attributes=res.attributes,
+            attributes=attrs,
             dependencies=[],
         )
         nodes.append(node)
