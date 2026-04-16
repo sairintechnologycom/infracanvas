@@ -63,9 +63,9 @@ Plans:
   5. A `.infracanvas.yml` custom policy (required tags, allowed regions, naming patterns) causes `infracanvas scan --policy ./policies` to fail in CI with a non-zero exit code
 **Plans:** 9 plans
 Plans:
-- [ ] 02-00-PLAN.md — Wave 0: Test stubs for Nyquist compliance (all new test files created before implementation)
-- [ ] 02-01-PLAN.md — Data model extensions + HCL parser hardening (Finding source/framework_ids, SecurityRule framework_ids, parse error collection)
-- [ ] 02-02-PLAN.md — Azure parser + security rules + viewer icon config (10 resource types, AZ-001 through AZ-010, azureServiceConfig.ts)
+- [x] 02-00-PLAN.md — Wave 0: Test stubs for Nyquist compliance (all new test files created before implementation)
+- [x] 02-01-PLAN.md — Data model extensions + HCL parser hardening (Finding source/framework_ids, SecurityRule framework_ids, parse error collection)
+- [x] 02-02-PLAN.md — Azure parser + security rules + viewer icon config (10 resource types, AZ-001 through AZ-010, azureServiceConfig.ts)
 - [ ] 02-03-PLAN.md — AWS security rule expansion + staleness checks (SEC-011 through SEC-030, compliance tags on all rules, RST-01/RST-02)
 - [ ] 02-04-PLAN.md — Shadow infrastructure detection (boto3 optional dep, ShadowDetector, 6 AWS resource types)
 - [ ] 02-05-PLAN.md — Multi-region cost estimation (region multipliers, group-level aggregation)
