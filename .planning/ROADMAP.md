@@ -41,7 +41,15 @@ Plans:
   3. `infracanvas score` outputs a letter-grade (A-F) across Security, Encryption, IAM Hygiene, Cost Efficiency, and Tagging dimensions
   4. `pip install infracanvas` and `brew install infracanvas` both work; GitHub repo is public with MIT license
   5. The exported single-file HTML opens in any browser with zero dependencies and includes an upgrade CTA for blurred finding details
-**Plans**: TBD
+**Plans:** 7 plans
+Plans:
+- [ ] 01-01-PLAN.md — Data layer: models, module parser, shadow flagging, JSON v2.0
+- [ ] 01-02-PLAN.md — Scorer dimension realignment + score card HTML redesign
+- [ ] 01-03-PLAN.md — Viewer: gate UI, search bar, shadow indicators, types
+- [ ] 01-04-PLAN.md — CLI: scan HTML default, CI detection, serve command
+- [ ] 01-05-PLAN.md — Resource types: layout tiers, icons, pipeline wiring, build verification
+- [ ] 01-06-PLAN.md — End-to-end integration + visual checkpoint
+- [ ] 01-07-PLAN.md — Release: PyPI packaging, GHA workflow, Homebrew, README
 
 ### Phase 2: Canvas v1.0
 **Goal**: The CLI handles Azure alongside AWS, detects drift and shadow infrastructure, enforces custom policies, and ships multi-region cost estimation — with the HCL parser hardened against silent failures first
@@ -99,7 +107,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Validation | 0/3 | Planning complete | - |
-| 1. Canvas MVP | 0/TBD | Not started | - |
+| 1. Canvas MVP | 0/7 | Planning complete | - |
 | 2. Canvas v1.0 | 0/TBD | Not started | - |
 | 3. FlowMap v1.0 | 0/TBD | Not started | - |
 | 4. SaaS Dashboard + CostLens | 0/TBD | Not started | - |
