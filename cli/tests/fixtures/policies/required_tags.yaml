@@ -1,0 +1,20 @@
+- id: POL-001
+  title: "Required tags missing"
+  severity: high
+  resource_types: ["aws_instance", "aws_s3_bucket", "aws_db_instance", "azurerm_virtual_machine", "azurerm_storage_account"]
+  condition:
+    attribute: "tags.Environment"
+    operator: "not_exists"
+  remediation: "Add an 'Environment' tag to all resources"
+  description: "Resource is missing the required 'Environment' tag"
+
+- id: POL-002
+  title: "Non-allowed region"
+  severity: medium
+  resource_types: ["aws_instance", "aws_db_instance"]
+  condition:
+    attribute: "region"
+    operator: "not_in"
+    values: ["us-east-1", "us-west-2", "eu-west-1"]
+  remediation: "Deploy resources only in approved regions: us-east-1, us-west-2, eu-west-1"
+  description: "Resource is deployed in a non-approved region"

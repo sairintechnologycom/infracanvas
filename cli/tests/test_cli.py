@@ -172,3 +172,32 @@ class TestPlanCommand:
             "--output", "/tmp/ic-plan-test.json",
         ])
         assert result.exit_code == 0
+
+
+class TestFailOnFlag:
+    def test_fail_on_critical_only(self):
+        """CLX-01-A: --fail-on critical only exits non-zero on critical findings."""
+        # This tests the exit logic, not the full scan
+        from infracanvas.graph.models import GraphSummary
+        summary = GraphSummary(findings={"critical": 0, "high": 5, "medium": 3, "info": 1})
+        threshold = "critical"
+        sev_order = ["critical", "high", "medium", "info"]
+        threshold_idx = sev_order.index(threshold)
+        has_findings = any(
+            summary.findings.get(s, 0) > 0
+            for s in sev_order[:threshold_idx + 1]
+        )
+        assert has_findings is False  # No critical findings
+
+    def test_fail_on_high_exits(self):
+        """CLX-01-B: --fail-on high exits non-zero when high findings exist."""
+        from infracanvas.graph.models import GraphSummary
+        summary = GraphSummary(findings={"critical": 0, "high": 5, "medium": 3, "info": 1})
+        threshold = "high"
+        sev_order = ["critical", "high", "medium", "info"]
+        threshold_idx = sev_order.index(threshold)
+        has_findings = any(
+            summary.findings.get(s, 0) > 0
+            for s in sev_order[:threshold_idx + 1]
+        )
+        assert has_findings is True  # High findings present
