@@ -1,0 +1,34 @@
+- id: AZ-001
+  title: "NSG Allows Unrestricted Inbound Access"
+  severity: critical
+  resource_types: ["azurerm_network_security_group"]
+  framework_ids: ["CIS-6.1", "NIST-SC-7", "SOC2-CC6.6"]
+  condition:
+    attribute: "security_rule.source_address_prefix"
+    operator: "equals"
+    value: "*"
+  remediation: "Replace wildcard source with specific IP ranges or service tags"
+  description: "NSG rule allows inbound access from any source address"
+
+- id: AZ-003
+  title: "NSG Allows SSH from Any Source"
+  severity: high
+  resource_types: ["azurerm_network_security_group"]
+  framework_ids: ["CIS-6.2", "NIST-AC-17", "SOC2-CC6.6", "PCI-DSS-1.2"]
+  condition:
+    attribute: "security_rule.destination_port_range"
+    operator: "any_equals"
+    value: "22"
+  remediation: "Restrict SSH source to known IP ranges or use Azure Bastion"
+  description: "NSG allows SSH access from any source"
+
+- id: AZ-009
+  title: "VNet Missing DDoS Protection Plan"
+  severity: medium
+  resource_types: ["azurerm_virtual_network"]
+  framework_ids: ["NIST-SC-5", "SOC2-CC6.6"]
+  condition:
+    attribute: "ddos_protection_plan"
+    operator: "not_exists"
+  remediation: "Enable DDoS Protection Standard plan on production VNets"
+  description: "Virtual network does not have DDoS protection plan configured"

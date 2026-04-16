@@ -1,0 +1,35 @@
+- id: AZ-002
+  title: "Storage Account Allows Public Blob Access"
+  severity: high
+  resource_types: ["azurerm_storage_account"]
+  framework_ids: ["CIS-3.5", "NIST-SC-28", "PCI-DSS-3.4"]
+  condition:
+    attribute: "allow_blob_public_access"
+    operator: "equals"
+    value: true
+  remediation: "Set allow_blob_public_access = false"
+  description: "Storage account allows anonymous public access to blobs"
+
+- id: AZ-006
+  title: "Storage Account Does Not Enforce HTTPS"
+  severity: high
+  resource_types: ["azurerm_storage_account"]
+  framework_ids: ["CIS-3.1", "NIST-SC-8", "SOC2-CC6.7", "PCI-DSS-4.1"]
+  condition:
+    attribute: "https_traffic_only_enabled"
+    operator: "equals"
+    value: false
+  remediation: "Set https_traffic_only_enabled = true"
+  description: "Storage account allows unencrypted HTTP traffic"
+
+- id: AZ-007
+  title: "Storage Account Minimum TLS Version Too Low"
+  severity: medium
+  resource_types: ["azurerm_storage_account"]
+  framework_ids: ["NIST-SC-8", "PCI-DSS-4.1"]
+  condition:
+    attribute: "min_tls_version"
+    operator: "not_equals"
+    value: "TLS1_2"
+  remediation: "Set min_tls_version = 'TLS1_2'"
+  description: "Storage account accepts connections with TLS version below 1.2"

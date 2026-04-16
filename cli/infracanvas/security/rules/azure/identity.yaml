@@ -1,0 +1,11 @@
+- id: AZ-008
+  title: "AKS Cluster RBAC Not Enabled"
+  severity: high
+  resource_types: ["azurerm_kubernetes_cluster"]
+  framework_ids: ["CIS-8.5", "NIST-AC-3", "SOC2-CC6.1"]
+  condition:
+    attribute: "role_based_access_control_enabled"
+    operator: "equals"
+    value: false
+  remediation: "Set role_based_access_control_enabled = true"
+  description: "AKS cluster does not have RBAC enabled, allowing unrestricted API access"

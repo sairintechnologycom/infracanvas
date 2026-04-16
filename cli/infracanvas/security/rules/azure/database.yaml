@@ -1,0 +1,11 @@
+- id: AZ-010
+  title: "SQL Server Allows Public Network Access"
+  severity: high
+  resource_types: ["azurerm_mssql_server"]
+  framework_ids: ["CIS-4.1.1", "NIST-SC-7", "SOC2-CC6.1", "PCI-DSS-1.2"]
+  condition:
+    attribute: "public_network_access_enabled"
+    operator: "equals"
+    value: true
+  remediation: "Set public_network_access_enabled = false and use private endpoints"
+  description: "SQL Server is accessible from the public internet"

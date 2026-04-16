@@ -24,7 +24,8 @@ class TestRuleLoader:
 
     def test_loads_all_rules(self):
         rules = load_rules()
-        assert len(rules) == 10
+        # 10 AWS rules (SEC-001..SEC-010) + 10 Azure rules (AZ-001..AZ-010)
+        assert len(rules) == 20
 
     def test_rule_ids(self):
         rules = load_rules()

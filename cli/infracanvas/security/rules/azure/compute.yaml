@@ -1,0 +1,27 @@
+- id: AZ-004
+  title: "Virtual Machine Managed Disk Not Encrypted"
+  severity: high
+  resource_types:
+    - "azurerm_virtual_machine"
+    - "azurerm_linux_virtual_machine"
+    - "azurerm_windows_virtual_machine"
+  framework_ids: ["CIS-7.2", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
+  condition:
+    attribute: "os_disk.disk_encryption_set_id"
+    operator: "not_exists"
+  remediation: "Enable disk encryption using Azure Disk Encryption or customer-managed keys"
+  description: "Virtual machine OS disk is not encrypted with a customer-managed key"
+
+- id: AZ-005
+  title: "Virtual Machine Has Public IP"
+  severity: medium
+  resource_types:
+    - "azurerm_virtual_machine"
+    - "azurerm_linux_virtual_machine"
+    - "azurerm_windows_virtual_machine"
+  framework_ids: ["CIS-7.1", "NIST-SC-7", "SOC2-CC6.1"]
+  condition:
+    attribute: "public_ip_address"
+    operator: "exists"
+  remediation: "Remove public IP and use Azure Bastion or VPN for access"
+  description: "Virtual machine is directly exposed to the internet via public IP"
