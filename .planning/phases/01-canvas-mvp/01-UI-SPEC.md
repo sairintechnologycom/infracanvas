@@ -58,12 +58,12 @@ All text renders on dark backgrounds. Use `font-sans` (Inter) for all UI chrome 
 | Role | Size | Weight | Line Height | Font | Usage |
 |------|------|--------|-------------|------|-------|
 | Body | 12px (text-xs) | 400 regular | 1.5 | sans | Finding title, panel labels, tab labels, general readable content |
-| Label | 10px (text-[10px]) | 500 medium | 1.4 | sans | Severity badges, resource type chips, uppercase section headers (tracking-wider), finding count pills, score card dimension labels |
+| Label | 10px (text-[10px]) | 400 regular | 1.4 | sans | Severity badges, resource type chips, uppercase section headers (tracking-wider), finding count pills, score card dimension labels |
 | Mono-body | 11px (text-[11px]) | 400 regular | 1.5 | mono | Resource IDs, attribute values, finding rule IDs, dependency list items |
 | Heading | 14px (text-sm) | 600 semibold | 1.2 | sans | Panel resource name, score card letter grade sub-label, SummaryBar project name |
-| Display | 72px | 700 bold | 1.0 | sans | Score card letter grade (A/B/C/D/F) — single character, centred, coloured by grade |
+| Display | 72px | 600 semibold | 1.0 | sans | Score card letter grade (A/B/C/D/F) — single character, centred, coloured by grade |
 
-Note: Existing codebase uses `text-sm` (14px) for semibold names and `text-[11px]`/`text-[10px]` for dense data labels. This 4-level scale (`10 / 11 / 12 / 14`) is consistent throughout — do not introduce 16px or larger in the viewer or score card HTML. The score card letter grade at 72px is a deliberate display exception for the standalone `infracanvas-score.html` only.
+Note: Existing codebase uses `text-sm` (14px) for semibold names and `text-[11px]`/`text-[10px]` for dense data labels. This 4-level scale (`10 / 11 / 12 / 14`) is consistent throughout — do not introduce 16px or larger in the viewer or score card HTML. The score card letter grade at 72px is a deliberate display exception for the standalone `infracanvas-score.html` only. Only two font weights are permitted: 400 (regular) for body, label, and mono roles; 600 (semibold) for heading, badge, CTA, and display roles.
 
 ---
 
@@ -130,7 +130,7 @@ When `gateMode === true` AND `node.findings.length > 0`, replace the `FindingCar
 [Unlock full findings]  →  links to https://infracanvas.dev/founding
 CTA button: background #3b82f640, border 1px solid #3b82f6, color #60a5fa
 text: "Unlock details — $49/mo founding member"
-font-size: 11px, font-weight: 500, border-radius: 6px, padding: 8px 12px
+font-size: 11px, font-weight: 600, border-radius: 6px, padding: 8px 16px
 ```
 
 The finding count and severity badges are always fully visible (never blurred). Only the finding title, description, evidence, and remediation are obscured. The blur placeholder rows must be 3 distinct block elements with `filter: blur(4px)` and `pointer-events: none` — not a single tall block.
@@ -162,7 +162,7 @@ Standalone file: `infracanvas-score.html`. Self-contained single HTML (same vite
 │  [scan date 11px, color: #64748b]            │
 ├─────────────────────────────────────────────┤
 │                                             │
-│         [LETTER GRADE]  72px bold           │
+│         [LETTER GRADE]  72px semibold       │
 │         [color: grade color]                │
 │         [N / 100]  14px semibold            │
 │         [color: grade color]                │
@@ -193,8 +193,8 @@ Standalone file: `infracanvas-score.html`. Self-contained single HTML (same vite
 - Fill height: 6px, border-radius: 3px, background: dimension-specific color (see Color section)
 - Fill width: `{score}%` as inline style
 - No animation for Phase 1 (static fill on load)
-- Label: dimension name left-aligned 11px medium `#94a3b8`, score right-aligned 11px mono `#e2e8f0`
-- Row gap: 12px between rows
+- Label: dimension name left-aligned 11px regular `#94a3b8`, score right-aligned 11px mono `#e2e8f0`
+- Row gap: 8px between rows
 
 ### Score card card surface
 - Background: `#111827`, border-radius: 12px, border: `1px solid #1e293b`
@@ -214,7 +214,7 @@ Components that must be created or modified in Phase 1:
 | `store.ts` | Modify: add `gateMode: boolean` field, read from `window.__INFRACANVAS_GATE__` | VWR-06 |
 | `App.tsx` | Modify: read `window.__INFRACANVAS_GATE__` on mount, pass to store | VWR-06 |
 | `ResourceNode.tsx` | Modify: add dashed border style for shadow resources (`drift === 'shadow'` or `isShadow` flag) | VWR-03 |
-| `SearchBar.tsx` | Create: input with magnifier icon, filters visible nodes by name/type | VWR-05 |
+| `SearchBar.tsx` | Create: input (`aria-label="Search resources"`) with magnifier icon (`aria-hidden={true}`, decorative), filters visible nodes by name/type | VWR-05 |
 | `ScoreCard` (new entry point) | Create: standalone React app rendered in `infracanvas-score.html` | SCR-03 |
 
 Components with no Phase 1 changes:
@@ -222,6 +222,12 @@ Components with no Phase 1 changes:
 - `SummaryBar.tsx` — no change
 - `FilterPanel.tsx` — no change
 - `GroupNode.tsx` — no change
+
+---
+
+## Visuals
+
+The primary visual focal point of the canvas screen is the ReactFlow diagram area. The SummaryBar is a secondary affordance. The DetailPanel is tertiary — it appears on demand and does not compete with the diagram for initial attention.
 
 ---
 
@@ -264,13 +270,13 @@ Components with no Phase 1 changes:
 |---------|------|-------|
 | Gate overlay heading | "{N} finding{s}" | N = `node.findings.length`; pluralise "finding" vs "findings" |
 | Gate overlay sub-label | "Upgrade to see what's wrong and how to fix it" | 10px, color `#64748b` |
-| Gate CTA button | "Unlock details — founding member $49/mo" | 11px, accent blue, links to infracanvas.dev/founding |
+| Gate CTA button | "Unlock details — founding member $49/mo" | 11px, semibold, accent blue, links to infracanvas.dev/founding |
 | Gate CTA sub-label | "Locked forever for founding members" | 10px, color `#64748b`, below button |
 | Empty findings state | "No findings" (heading, 12px green `#22c55e`) + "This resource passed all security checks" (body, 10px `#64748b`) | Already in `DetailPanel.tsx` — confirm copy is exact |
 | Error state (scan parse fail) | Not a viewer concern — handled by CLI Rich output. No error state in the viewer HTML. | CLI prints: "Parse error: {message}. Run with --verbose for details." |
 | Score card letter grade label | "{GRADE}" (single character) | e.g. "B" — no text below the grade itself |
 | Score card numeric score | "{N} / 100" | 14px semibold, same colour as grade |
-| Score card upgrade CTA | "Unlock finding details →" | 13px, semibold, accent blue |
+| Score card upgrade CTA | "Unlock finding details →" | 12px, semibold, accent blue |
 | Score card upgrade sub-copy | "Founding member pricing — $49/mo locked forever" | 11px, color `#64748b` |
 | Score card attribution | "Generated by InfraCanvas · infracanvas.dev" | 11px, color `#64748b`, centre-aligned, bottom of card |
 | Shadow resource badge | "Shadow" | 9px label on ResourceNode, amber `#f59e0b`, dashed border — indicates state-vs-HCL diff |
