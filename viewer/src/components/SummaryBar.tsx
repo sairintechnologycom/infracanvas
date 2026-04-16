@@ -2,6 +2,7 @@ import { Shield, Filter, Box } from 'lucide-react';
 import { useStore } from '../store';
 import { severityColors } from '../lib/colors';
 import type { Severity } from '../types';
+import { SearchBar } from './SearchBar';
 
 const severityOrder: Severity[] = ['critical', 'high', 'medium', 'info'];
 
@@ -121,6 +122,9 @@ export function SummaryBar() {
           security
         </span>
       </div>
+
+      {/* Search */}
+      <SearchBar />
 
       {/* Filter toggle */}
       <button

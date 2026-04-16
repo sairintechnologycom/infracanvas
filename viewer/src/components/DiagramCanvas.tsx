@@ -27,6 +27,7 @@ const nodeTypes: NodeTypes = {
 export function DiagramCanvas() {
   const graph = useStore(s => s.graph);
   const filters = useStore(s => s.filters);
+  const searchQuery = useStore(s => s.searchQuery);
   const setSelectedNode = useStore(s => s.setSelectedNode);
   const { fitView } = useReactFlow();
 
@@ -46,24 +47,28 @@ export function DiagramCanvas() {
     setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 100);
   }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
 
-  // Apply filters (dim non-matching nodes)
+  // Apply filters and search query (dim non-matching nodes)
   useEffect(() => {
+    const query = searchQuery.toLowerCase().trim();
     setNodes(nds =>
       nds.map(node => {
         if (node.type !== 'resource') return node;
         const data = node.data as unknown as ResourceNode;
         const visible = isNodeVisible(data, filters);
+        const matchesSearch = query === '' ||
+          data.name.toLowerCase().includes(query) ||
+          data.type.toLowerCase().includes(query);
         return {
           ...node,
           style: {
             ...node.style,
-            opacity: visible ? 1 : 0.25,
+            opacity: visible && matchesSearch ? 1 : 0.2,
             transition: 'opacity 0.2s',
           },
         };
       })
     );
-  }, [filters, setNodes]);
+  }, [filters, searchQuery, setNodes]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     if (node.type === 'resource') {

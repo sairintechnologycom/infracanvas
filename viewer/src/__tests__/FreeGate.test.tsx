@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import type { ResourceNode } from '../types'
 
 // Mock the store module so we can control gateMode
@@ -91,6 +91,11 @@ function setupStoreMock(gateMode: boolean) {
   })
 }
 
+function clickFindingsTab() {
+  const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
+  fireEvent.click(findingsTab)
+}
+
 describe('FreeGate (VWR-06)', () => {
   describe('when gateMode is true', () => {
     beforeEach(() => {
@@ -100,9 +105,7 @@ describe('FreeGate (VWR-06)', () => {
 
     it('renders gate overlay instead of FindingCard list', () => {
       render(<DetailPanel />)
-      // Switch to Findings tab — use the button role to be specific
-      const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
-      findingsTab.click()
+      clickFindingsTab()
 
       // Gate CTA must appear
       expect(screen.getByText(/Unlock details/i)).toBeInTheDocument()
@@ -116,8 +119,7 @@ describe('FreeGate (VWR-06)', () => {
 
     it('shows finding count and severity badges', () => {
       render(<DetailPanel />)
-      const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
-      findingsTab.click()
+      clickFindingsTab()
 
       // Finding count text
       expect(screen.getByText(/3 findings/i)).toBeInTheDocument()
@@ -128,8 +130,7 @@ describe('FreeGate (VWR-06)', () => {
 
     it('CTA links to https://infracanvas.dev/founding in new tab', () => {
       render(<DetailPanel />)
-      const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
-      findingsTab.click()
+      clickFindingsTab()
 
       const ctaLink = screen.getByRole('link', { name: /Unlock details/i })
       expect(ctaLink).toHaveAttribute('href', 'https://infracanvas.dev/founding')
@@ -139,8 +140,7 @@ describe('FreeGate (VWR-06)', () => {
 
     it('blurred placeholders do not leak finding text to DOM', () => {
       render(<DetailPanel />)
-      const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
-      findingsTab.click()
+      clickFindingsTab()
 
       // Finding detail strings must not appear as readable DOM text
       expect(screen.queryByText('S3 Bucket Publicly Accessible')).not.toBeInTheDocument()
@@ -161,8 +161,7 @@ describe('FreeGate (VWR-06)', () => {
 
     it('renders FindingCard list, not gate overlay', () => {
       render(<DetailPanel />)
-      const findingsTab = screen.getByRole('button', { name: /Findings \(3\)/i })
-      findingsTab.click()
+      clickFindingsTab()
 
       // Gate CTA must NOT appear
       expect(screen.queryByText(/Unlock details/i)).not.toBeInTheDocument()

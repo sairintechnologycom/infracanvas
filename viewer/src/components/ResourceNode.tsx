@@ -14,7 +14,8 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const graphNodes = useStore(s => s.graph?.nodes);
   const highestSev = getHighestSeverity(data.findings);
   const findingCount = data.findings.length;
-  const borderColor = data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? '#60a5fa' : '#1e293b');
+  const isShadow = data.drift === 'shadow';
+  const borderColor = isShadow ? '#f59e0b' : (data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? '#60a5fa' : '#1e293b'));
   const typeLabel = data.type.replace(/^aws_/, '').replaceAll('_', ' ');
 
   // Resolve attached security groups from dependencies
@@ -34,7 +35,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
         className="rounded-lg p-3 transition-all duration-150"
         style={{
           background: 'rgba(15, 23, 42, 0.95)',
-          border: `1.5px solid ${borderColor}`,
+          border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
           boxShadow: selected ? `0 0 12px ${borderColor}40` : '0 1px 3px rgba(0,0,0,0.4)',
           opacity: data.drift === 'deleted' ? 0.5 : 1,
         }}
@@ -100,6 +101,13 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
       </div>
 
       <Handle type="source" position={Position.Bottom} className="!bg-slate-500 !border-slate-600 !w-2 !h-2" />
+
+      {/* Shadow badge */}
+      {isShadow && (
+        <div className="text-center mt-0.5" style={{ fontSize: 9, color: '#f59e0b' }}>
+          Shadow
+        </div>
+      )}
     </div>
   );
 }

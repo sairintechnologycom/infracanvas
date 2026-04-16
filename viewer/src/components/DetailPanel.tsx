@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, FileText, Shield, Code, GitCompare } from 'lucide-react';
+import { X, FileText, Shield, Code, GitCompare, Lock } from 'lucide-react';
 import type { ResourceNode as ResourceNodeType, AttributeChange } from '../types';
 import { useStore } from '../store';
 import { FindingCard } from './FindingCard';
@@ -190,12 +190,55 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
 }
 
 function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
+  const gateMode = useStore(s => s.gateMode);
+
   if (node.findings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <Shield size={24} color="#22c55e" />
         <div className="text-xs mt-2" style={{ color: '#22c55e' }}>No findings</div>
         <div className="text-[10px] mt-1" style={{ color: '#64748b' }}>This resource passed all checks</div>
+      </div>
+    );
+  }
+
+  if (gateMode) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-4 px-3">
+        <Lock size={16} style={{ color: '#64748b' }} />
+        <div className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>
+          {node.findings.length} finding{node.findings.length !== 1 ? 's' : ''}
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {(['critical', 'high', 'medium', 'info'] as const).map(sev => {
+            const count = node.findings.filter(f => f.severity === sev).length;
+            if (count === 0) return null;
+            return (
+              <span key={sev} className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                style={{ background: `${severityColors[sev]}20`, color: severityColors[sev] }}>
+                {count} {sev}
+              </span>
+            );
+          })}
+        </div>
+        {/* 3 blurred placeholder rows */}
+        <div className="w-full flex flex-col gap-1 mt-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded px-3 py-2"
+              style={{ background: '#111827', border: '1px solid #1e293b', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
+          ))}
+        </div>
+        <div className="text-[10px] mt-1" style={{ color: '#64748b' }}>
+          Upgrade to see what's wrong and how to fix it
+        </div>
+        <a href="https://infracanvas.dev/founding" target="_blank" rel="noopener noreferrer"
+          className="text-xs font-semibold px-4 py-2 rounded-md mt-1 inline-block"
+          style={{ background: '#3b82f640', border: '1px solid #3b82f6', color: '#60a5fa' }}>
+          Unlock details — founding member $49/mo
+        </a>
+        <div className="text-[10px]" style={{ color: '#64748b' }}>
+          Locked forever for founding members
+        </div>
       </div>
     );
   }
