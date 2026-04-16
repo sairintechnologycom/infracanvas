@@ -579,22 +579,25 @@ jobs:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does `serve` require true live-reload (SSE / WebSocket) or is a page meta-refresh acceptable?**
+1. **Does `serve` require true live-reload (SSE / WebSocket) or is a page meta-refresh acceptable?** (RESOLVED -- Plan 01-04 uses meta-refresh)
    - What we know: D-12 says "browser auto-refreshes"; the existing `--watch` flag only re-scans to stdout
    - What's unclear: The mechanism — SSE injection into the HTML vs. a polling meta-refresh interval
    - Recommendation: Implement via SSE endpoint (`/events`) injected as a `<script>` into the served HTML; simpler than WebSocket and requires only stdlib
+   - **Resolution:** Plan 01-04 implements the `serve` command using meta-refresh for browser auto-refresh.
 
-2. **Should the Homebrew formula live in a separate tap repo (`infracanvas/homebrew-infracanvas`) or in a `Formula/` subdirectory of the main repo?**
+2. **Should the Homebrew formula live in a separate tap repo (`infracanvas/homebrew-infracanvas`) or in a `Formula/` subdirectory of the main repo?** (RESOLVED -- Plan 01-07 uses Formula/ in main repo)
    - What we know: A `Formula/` directory already exists in the project root
    - What's unclear: Whether the `Formula/` dir approach works with `brew tap` or requires a dedicated repo
    - Recommendation: Use a separate GitHub repo `infracanvas/homebrew-infracanvas` for the tap — this is the standard brew pattern and supports `brew install infracanvas/infracanvas/infracanvas`
+   - **Resolution:** Plan 01-07 uses the existing `Formula/` subdirectory in the main repo for the Homebrew formula.
 
-3. **Shadow infra flagging (PRS-05): should state parsing diff against the HCL graph in the Phase 1 pipeline?**
+3. **Shadow infra flagging (PRS-05): should state parsing diff against the HCL graph in the Phase 1 pipeline?** (RESOLVED -- Plan 01-01 uses state-diff only)
    - What we know: `parser/state.py` exists; shadow flagging is in requirements as PRS-05
    - What's unclear: Whether "shadow infra" in Phase 1 just means "resources in state not in HCL" (simple diff) or requires live API comparison (Phase 2)
    - Recommendation: Phase 1 shadow = state-vs-HCL diff only; flag as `DriftStatus.shadow` (new enum value) on nodes present in state but absent in HCL graph
+   - **Resolution:** Plan 01-01 implements shadow infra as state-vs-HCL diff only (no live API). Live API comparison deferred to Phase 2.
 
 ---
 
@@ -678,7 +681,7 @@ jobs:
 - [ ] `cli/tests/test_scorer.py::TestDimensions` — covers SCR-02 (5 correct categories)
 - [ ] `viewer/src/__tests__/layout.test.ts` — covers VWR-04
 - [ ] `viewer/src/__tests__/SearchBar.test.tsx` — covers VWR-05
-- [ ] `viewer/src/__tests__/DetailPanel.gate.test.tsx` — covers VWR-06
+- [ ] `viewer/src/__tests__/FreeGate.test.tsx` — covers VWR-06 (gate overlay, CTA, DOM leak prevention)
 - [ ] `cli/tests/test_integration.py::TestScanDefaultHtml` — covers EXP-02
 - [ ] `.github/workflows/publish.yml` — covers REL-03 (not a test, a deliverable)
 
