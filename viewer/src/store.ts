@@ -5,6 +5,7 @@ interface Filters {
   severities: Severity[];
   resourceTypes: string[];
   driftStatuses: DriftStatus[];
+  sources: string[];   // [] = all; ['security', 'policy'] = filtered
 }
 
 interface StoreState {
@@ -20,6 +21,7 @@ interface StoreState {
   toggleSeverityFilter: (sev: Severity) => void;
   toggleResourceTypeFilter: (type: string) => void;
   toggleDriftFilter: (status: DriftStatus) => void;
+  toggleSourceFilter: (source: string) => void;
   clearFilters: () => void;
   setGateMode: (gateMode: boolean) => void;
   setSearchQuery: (query: string) => void;
@@ -29,6 +31,7 @@ const emptyFilters: Filters = {
   severities: [],
   resourceTypes: [],
   driftStatuses: [],
+  sources: [],
 };
 
 export const useStore = create<StoreState>((set) => ({
@@ -70,6 +73,16 @@ export const useStore = create<StoreState>((set) => ({
         driftStatuses: s.filters.driftStatuses.includes(status)
           ? s.filters.driftStatuses.filter((x) => x !== status)
           : [...s.filters.driftStatuses, status],
+      },
+    })),
+
+  toggleSourceFilter: (source) =>
+    set((s) => ({
+      filters: {
+        ...s.filters,
+        sources: s.filters.sources.includes(source)
+          ? s.filters.sources.filter((x) => x !== source)
+          : [...s.filters.sources, source],
       },
     })),
 

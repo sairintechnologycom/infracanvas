@@ -44,7 +44,7 @@ describe('Store', () => {
       graph: null,
       selectedNode: null,
       filterPanelOpen: false,
-      filters: { severities: [], resourceTypes: [], driftStatuses: [] },
+      filters: { severities: [], resourceTypes: [], driftStatuses: [], sources: [] },
     });
   });
 

@@ -14,6 +14,7 @@ export function FilterPanel() {
   const toggleSeverityFilter = useStore(s => s.toggleSeverityFilter);
   const toggleResourceTypeFilter = useStore(s => s.toggleResourceTypeFilter);
   const toggleDriftFilter = useStore(s => s.toggleDriftFilter);
+  const toggleSourceFilter = useStore(s => s.toggleSourceFilter);
   const clearFilters = useStore(s => s.clearFilters);
 
   if (!filterPanelOpen || !graph) return null;
@@ -23,7 +24,8 @@ export function FilterPanel() {
   const hasActiveFilters =
     filters.severities.length > 0 ||
     filters.resourceTypes.length > 0 ||
-    filters.driftStatuses.length > 0;
+    filters.driftStatuses.length > 0 ||
+    filters.sources.length > 0;
 
   return (
     <div
@@ -93,7 +95,7 @@ export function FilterPanel() {
           {resourceTypes.map(rt => {
             const isActive = filters.resourceTypes.includes(rt);
             const count = graph.nodes.filter(n => n.type === rt).length;
-            const label = rt.replace(/^aws_/, '');
+            const label = rt.replace(/^aws_/, '').replace(/^azurerm_/, '');
             return (
               <label
                 key={rt}
@@ -115,7 +117,7 @@ export function FilterPanel() {
       </div>
 
       {/* Drift status */}
-      <div className="p-3">
+      <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
         <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Drift Status
         </div>
@@ -136,6 +138,38 @@ export function FilterPanel() {
                   className="accent-sky-500"
                 />
                 <span className="flex-1 capitalize">{ds}</span>
+                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Source */}
+      <div className="p-3">
+        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
+          Source
+        </div>
+        <div className="flex flex-col gap-1">
+          {(['security', 'policy'] as const).map(src => {
+            const isActive = filters.sources.includes(src);
+            const count = graph ? graph.nodes.reduce((acc, n) =>
+              acc + n.findings.filter(f => (f.source ?? 'security') === src).length, 0
+            ) : 0;
+            const activeColor = src === 'policy' ? '#a78bfa' : '#e2e8f0';
+            return (
+              <label
+                key={src}
+                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                style={{ color: isActive ? activeColor : '#4a5568' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={() => toggleSourceFilter(src)}
+                  className="accent-sky-500"
+                />
+                <span className="flex-1 capitalize">{src}</span>
                 <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
