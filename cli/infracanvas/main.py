@@ -74,6 +74,8 @@ def _run_scan(
     *,
     allow_empty: bool = False,
     ci: bool = False,
+    shadow: bool = False,
+    policy: Optional[Path] = None,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
     out = _ci_console if ci else console
@@ -111,6 +113,21 @@ def _run_scan(
         state = parse_state_file(state_path)
         flag_shadow_resources(graph, state)
 
+    # SHD-01: Live AWS API shadow detection (opt-in)
+    if shadow:
+        try:
+            from infracanvas.shadow.detector import ShadowDetector
+            inferred_region = str(graph.metadata.get("region", "")) or "us-east-1"
+            # D-05: infer region from provider block in graph metadata
+            for node in graph.nodes:
+                if node.region:
+                    inferred_region = node.region
+                    break
+            detector = ShadowDetector(region=inferred_region)
+            graph = detector.detect(graph)
+        except RuntimeError as exc:
+            out.print(f"[yellow]Warning:[/yellow] {exc}. Skipping shadow scan.")
+
     if not allow_empty and len(graph.nodes) == 0:
         out.print(
             "[red]Error:[/red] No Terraform resources found. "
@@ -118,7 +135,19 @@ def _run_scan(
         )
         raise typer.Exit(code=2)
 
-    graph = evaluate_all(graph)
+    # Security + Policy evaluation
+    if policy:
+        from infracanvas.security.loader import load_policy_rules
+        policy_rules = load_policy_rules(policy)
+        if not policy_rules:
+            out.print(f"[yellow]Warning:[/yellow] No policy rules found in {policy}")
+        graph = evaluate_all(graph, policy_rules=policy_rules)
+    else:
+        graph = evaluate_all(graph)
+
+    # RST-01/RST-02: Runtime staleness checks
+    from infracanvas.security.staleness import check_staleness
+    graph = check_staleness(graph)
 
     # Strip ignored rules
     if ignore_rules:
@@ -274,6 +303,18 @@ def scan(
         Optional[list[str]],
         typer.Option("--ignore", help="Rule IDs to skip, e.g. --ignore SEC-010"),
     ] = None,
+    shadow: Annotated[
+        bool,
+        typer.Option("--shadow", help="Compare live AWS API vs Terraform state (requires boto3)"),
+    ] = False,
+    policy: Annotated[
+        Optional[Path],
+        typer.Option("--policy", help="Directory containing custom policy YAML files"),
+    ] = None,
+    fail_on: Annotated[
+        Optional[str],
+        typer.Option("--fail-on", help="Minimum severity for non-zero exit (critical/high/medium/info)"),
+    ] = None,
 ) -> None:
     """Scan a Terraform directory and generate an annotated resource graph."""
     if not directory.is_dir():
@@ -290,14 +331,15 @@ def scan(
         return
 
     graph = _run_scan(directory, severity_filter=effective_severity,
-                      ignore_rules=effective_ignore, ci=ci)
+                      ignore_rules=effective_ignore, ci=ci,
+                      shadow=shadow, policy=policy)
 
     if ci or quiet:
         # CI mode: only valid JSON to stdout, diagnostics to stderr
         sys.stdout.write(export_graph(graph))
         sys.stdout.write("\n")
         if ci:
-            threshold = effective_severity or "high"
+            threshold = fail_on or effective_severity or "high"
             sev_order = ["critical", "high", "medium", "info"]
             threshold_idx = sev_order.index(threshold)
             has_findings = any(
@@ -599,7 +641,7 @@ def plan(
     console.print()
 
     if format == "html":
-        out_path = output or Path("infracanvas-report.html")
+        out_path = output or Path("infracanvas-plan.html")  # D-16
         try:
             export_html(graph, out_path)
             console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
@@ -607,11 +649,11 @@ def plan(
                 webbrowser.open(out_path.resolve().as_uri())
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
-            out_path = output or Path("infracanvas-report.json")
+            out_path = output or Path("infracanvas-plan.json")  # D-16
             out_path.write_text(export_graph(graph))
             console.print(f"  JSON report saved to: [bold]{out_path}[/bold]")
     else:
-        out_path = output or Path("infracanvas-report.json")
+        out_path = output or Path("infracanvas-plan.json")  # D-16
         out_path.write_text(export_graph(graph))
         console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
