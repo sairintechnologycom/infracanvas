@@ -1,3 +1,7 @@
+# NOTE: Before first publish, configure PyPI Trusted Publisher at:
+# https://pypi.org/manage/project/infracanvas/settings/publishing/
+# Use: owner=infracanvas, repo=infracanvas, workflow=cli-release.yml
+# This workflow uses OIDC (id-token: write) — no API token needed.
 name: Release CLI
 
 on:
