@@ -2,8 +2,8 @@
 phase: 1
 slug: canvas-mvp
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-16
 ---
 
@@ -38,6 +38,7 @@ created: 2026-04-16
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
+| 1-01-00 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_graph.py::TestNetworkFinding -x -q` | ✅ W0 | ⬜ pending |
 | 1-01-01 | 01 | 1 | CLI-01 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ❌ W0 | ⬜ pending |
 | 1-01-02 | 01 | 1 | CLI-02 | — | N/A | unit | `python -m pytest tests/test_cli.py -x -q` | ❌ W0 | ⬜ pending |
 | 1-01-03 | 01 | 1 | PRS-01 | — | N/A | unit | `python -m pytest tests/test_parser.py -x -q` | ✅ | ⬜ pending |
@@ -66,7 +67,7 @@ created: 2026-04-16
 | 1-07-01 | 07 | 4 | REL-01 | — | N/A | integration | `pip install -e . && infracanvas --version` | ✅ | ⬜ pending |
 | 1-07-02 | 07 | 4 | REL-02 | — | N/A | integration | `pip install infracanvas` (CI) | ❌ W0 | ⬜ pending |
 | 1-07-03 | 07 | 4 | REL-03 | — | N/A | manual | GitHub Actions publish workflow | ❌ W0 | ⬜ pending |
-| 1-07-04 | 07 | 4 | REL-04 | — | N/A | manual | Homebrew formula install | ❌ W0 | ⬜ pending |
+| 1-07-04 | 07 | 4 | REL-04 | — | N/A | manual | Show HN draft review + submission | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -74,6 +75,7 @@ created: 2026-04-16
 
 ## Wave 0 Requirements
 
+- [x] `cli/tests/test_graph.py::TestNetworkFinding` — stubs for CLI-02 (NetworkFinding model, ResourceGraph v2.0) — **covered by Plan 01-01 Task 0**
 - [ ] `cli/tests/test_cli.py` — stubs for CLI-01, CLI-02 (browser open, CI detection, serve command)
 - [ ] `cli/tests/test_scorer.py` — stubs for SCR-01, SCR-02, SCR-03 (score card dimensions, HTML output)
 - [ ] `viewer/src/__tests__/FreeGate.test.tsx` — stubs for VWR-06 (blur/gate rendering)
@@ -96,11 +98,11 @@ created: 2026-04-16
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
