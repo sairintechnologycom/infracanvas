@@ -1,20 +1,6 @@
 import { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { ZONE_COLORS, type ZoneType } from '../lib/colors';
-import {
-  ArchitectureGroupVirtualprivatecloudVPC,
-  ArchitectureGroupRegion,
-} from 'aws-react-icons';
-
-const ZONE_BORDER_STYLE: Record<ZoneType, 'solid' | 'dashed'> = {
-  internet: 'solid',
-  vpc: 'solid',
-  az: 'dashed',
-  public_subnet: 'solid',
-  private_subnet: 'dashed',
-  data_subnet: 'dashed',
-  regional: 'dashed',
-};
 
 type GroupNodeProps = NodeProps & {
   data: {
@@ -27,7 +13,7 @@ type GroupNodeProps = NodeProps & {
 
 function GroupNodeComponent({ data }: GroupNodeProps) {
   const zone = ZONE_COLORS[data.zoneType] ?? ZONE_COLORS.regional;
-  const borderStyle = ZONE_BORDER_STYLE[data.zoneType] ?? 'dashed';
+  const isAz = data.zoneType === 'az';
 
   return (
     <div
@@ -35,52 +21,63 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
         width: '100%',
         height: '100%',
         background: zone.background,
-        border: `1px ${borderStyle} ${zone.border}`,
+        border: `${zone.borderWidth} ${zone.borderStyle} ${zone.border}`,
         borderRadius: 12,
         position: 'relative',
       }}
     >
-      {/* Zone label */}
+      {/* Zone label pill */}
       <div
         style={{
           position: 'absolute',
-          top: 8,
-          left: 12,
-          fontSize: 11,
-          fontWeight: 600,
-          fontFamily: 'ui-monospace, monospace',
-          color: zone.label,
+          top: -11,
+          left: 16,
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          textTransform: 'uppercase' as const,
-          letterSpacing: '0.06em',
-          opacity: data.zoneType === 'az' ? 0.80 : undefined,
+          gap: 5,
         }}
       >
-        {data.zoneType === 'vpc' && <ArchitectureGroupVirtualprivatecloudVPC size={16} />}
-        {data.zoneType === 'regional' && <ArchitectureGroupRegion size={16} />}
-        {data.label}
-      </div>
-
-      {/* Tier chip (public/private/data) */}
-      {data.chip && (
         <span
           style={{
-            position: 'absolute',
-            top: 8,
-            right: 12,
-            fontSize: 9,
-            fontWeight: 500,
-            color: zone.label,
-            background: `${zone.label}15`,
-            padding: '2px 6px',
-            borderRadius: 3,
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily: 'ui-monospace, monospace',
+            color: zone.pillText,
+            background: isAz ? 'transparent' : zone.pill,
+            border: isAz ? 'none' : `1px solid ${zone.pillBorder}`,
+            padding: isAz ? '0' : '2px 10px',
+            borderRadius: 4,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
           }}
         >
-          {data.chip}
+          {data.zoneType === 'vpc' && <span style={{ fontSize: 10 }}>⬡</span>}
+          {data.label}
         </span>
-      )}
+
+        {/* Chip (public/private/data tier) */}
+        {data.chip && !isAz && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 500,
+              fontFamily: 'ui-monospace, monospace',
+              color: zone.pillText,
+              background: zone.pill,
+              border: `1px solid ${zone.pillBorder}`,
+              padding: '2px 6px',
+              borderRadius: 3,
+              letterSpacing: '0.04em',
+              opacity: 0.8,
+            }}
+          >
+            {data.chip}
+          </span>
+        )}
+      </div>
 
       {/* CIDR block */}
       {data.cidr && (
@@ -91,7 +88,7 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
             left: 12,
             fontSize: 10,
             fontFamily: 'ui-monospace, monospace',
-            color: '#64748b',
+            color: '#374151',
           }}
         >
           {data.cidr}

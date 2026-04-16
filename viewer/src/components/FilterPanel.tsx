@@ -18,7 +18,6 @@ export function FilterPanel() {
 
   if (!filterPanelOpen || !graph) return null;
 
-  // Get unique resource types
   const resourceTypes = [...new Set(graph.nodes.map(n => n.type))].sort();
 
   const hasActiveFilters =
@@ -30,32 +29,32 @@ export function FilterPanel() {
     <div
       className="w-56 shrink-0 overflow-y-auto z-10"
       style={{
-        background: '#ffffff',
-        borderRight: '1px solid #e2e8f0',
+        background: '#161b27',
+        borderRight: '1px solid #252d3d',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <span className="text-xs font-semibold" style={{ color: '#0f172a' }}>Filters</span>
+      <div className="flex items-center justify-between p-3" style={{ borderBottom: '1px solid #252d3d' }}>
+        <span className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>Filters</span>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
               className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer"
-              style={{ background: '#f1f5f9', color: '#64748b' }}
+              style={{ background: '#252d3d', color: '#94a3b8' }}
             >
               Clear
             </button>
           )}
-          <button onClick={toggleFilterPanel} className="cursor-pointer" style={{ color: '#64748b' }}>
+          <button onClick={toggleFilterPanel} className="cursor-pointer" style={{ color: '#4a5568' }}>
             <X size={14} />
           </button>
         </div>
       </div>
 
       {/* Severity */}
-      <div className="p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#64748b' }}>
+      <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
+        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Severity
         </div>
         <div className="flex flex-col gap-1">
@@ -68,7 +67,7 @@ export function FilterPanel() {
               <label
                 key={sev}
                 className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
-                style={{ color: isActive ? severityColors[sev] : '#94a3b8' }}
+                style={{ color: isActive ? severityColors[sev] : '#4a5568' }}
               >
                 <input
                   type="checkbox"
@@ -78,7 +77,7 @@ export function FilterPanel() {
                   style={{ accentColor: severityColors[sev] }}
                 />
                 <span className="flex-1 capitalize">{sev}</span>
-                <span className="text-[10px]" style={{ color: '#64748b' }}>{count}</span>
+                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}
@@ -86,8 +85,8 @@ export function FilterPanel() {
       </div>
 
       {/* Resource type */}
-      <div className="p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#64748b' }}>
+      <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
+        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Resource Type
         </div>
         <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
@@ -99,7 +98,7 @@ export function FilterPanel() {
               <label
                 key={rt}
                 className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
-                style={{ color: isActive ? '#0f172a' : '#64748b' }}
+                style={{ color: isActive ? '#e2e8f0' : '#4a5568' }}
               >
                 <input
                   type="checkbox"
@@ -108,7 +107,7 @@ export function FilterPanel() {
                   className="accent-sky-500"
                 />
                 <span className="flex-1 truncate font-mono text-[10px]">{label}</span>
-                <span className="text-[10px]" style={{ color: '#64748b' }}>{count}</span>
+                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}
@@ -117,7 +116,7 @@ export function FilterPanel() {
 
       {/* Drift status */}
       <div className="p-3">
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#64748b' }}>
+        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Drift Status
         </div>
         <div className="flex flex-col gap-1">
@@ -128,7 +127,7 @@ export function FilterPanel() {
               <label
                 key={ds}
                 className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
-                style={{ color: isActive ? '#0f172a' : '#64748b' }}
+                style={{ color: isActive ? '#e2e8f0' : '#4a5568' }}
               >
                 <input
                   type="checkbox"
@@ -137,7 +136,7 @@ export function FilterPanel() {
                   className="accent-sky-500"
                 />
                 <span className="flex-1 capitalize">{ds}</span>
-                <span className="text-[10px]" style={{ color: '#64748b' }}>{count}</span>
+                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}

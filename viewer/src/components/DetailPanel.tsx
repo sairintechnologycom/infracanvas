@@ -33,12 +33,12 @@ export function DetailPanel() {
     <div
       className="w-80 shrink-0 flex flex-col overflow-hidden z-10"
       style={{
-        background: '#ffffff',
-        borderLeft: '1px solid #e2e8f0',
+        background: '#161b27',
+        borderLeft: '1px solid #252d3d',
       }}
     >
       {/* Header */}
-      <div className="p-4" style={{ borderBottom: '1px solid #e2e8f0' }}>
+      <div className="p-4" style={{ borderBottom: '1px solid #252d3d' }}>
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             <ResourceIcon resourceType={node.type} size={28} />
@@ -54,17 +54,17 @@ export function DetailPanel() {
           <button
             onClick={() => setSelectedNode(null)}
             className="cursor-pointer"
-            style={{ color: '#64748b' }}
+            style={{ color: '#4a5568' }}
           >
             <X size={16} />
           </button>
         </div>
-        <div className="font-semibold text-sm" style={{ color: '#0f172a' }}>{node.name}</div>
-        <div className="text-[11px] font-mono mt-0.5" style={{ color: '#64748b' }}>{node.id}</div>
+        <div className="font-semibold text-sm" style={{ color: '#e2e8f0' }}>{node.name}</div>
+        <div className="text-[11px] font-mono mt-0.5" style={{ color: '#4a5568' }}>{node.id}</div>
       </div>
 
       {/* Tabs */}
-      <div className="flex" style={{ borderBottom: '1px solid #e2e8f0' }}>
+      <div className="flex" style={{ borderBottom: '1px solid #252d3d' }}>
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -74,9 +74,9 @@ export function DetailPanel() {
               onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-1 px-3 py-2 text-[11px] font-medium cursor-pointer transition-colors flex-1 justify-center"
               style={{
-                color: isActive ? '#0f172a' : '#64748b',
+                color: isActive ? '#e2e8f0' : '#4a5568',
                 borderBottom: isActive ? `2px solid ${color}` : '2px solid transparent',
-                background: isActive ? `${color}08` : 'transparent',
+                background: isActive ? `${color}10` : 'transparent',
               }}
             >
               <Icon size={12} />
@@ -112,15 +112,15 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       <div className="flex flex-col gap-1.5">
         {rows.map(row => (
           <div key={row.label} className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748b' }}>{row.label}</span>
-            <span className="text-[11px] font-mono" style={{ color: '#475569' }}>{row.value}</span>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>{row.label}</span>
+            <span className="text-[11px] font-mono" style={{ color: '#94a3b8' }}>{row.value}</span>
           </div>
         ))}
       </div>
 
       {/* Drift status */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748b' }}>Drift</span>
+        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>Drift</span>
         <span
           className="text-[10px] font-medium px-2 py-0.5 rounded capitalize"
           style={{ background: `${driftColor}20`, color: driftColor }}
@@ -131,13 +131,13 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
 
       {/* Cost */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748b' }}>Cost</span>
+        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>Cost</span>
         <div className="text-right">
-          <div className="text-sm font-semibold" style={{ color: '#0f172a' }}>
+          <div className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
             ${node.cost.monthly_usd.toFixed(2)}/mo
           </div>
           {node.cost.basis && (
-            <div className="text-[10px]" style={{ color: '#64748b' }}>{node.cost.basis}</div>
+            <div className="text-[10px]" style={{ color: '#4a5568' }}>{node.cost.basis}</div>
           )}
         </div>
       </div>
@@ -145,7 +145,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       {/* Dependencies */}
       {node.dependencies.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
+          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
             Dependencies ({node.dependencies.length})
           </div>
           <div className="flex flex-col gap-1">
@@ -153,7 +153,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
               <div
                 key={dep}
                 className="text-[10px] font-mono px-2 py-1 rounded"
-                style={{ background: '#f8fafc', color: '#475569' }}
+                style={{ background: '#1c2333', color: '#94a3b8', border: '1px solid #252d3d' }}
               >
                 {dep}
               </div>
@@ -165,7 +165,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       {/* Findings summary */}
       {node.findings.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
+          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
             Findings Summary
           </div>
           <div className="flex gap-2">
@@ -197,7 +197,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
       <div className="flex flex-col items-center justify-center py-8">
         <Shield size={24} color="#22c55e" />
         <div className="text-xs mt-2" style={{ color: '#22c55e' }}>No findings</div>
-        <div className="text-[10px] mt-1" style={{ color: '#64748b' }}>This resource passed all checks</div>
+        <div className="text-[10px] mt-1" style={{ color: '#4a5568' }}>This resource passed all checks</div>
       </div>
     );
   }
@@ -205,8 +205,8 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
   if (gateMode) {
     return (
       <div className="flex flex-col items-center gap-2 py-4 px-3">
-        <Lock size={16} style={{ color: '#64748b' }} />
-        <div className="text-xs font-semibold" style={{ color: '#0f172a' }}>
+        <Lock size={16} style={{ color: '#4a5568' }} />
+        <div className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>
           {node.findings.length} finding{node.findings.length !== 1 ? 's' : ''}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -221,22 +221,21 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
             );
           })}
         </div>
-        {/* 3 blurred placeholder rows */}
         <div className="w-full flex flex-col gap-1 mt-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="rounded px-3 py-2"
-              style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
+              style={{ background: '#1c2333', border: '1px solid #252d3d', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
           ))}
         </div>
-        <div className="text-[10px] mt-1" style={{ color: '#64748b' }}>
+        <div className="text-[10px] mt-1" style={{ color: '#4a5568' }}>
           Upgrade to see what's wrong and how to fix it
         </div>
         <a href="https://infracanvas.dev/founding" target="_blank" rel="noopener noreferrer"
           className="text-xs font-semibold px-4 py-2 rounded-md mt-1 inline-block"
-          style={{ background: '#3b82f640', border: '1px solid #3b82f6', color: '#60a5fa' }}>
+          style={{ background: '#3b82f620', border: '1px solid #3b82f6', color: '#60a5fa' }}>
           Unlock details — founding member $49/mo
         </a>
-        <div className="text-[10px]" style={{ color: '#64748b' }}>
+        <div className="text-[10px]" style={{ color: '#4a5568' }}>
           Locked forever for founding members
         </div>
       </div>
@@ -284,9 +283,9 @@ function ChangesTab({ changes }: { changes: AttributeChange[] }) {
         <div
           key={change.attribute}
           className="p-2 rounded text-[11px]"
-          style={{ background: '#f8fafc' }}
+          style={{ background: '#1c2333', border: '1px solid #252d3d' }}
         >
-          <div className="font-semibold mb-1" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>
+          <div className="font-semibold mb-1" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>
             {change.attribute}
           </div>
           <div className="flex flex-col gap-0.5">
@@ -294,7 +293,7 @@ function ChangesTab({ changes }: { changes: AttributeChange[] }) {
               <div style={{ color: '#ef4444' }}>
                 <span style={{ textDecoration: 'line-through' }}>
                   {change.sensitive ? (
-                    <span style={{ color: '#64748b', fontStyle: 'italic' }}>[sensitive]</span>
+                    <span style={{ color: '#4a5568', fontStyle: 'italic' }}>[sensitive]</span>
                   ) : (
                     String(change.before)
                   )}
@@ -304,7 +303,7 @@ function ChangesTab({ changes }: { changes: AttributeChange[] }) {
             {change.after != null && (
               <div style={{ color: '#22c55e' }}>
                 {change.sensitive ? (
-                  <span style={{ color: '#64748b', fontStyle: 'italic' }}>[sensitive]</span>
+                  <span style={{ color: '#4a5568', fontStyle: 'italic' }}>[sensitive]</span>
                 ) : (
                   String(change.after)
                 )}

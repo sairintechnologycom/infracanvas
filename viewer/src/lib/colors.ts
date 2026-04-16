@@ -33,20 +33,23 @@ export const EDGE_STYLES: Record<EdgeRelationship, null | {
 }> = {
   containment: null,
   attachment: {
-    style: { stroke: '#475569', strokeWidth: 1.5 },
-    markerEnd: undefined,
+    // traffic — solid arrow
+    style: { stroke: 'rgba(71,85,105,0.6)', strokeWidth: 1.5 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(71,85,105,0.6)' },
     animated: false,
   },
   dependency: {
-    style: { stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 3' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
+    // security — short dash, red tint
+    style: { stroke: 'rgba(221,52,76,0.4)', strokeWidth: 1, strokeDasharray: '3 2' },
+    markerEnd: undefined,
     animated: false,
   },
   access: {
-    style: { stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '6 4' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+    // access — medium dash, blue
+    style: { stroke: 'rgba(59,130,246,0.45)', strokeWidth: 1.5, strokeDasharray: '5 3' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(59,130,246,0.45)' },
     animated: false,
-    labelStyle: { fontSize: 10, fill: '#64748b' },
+    labelStyle: { fontSize: 10, fill: '#4a5568' },
   },
 };
 
@@ -65,41 +68,81 @@ export const ZONE_COLORS: Record<ZoneType, {
   background: string;
   border: string;
   label: string;
+  pill: string;
+  pillBorder: string;
+  pillText: string;
+  borderWidth: string;
+  borderStyle: string;
 }> = {
   internet: {
-    background: 'rgba(100, 116, 139, 0.04)',
-    border: 'rgba(100, 116, 139, 0.25)',
-    label: '#64748b',
+    background: 'rgba(71,85,105,0.03)',
+    border: 'rgba(71,85,105,0.4)',
+    label: '#4a5568',
+    pill: 'rgba(71,85,105,0.15)',
+    pillBorder: 'rgba(71,85,105,0.35)',
+    pillText: '#94a3b8',
+    borderWidth: '1.5px',
+    borderStyle: 'dashed',
   },
   vpc: {
-    background: 'rgba(119, 91, 163, 0.06)',
-    border: 'rgba(119, 91, 163, 0.45)',
-    label: '#7B5EA7',
+    background: 'rgba(140,79,255,0.02)',
+    border: 'rgba(140,79,255,0.4)',
+    label: '#a78bfa',
+    pill: 'rgba(140,79,255,0.15)',
+    pillBorder: 'rgba(140,79,255,0.3)',
+    pillText: '#a78bfa',
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
   },
   az: {
     background: 'transparent',
-    border: 'rgba(100, 116, 139, 0.20)',
-    label: '#64748b',
+    border: 'rgba(71,85,105,0.5)',
+    label: '#4a5568',
+    pill: 'transparent',
+    pillBorder: 'transparent',
+    pillText: '#4a5568',
+    borderWidth: '1px',
+    borderStyle: 'dashed',
   },
   public_subnet: {
-    background: 'rgba(0, 153, 77, 0.05)',
-    border: 'rgba(0, 153, 77, 0.35)',
-    label: '#16a34a',
+    background: 'rgba(34,197,94,0.02)',
+    border: 'rgba(34,197,94,0.35)',
+    label: '#4ade80',
+    pill: 'rgba(34,197,94,0.1)',
+    pillBorder: 'rgba(34,197,94,0.3)',
+    pillText: '#4ade80',
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
   },
   private_subnet: {
-    background: 'rgba(0, 115, 187, 0.05)',
-    border: 'rgba(0, 115, 187, 0.32)',
-    label: '#0369a1',
+    background: 'rgba(59,130,246,0.02)',
+    border: 'rgba(59,130,246,0.3)',
+    label: '#60a5fa',
+    pill: 'rgba(59,130,246,0.1)',
+    pillBorder: 'rgba(59,130,246,0.25)',
+    pillText: '#60a5fa',
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
   },
   data_subnet: {
-    background: 'rgba(140, 79, 255, 0.05)',
-    border: 'rgba(140, 79, 255, 0.28)',
-    label: '#7c3aed',
+    background: 'rgba(140,79,255,0.02)',
+    border: 'rgba(140,79,255,0.28)',
+    label: '#a78bfa',
+    pill: 'rgba(140,79,255,0.1)',
+    pillBorder: 'rgba(140,79,255,0.25)',
+    pillText: '#a78bfa',
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
   },
   regional: {
-    background: 'rgba(50, 80, 130, 0.04)',
-    border: 'rgba(73, 144, 200, 0.28)',
-    label: '#2563eb',
+    background: 'rgba(71,85,105,0.03)',
+    border: 'rgba(71,85,105,0.4)',
+    label: '#94a3b8',
+    pill: 'rgba(71,85,105,0.12)',
+    pillBorder: 'rgba(71,85,105,0.3)',
+    pillText: '#94a3b8',
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
   },
 };
 

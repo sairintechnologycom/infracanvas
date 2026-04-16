@@ -97,22 +97,22 @@ export function DiagramCanvas() {
         defaultEdgeOptions={{
           type: 'smoothstep',
         }}
-        connectionLineStyle={{ stroke: '#94a3b8', strokeWidth: 1 }}
+        connectionLineStyle={{ stroke: '#4a5568', strokeWidth: 1 }}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e8f0" />
+        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.04)" />
         <Controls position="bottom-left" showInteractive={false} />
         <MiniMap
           position="bottom-right"
           nodeColor={(node) => {
             if (node.type === 'group') return 'transparent';
-            return '#94a3b8';
+            return '#252d3d';
           }}
-          maskColor="#f8fafc80"
+          maskColor="rgba(0,0,0,0.6)"
           pannable
           zoomable
         />
@@ -123,7 +123,7 @@ export function DiagramCanvas() {
         <button
           onClick={handleFitView}
           className="text-[10px] px-2 py-1 rounded cursor-pointer"
-          style={{ background: '#ffffff', border: '1px solid #e2e8f0', color: '#475569' }}
+          style={{ background: '#161b27', border: '1px solid #252d3d', color: '#4a5568' }}
         >
           Fit View
         </button>
