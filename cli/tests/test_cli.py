@@ -174,6 +174,24 @@ class TestPlanCommand:
         assert result.exit_code == 0
 
 
+class TestWatchMode:
+    def test_watch_flag_accepted(self):
+        """CLX-02-A: --watch flag is accepted by scan command."""
+        from typer.testing import CliRunner
+        from infracanvas.main import app
+        runner = CliRunner()
+        # Use a non-existent dir to trigger early exit, but verify flag is accepted
+        result = runner.invoke(app, ["scan", "/nonexistent", "--watch"])
+        # Should fail on directory, NOT on unknown flag
+        assert "--watch" not in result.output or "no such option" not in result.output.lower()
+
+    def test_watch_imports_watchdog(self):
+        """CLX-02-B: watchdog is available for watch mode."""
+        import importlib.metadata
+        version = importlib.metadata.version("watchdog")
+        assert version is not None
+
+
 class TestFailOnFlag:
     def test_fail_on_critical_only(self):
         """CLX-01-A: --fail-on critical only exits non-zero on critical findings."""
