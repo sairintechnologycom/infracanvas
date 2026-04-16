@@ -13,8 +13,8 @@ from infracanvas.graph.models import (
     Severity,
 )
 
-# Grade thresholds
-GRADE_MAP = [(90, "A"), (80, "B"), (70, "C"), (60, "D"), (0, "F")]
+# Grade thresholds — matches UI-SPEC: A>=80, B>=65, C>=50, D>=35, F<35
+GRADE_MAP = [(80, "A"), (65, "B"), (50, "C"), (35, "D"), (0, "F")]
 
 # Penalty weights per severity
 SEVERITY_WEIGHT: dict[str, int] = {
@@ -24,13 +24,13 @@ SEVERITY_WEIGHT: dict[str, int] = {
     "info": 1,
 }
 
-# Category → rule IDs mapping
+# Category → rule IDs mapping — SCR-02 spec: 5 dimensions
 CATEGORY_RULES: dict[str, set[str]] = {
-    "Security": {"SEC-001", "SEC-003", "SEC-004", "SEC-005", "SEC-007", "SEC-008"},
-    "Encryption": {"SEC-002", "SEC-006", "SEC-009"},
-    "Networking": {"SEC-010", "SEC-011", "SEC-012", "SEC-013", "SEC-014"},
-    "IAM": {"SEC-007", "SEC-008", "SEC-015", "SEC-016"},
-    "Tagging": {"SEC-010"},
+    "Security":        {"SEC-001", "SEC-003", "SEC-004", "SEC-005"},
+    "Encryption":      {"SEC-002", "SEC-006", "SEC-009"},
+    "IAM Hygiene":     {"SEC-007", "SEC-008"},
+    "Cost Efficiency": set(),
+    "Tagging":         {"SEC-010"},
 }
 
 
