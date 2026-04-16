@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ResourceNode as ResourceNodeData } from '../types';
 import { severityColors, driftColors, getHighestSeverity } from '../lib/colors';
 import { getServiceConfig } from '../icons/awsServiceConfig';
+import { getAzureServiceConfig } from '../icons/azureServiceConfig';
 import { useStore } from '../store';
 
 type ResourceNodeProps = NodeProps & {
@@ -18,7 +19,9 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const isChanged = data.drift === 'changed';
   const isDeleted = data.drift === 'deleted';
 
-  const svc = getServiceConfig(data.type);
+  const svc = data.provider === 'azurerm'
+    ? getAzureServiceConfig(data.type)
+    : getServiceConfig(data.type);
 
   const borderColor = selected
     ? '#60a5fa'
@@ -34,6 +37,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
 
   const typeLabel = data.type
     .replace(/^aws_/, '')
+    .replace(/^azurerm_/, '')
     .toUpperCase()
     .replaceAll('_', ' ');
 

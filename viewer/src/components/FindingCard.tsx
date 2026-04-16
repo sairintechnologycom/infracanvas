@@ -35,6 +35,18 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
         >
           {finding.severity}
         </span>
+        {finding.source === 'policy' && (
+          <span
+            className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+            style={{
+              background: 'rgba(167,139,250,0.15)',
+              color: '#a78bfa',
+              border: '0.5px solid rgba(167,139,250,0.3)',
+            }}
+          >
+            POLICY
+          </span>
+        )}
         <span className="text-[11px] font-mono" style={{ color: '#94a3b8' }}>
           {finding.rule_id}
         </span>
@@ -76,6 +88,25 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
             <div className="text-[11px] flex gap-1.5" style={{ color: '#22c55e' }}>
               <span className="shrink-0">Fix:</span>
               <span>{finding.remediation}</span>
+            </div>
+          )}
+
+          {/* Compliance framework tags */}
+          {finding.framework_ids && finding.framework_ids.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {finding.framework_ids.map(id => (
+                <span
+                  key={id}
+                  className="text-[9px] px-1 py-0.5 rounded"
+                  style={{
+                    background: '#1c2333',
+                    color: '#4a5568',
+                    border: '1px solid #252d3d',
+                  }}
+                >
+                  {id}
+                </span>
+              ))}
             </div>
           )}
         </>
