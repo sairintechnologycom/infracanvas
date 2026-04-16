@@ -29,7 +29,7 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 Plans:
 - [x] 00-01-PLAN.md — Landing page (Next.js static site at infracanvas.dev with Stripe + Typeform CTAs)
 - [x] 00-02-PLAN.md — Validation content artifacts (post drafts, Typeform spec, tracker, demo script, Go/No-Go framework)
-- [ ] 00-03-PLAN.md — External service setup + outreach execution (Stripe, Typeform, Vercel deploy, community posts, customer conversations, Go/No-Go decision)
+- [x] 00-03-PLAN.md — External service setup + outreach execution (Stripe, Typeform, Vercel deploy, community posts, customer conversations, Go/No-Go decision)
 
 ### Phase 1: Canvas MVP
 **Goal**: Engineers can run one command against a Terraform directory and get an interactive, annotated infrastructure diagram with security scores
