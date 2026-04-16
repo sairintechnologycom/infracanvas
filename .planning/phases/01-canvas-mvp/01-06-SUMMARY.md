@@ -1,10 +1,10 @@
 ---
 plan: 01-06
 phase: 01-canvas-mvp
-status: partial
+status: complete
 completed: 2026-04-16
 tasks_total: 2
-tasks_completed: 1
+tasks_completed: 2
 commits:
   - "b240815 feat(01-06): wire score command to HTML + integration tests + click pin"
 tests_passed: 15
@@ -43,11 +43,7 @@ metrics:
 |------|------|--------|-------|
 | 1 | Wire score command to HTML + integration tests | b240815 | main.py, test_integration.py, pyproject.toml |
 
-## Tasks Pending (awaiting checkpoint)
-
-| Task | Name | Type | Status |
-|------|------|------|--------|
-| 2 | Checkpoint: Visual verification of scan-to-browser pipeline | checkpoint:human-verify | awaiting user |
+| 2 | Checkpoint: Visual verification of scan-to-browser pipeline | checkpoint:human-verify | ✓ approved |
 
 ## What Was Built
 
