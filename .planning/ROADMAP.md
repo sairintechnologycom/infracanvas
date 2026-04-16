@@ -46,8 +46,8 @@ Plans:
 - [x] 01-01-PLAN.md — Data layer: models, module parser, shadow flagging, JSON v2.0
 - [x] 01-02-PLAN.md — Scorer dimension realignment + score card HTML redesign
 - [x] 01-03-PLAN.md — Viewer: gate UI, search bar, shadow indicators, types
-- [ ] 01-04-PLAN.md — CLI: scan HTML default, CI detection, serve command
-- [ ] 01-05-PLAN.md — Resource types: layout tiers, icons, pipeline wiring, build verification
+- [x] 01-04-PLAN.md — CLI: scan HTML default, CI detection, serve command
+- [x] 01-05-PLAN.md — Resource types: layout tiers, icons, pipeline wiring, build verification
 - [ ] 01-06-PLAN.md — End-to-end integration + visual checkpoint
 - [ ] 01-07-PLAN.md — Release: PyPI packaging, GHA workflow, Homebrew, README
 
