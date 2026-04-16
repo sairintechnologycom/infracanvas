@@ -46,7 +46,7 @@ class TestIntegration:
         # Validate against Pydantic model
         graph = ResourceGraph.model_validate(data)
         assert len(graph.nodes) >= 4
-        assert graph.version == "1.0"
+        assert graph.version == "2.0"
         assert graph.metadata["project"] == "simple_vpc"
 
         # At least one finding

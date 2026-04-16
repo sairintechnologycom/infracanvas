@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from infracanvas.graph.models import DriftStatus, ResourceGraph, ResourceNode
+
 
 @dataclass
 class StateResource:
@@ -70,6 +72,27 @@ def parse_state_file(state_path: Path) -> ParsedState:
         )
 
     return result
+
+
+def flag_shadow_resources(graph: ResourceGraph, state: ParsedState) -> None:
+    """Flag resources present in state but absent from graph as shadow infrastructure.
+
+    PRS-05: Resources in .tfstate but not in HCL are flagged as shadow infrastructure
+    by appending ResourceNode entries with drift=DriftStatus.shadow.
+    """
+    graph_ids = {n.id for n in graph.nodes}
+    for sr in state.resources:
+        if sr.address not in graph_ids:
+            graph.nodes.append(
+                ResourceNode(
+                    id=sr.address,
+                    type=sr.resource_type,
+                    name=sr.name,
+                    provider=sr.provider,
+                    attributes=sr.attributes,
+                    drift=DriftStatus.shadow,
+                )
+            )
 
 
 def _extract_provider_name(provider_str: str) -> str:

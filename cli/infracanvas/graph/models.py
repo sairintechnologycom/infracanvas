@@ -34,6 +34,7 @@ class DriftStatus(StrEnum):
     added = "added"
     changed = "changed"
     deleted = "deleted"
+    shadow = "shadow"
 
 
 class AttributeChange(BaseModel):
@@ -91,8 +92,23 @@ class ScoreCard(BaseModel):
     scanned_at: str
 
 
+class NetworkFinding(BaseModel):
+    """CLI-02: Network-level security finding for a resource."""
+
+    resource_id: str
+    protocol: str
+    source_cidr: str
+    dest_cidr: str
+    finding_type: str
+    severity: Severity
+    title: str
+    description: str
+    remediation: str = ""
+    evidence: dict[str, object] = {}
+
+
 class ResourceGraph(BaseModel):
-    version: str = "1.0"
+    version: str = "2.0"
     metadata: dict[str, object] = Field(default_factory=dict)
     nodes: list[ResourceNode] = Field(default_factory=list)
     edges: list[dict[str, str]] = Field(default_factory=list)

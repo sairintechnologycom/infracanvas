@@ -28,7 +28,8 @@ def _create_nodes(
     for res in parsed.resources:
         resource_id = f"{res.resource_type}.{res.name}"
         provider = res.resource_type.split("_")[0] if "_" in res.resource_type else "unknown"
-        group = _determine_group(res.attributes)
+        region = str(res.attributes.get("region", ""))
+        group = _determine_group(res.attributes, module=res.module, region=region)
 
         node = ResourceNode(
             id=resource_id,
@@ -36,6 +37,7 @@ def _create_nodes(
             name=res.name,
             provider=provider,
             module=res.module,
+            region=region,
             group=group,
             attributes=res.attributes,
             dependencies=[],
@@ -73,8 +75,16 @@ def _build_edges(
     return edges
 
 
-def _determine_group(attrs: dict[str, object]) -> str:
-    """Determine group for a resource based on vpc_id or subnet_id."""
+def _determine_group(attrs: dict[str, object], module: str = "", region: str = "") -> str:
+    """Determine group for a resource based on vpc_id, subnet_id, module, or region.
+
+    Priority order (highest to lowest):
+    1. vpc_id attribute → "vpc:{vpc_id}"
+    2. subnet_id attribute → "subnet:{subnet_id}"
+    3. module name → "module:{module}"
+    4. region → "region:{region}"
+    5. empty string (ungrouped)
+    """
     vpc_id = attrs.get("vpc_id", "")
     if vpc_id and isinstance(vpc_id, str):
         return f"vpc:{vpc_id}"
@@ -82,5 +92,11 @@ def _determine_group(attrs: dict[str, object]) -> str:
     subnet_id = attrs.get("subnet_id", "")
     if subnet_id and isinstance(subnet_id, str):
         return f"subnet:{subnet_id}"
+
+    if module:
+        return f"module:{module}"
+
+    if region:
+        return f"region:{region}"
 
     return ""

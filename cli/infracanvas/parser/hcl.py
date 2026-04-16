@@ -35,6 +35,7 @@ class ParsedTerraform:
     outputs: list[ParsedBlock] = field(default_factory=list)
     data_sources: list[ParsedBlock] = field(default_factory=list)
     implicit_deps: dict[str, set[str]] = field(default_factory=dict)
+    _raw_modules: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _strip_quotes(value: str) -> str:
@@ -96,6 +97,7 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
     _extract_locals(parsed, result)
     _extract_outputs(parsed, result)
     _extract_data_sources(parsed, result)
+    _extract_modules(parsed, result)
 
 
 def _extract_resources(parsed: dict[str, Any], result: ParsedTerraform) -> None:
@@ -183,6 +185,17 @@ def _extract_data_sources(parsed: dict[str, Any], result: ParsedTerraform) -> No
                                 attributes=_clean_value(attrs) if isinstance(attrs, dict) else {},
                             )
                         )
+
+
+def _extract_modules(parsed: dict[str, Any], result: ParsedTerraform) -> None:
+    """Extract module blocks from parsed HCL and store in _raw_modules."""
+    for module_block in parsed.get("module", []):
+        if isinstance(module_block, dict):
+            for name_raw, attrs in module_block.items():
+                name = _strip_quotes(name_raw)
+                attrs_dict = _clean_value(attrs) if isinstance(attrs, dict) else {}
+                attrs_dict["__name__"] = name
+                result._raw_modules.append(attrs_dict)
 
 
 def _normalize_depends_on(raw: Any) -> list[str]:
