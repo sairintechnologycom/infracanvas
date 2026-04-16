@@ -2,6 +2,7 @@
   title: "EBS Volume Unencrypted"
   severity: high
   resource_types: ["aws_instance"]
+  framework_ids: ["CIS-2.2.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
   condition:
     attribute: "root_block_device.encrypted"
     operator: "not_exists"
@@ -13,6 +14,7 @@
   title: "KMS Key Rotation Disabled"
   severity: medium
   resource_types: ["aws_kms_key"]
+  framework_ids: ["CIS-3.8", "NIST-SC-12", "SOC2-CC6.7", "PCI-DSS-3.6"]
   condition:
     attribute: "enable_key_rotation"
     operator: "not_exists"
@@ -34,6 +36,7 @@
     - "aws_lambda_function"
     - "aws_dynamodb_table"
     - "aws_kms_key"
+  framework_ids: ["NIST-CM-8", "SOC2-CC6.3"]
   condition:
     attribute: "tags"
     operator: "not_exists"

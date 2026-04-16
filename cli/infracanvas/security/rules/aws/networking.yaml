@@ -2,6 +2,7 @@
   title: "Security Group Allows SSH/RDP from Internet"
   severity: critical
   resource_types: ["aws_security_group"]
+  framework_ids: ["CIS-5.2", "NIST-AC-17", "SOC2-CC6.6", "PCI-DSS-1.2"]
   condition:
     attribute: "ingress.cidr_blocks"
     operator: "list_contains_cidr"
@@ -13,6 +14,7 @@
   title: "Security Group Allows All Traffic from Internet"
   severity: high
   resource_types: ["aws_security_group"]
+  framework_ids: ["CIS-5.2", "NIST-SC-7", "SOC2-CC6.6", "PCI-DSS-1.2"]
   condition:
     attribute: "ingress.cidr_blocks"
     operator: "list_contains_cidr"

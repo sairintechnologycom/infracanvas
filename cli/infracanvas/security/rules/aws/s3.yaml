@@ -2,6 +2,7 @@
   title: "S3 Bucket Publicly Accessible"
   severity: critical
   resource_types: ["aws_s3_bucket"]
+  framework_ids: ["CIS-2.1.5", "NIST-SC-7", "SOC2-CC6.1", "PCI-DSS-1.2"]
   condition:
     attribute: "acl"
     operator: "in"
@@ -13,6 +14,7 @@
   title: "S3 Bucket Missing Encryption"
   severity: high
   resource_types: ["aws_s3_bucket"]
+  framework_ids: ["CIS-2.1.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
   condition:
     attribute: "server_side_encryption_configuration"
     operator: "not_exists"

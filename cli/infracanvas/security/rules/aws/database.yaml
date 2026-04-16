@@ -2,6 +2,7 @@
   title: "RDS Instance Publicly Accessible"
   severity: critical
   resource_types: ["aws_rds_instance", "aws_db_instance"]
+  framework_ids: ["CIS-2.3.2", "NIST-SC-7", "SOC2-CC6.1", "PCI-DSS-1.2"]
   condition:
     attribute: "publicly_accessible"
     operator: "equals"
@@ -13,6 +14,7 @@
   title: "RDS Instance Missing Encryption"
   severity: high
   resource_types: ["aws_rds_instance", "aws_db_instance"]
+  framework_ids: ["CIS-2.3.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4"]
   condition:
     attribute: "storage_encrypted"
     operator: "not_exists"
