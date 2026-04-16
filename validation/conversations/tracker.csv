@@ -1,0 +1,2 @@
+date,name,role,team_size,current_tools,top_pain_point,willingness_to_pay,specific_tool_to_replace,direct_quote,call_type,strong_signal,follow_up_status
+2026-04-20,Jane Doe,SRE,6-20,"tfsec, Infracost, draw.io",Correlating security findings with cost impact,Yes definitely,draw.io,"I spend 20 minutes every incident switching between tools",video,Y,scheduled
