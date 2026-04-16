@@ -28,7 +28,16 @@ Thumbs.db
 # Reports (generated output)
 infracanvas-report.json
 infracanvas-report.html
+infracanvas-score.html
+*-score.html
+*-report.html
 .coverage
+
+# Virtual environments (numbered)
+.venv*/
+
+# Claude Code session data
+.claude/
 
 # Env
 .env
