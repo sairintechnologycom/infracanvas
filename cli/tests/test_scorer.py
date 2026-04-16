@@ -78,13 +78,13 @@ class TestScorer:
         assert card.overall == 90
         assert card.overall_grade == "A"
 
-    def test_grade_f_below_60(self):
-        # 3 critical (penalty=60) → score=40 → F
-        findings = [_finding(f"SEC-{i:03d}", Severity.critical) for i in range(3)]
+    def test_grade_f_below_35(self):
+        # 4 critical (penalty=80) → score=20 → F (new thresholds: F < 35)
+        findings = [_finding(f"SEC-{i:03d}", Severity.critical) for i in range(4)]
         graph = _graph_with_findings([findings])
         scorer = Scorer()
         card = scorer.build(graph)
-        assert card.overall == 40
+        assert card.overall == 20
         assert card.overall_grade == "F"
 
     def test_category_scores_independent(self):
