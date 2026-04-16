@@ -69,8 +69,8 @@ Plans:
 - [x] 02-03-PLAN.md — AWS security rule expansion + staleness checks (SEC-011 through SEC-030, compliance tags on all rules, RST-01/RST-02)
 - [x] 02-04-PLAN.md — Shadow infrastructure detection (boto3 optional dep, ShadowDetector, 6 AWS resource types)
 - [x] 02-05-PLAN.md — Multi-region cost estimation (region multipliers, group-level aggregation)
-- [ ] 02-06-PLAN.md — CLI integration: --shadow, --policy, --fail-on flags + policy engine wiring + staleness pipeline
-- [ ] 02-07-PLAN.md — Viewer extensions: POLICY source pill, compliance framework tags, Source filter, Azure icon rendering
+- [x] 02-06-PLAN.md — CLI integration: --shadow, --policy, --fail-on flags + policy engine wiring + staleness pipeline
+- [x] 02-07-PLAN.md — Viewer extensions: POLICY source pill, compliance framework tags, Source filter, Azure icon rendering
 - [ ] 02-08-PLAN.md — Distribution: Dockerfile, PyInstaller spec, GitHub Actions release workflow + visual checkpoint
 
 ### Phase 3: FlowMap v1.0
