@@ -22,7 +22,7 @@ export default function App() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex flex-col h-screen w-screen" style={{ background: '#0a0e17' }}>
+      <div className="flex flex-col h-screen w-screen" style={{ background: '#f8fafc' }}>
         <SummaryBar />
         <div className="flex flex-1 min-h-0">
           <FilterPanel />

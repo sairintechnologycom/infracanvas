@@ -38,13 +38,13 @@ export const EDGE_STYLES: Record<EdgeRelationship, null | {
     animated: false,
   },
   dependency: {
-    style: { stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 3' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#475569' },
+    style: { stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 3' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
     animated: false,
   },
   access: {
-    style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '6 4' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#1e3a5f' },
+    style: { stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '6 4' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
     animated: false,
     labelStyle: { fontSize: 10, fill: '#64748b' },
   },
@@ -67,39 +67,39 @@ export const ZONE_COLORS: Record<ZoneType, {
   label: string;
 }> = {
   internet: {
-    background: 'rgba(100, 120, 160, 0.05)',
-    border: 'rgba(140, 160, 200, 0.28)',
-    label: '#8fa8cc',
+    background: 'rgba(100, 116, 139, 0.04)',
+    border: 'rgba(100, 116, 139, 0.25)',
+    label: '#64748b',
   },
   vpc: {
-    background: 'rgba(119, 91, 163, 0.10)',
-    border: 'rgba(119, 91, 163, 0.55)',
-    label: '#a882dc',
+    background: 'rgba(119, 91, 163, 0.06)',
+    border: 'rgba(119, 91, 163, 0.45)',
+    label: '#7B5EA7',
   },
   az: {
     background: 'transparent',
-    border: 'rgba(140, 155, 180, 0.28)',
-    label: '#7a92b4',
+    border: 'rgba(100, 116, 139, 0.20)',
+    label: '#64748b',
   },
   public_subnet: {
-    background: 'rgba(0, 153, 77, 0.07)',
-    border: 'rgba(0, 153, 77, 0.40)',
-    label: '#2ecc71',
+    background: 'rgba(0, 153, 77, 0.05)',
+    border: 'rgba(0, 153, 77, 0.35)',
+    label: '#16a34a',
   },
   private_subnet: {
-    background: 'rgba(0, 115, 187, 0.07)',
-    border: 'rgba(0, 115, 187, 0.38)',
-    label: '#4a9fd4',
+    background: 'rgba(0, 115, 187, 0.05)',
+    border: 'rgba(0, 115, 187, 0.32)',
+    label: '#0369a1',
   },
   data_subnet: {
-    background: 'rgba(140, 79, 255, 0.07)',
-    border: 'rgba(140, 79, 255, 0.32)',
-    label: '#a07ddb',
+    background: 'rgba(140, 79, 255, 0.05)',
+    border: 'rgba(140, 79, 255, 0.28)',
+    label: '#7c3aed',
   },
   regional: {
-    background: 'rgba(50, 80, 130, 0.07)',
-    border: 'rgba(73, 144, 200, 0.30)',
-    label: '#6ba3cc',
+    background: 'rgba(50, 80, 130, 0.04)',
+    border: 'rgba(73, 144, 200, 0.28)',
+    label: '#2563eb',
   },
 };
 

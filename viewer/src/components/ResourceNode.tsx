@@ -28,7 +28,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
     ? driftColors.added
     : isChanged
     ? driftColors.changed
-    : '#1e293b';
+    : '#e2e8f0';
 
   // e.g. AWS_INSTANCE
   const typeLabel = data.type.replace(/^aws_/, '').toUpperCase().replaceAll('_', '_');
@@ -42,12 +42,12 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-slate-500 !border-slate-600 !w-2 !h-2"
+        className="!bg-slate-300 !border-slate-200 !w-2 !h-2"
       />
 
       <div
         style={{
-          background: '#1a2535',
+          background: '#ffffff',
           border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
           borderLeft: `3px solid ${getResourceColor(data.type)}`,
           borderRadius: 8,
@@ -55,7 +55,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           opacity: isDeleted ? 0.45 : 1,
           boxShadow: selected
             ? `0 0 12px ${borderColor}50`
-            : '0 1px 4px rgba(0,0,0,0.5)',
+            : '0 1px 3px rgba(0,0,0,0.10)',
         }}
       >
         {/* Header: type label + icon */}
@@ -71,7 +71,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             style={{
               fontSize: 9,
               fontFamily: 'ui-monospace, monospace',
-              color: '#7a9abf',
+              color: '#64748b',
               letterSpacing: '0.04em',
               fontWeight: 600,
             }}
@@ -87,7 +87,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             fontSize: 13,
             fontWeight: 700,
             fontFamily: 'ui-monospace, monospace',
-            color: '#e2e8f0',
+            color: '#0f172a',
             lineHeight: 1.2,
             marginBottom: 8,
             overflow: 'hidden',
@@ -119,10 +119,10 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
                   fontSize: 8,
                   padding: '1px 5px',
                   borderRadius: 3,
-                  background: 'rgba(34,197,94,0.15)',
-                  color: '#4ade80',
+                  background: 'rgba(22,163,74,0.10)',
+                  color: '#16a34a',
                   fontWeight: 700,
-                  border: '0.5px solid rgba(34,197,94,0.3)',
+                  border: '0.5px solid rgba(22,163,74,0.25)',
                 }}
               >
                 +NEW
@@ -134,10 +134,10 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
                   fontSize: 8,
                   padding: '1px 5px',
                   borderRadius: 3,
-                  background: 'rgba(245,158,11,0.15)',
-                  color: '#fbbf24',
+                  background: 'rgba(217,119,6,0.10)',
+                  color: '#d97706',
                   fontWeight: 700,
-                  border: '0.5px solid rgba(245,158,11,0.3)',
+                  border: '0.5px solid rgba(217,119,6,0.25)',
                 }}
               >
                 ~CHG
@@ -171,13 +171,13 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
                 width: 22,
                 height: 22,
                 borderRadius: 5,
-                background: 'rgba(46,204,113,0.12)',
-                border: '1px solid rgba(46,204,113,0.38)',
+                background: 'rgba(22,163,74,0.08)',
+                border: '1px solid rgba(22,163,74,0.30)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 11,
-                color: '#4ade80',
+                color: '#16a34a',
                 flexShrink: 0,
               }}
             >
@@ -190,11 +190,11 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-slate-500 !border-slate-600 !w-2 !h-2"
+        className="!bg-slate-300 !border-slate-200 !w-2 !h-2"
       />
 
       {isShadow && (
-        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#f59e0b' }}>
+        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#d97706' }}>
           shadow
         </div>
       )}

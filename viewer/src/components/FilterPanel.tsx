@@ -30,19 +30,19 @@ export function FilterPanel() {
     <div
       className="w-56 shrink-0 overflow-y-auto z-10"
       style={{
-        background: '#111827',
-        borderRight: '1px solid #1e293b',
+        background: '#ffffff',
+        borderRight: '1px solid #e2e8f0',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3" style={{ borderBottom: '1px solid #1e293b' }}>
-        <span className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>Filters</span>
+      <div className="flex items-center justify-between p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
+        <span className="text-xs font-semibold" style={{ color: '#0f172a' }}>Filters</span>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
               className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer"
-              style={{ background: '#1e293b', color: '#94a3b8' }}
+              style={{ background: '#f1f5f9', color: '#64748b' }}
             >
               Clear
             </button>
@@ -54,7 +54,7 @@ export function FilterPanel() {
       </div>
 
       {/* Severity */}
-      <div className="p-3" style={{ borderBottom: '1px solid #1e293b' }}>
+      <div className="p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
         <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#64748b' }}>
           Severity
         </div>
@@ -86,7 +86,7 @@ export function FilterPanel() {
       </div>
 
       {/* Resource type */}
-      <div className="p-3" style={{ borderBottom: '1px solid #1e293b' }}>
+      <div className="p-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
         <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#64748b' }}>
           Resource Type
         </div>
@@ -99,7 +99,7 @@ export function FilterPanel() {
               <label
                 key={rt}
                 className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
-                style={{ color: isActive ? '#e2e8f0' : '#94a3b8' }}
+                style={{ color: isActive ? '#0f172a' : '#64748b' }}
               >
                 <input
                   type="checkbox"
@@ -128,7 +128,7 @@ export function FilterPanel() {
               <label
                 key={ds}
                 className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
-                style={{ color: isActive ? '#e2e8f0' : '#94a3b8' }}
+                style={{ color: isActive ? '#0f172a' : '#64748b' }}
               >
                 <input
                   type="checkbox"

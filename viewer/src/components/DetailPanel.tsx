@@ -33,12 +33,12 @@ export function DetailPanel() {
     <div
       className="w-80 shrink-0 flex flex-col overflow-hidden z-10"
       style={{
-        background: '#111827',
-        borderLeft: '1px solid #1e293b',
+        background: '#ffffff',
+        borderLeft: '1px solid #e2e8f0',
       }}
     >
       {/* Header */}
-      <div className="p-4" style={{ borderBottom: '1px solid #1e293b' }}>
+      <div className="p-4" style={{ borderBottom: '1px solid #e2e8f0' }}>
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             <ResourceIcon resourceType={node.type} size={28} />
@@ -59,12 +59,12 @@ export function DetailPanel() {
             <X size={16} />
           </button>
         </div>
-        <div className="font-semibold text-sm" style={{ color: '#e2e8f0' }}>{node.name}</div>
+        <div className="font-semibold text-sm" style={{ color: '#0f172a' }}>{node.name}</div>
         <div className="text-[11px] font-mono mt-0.5" style={{ color: '#64748b' }}>{node.id}</div>
       </div>
 
       {/* Tabs */}
-      <div className="flex" style={{ borderBottom: '1px solid #1e293b' }}>
+      <div className="flex" style={{ borderBottom: '1px solid #e2e8f0' }}>
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -74,7 +74,7 @@ export function DetailPanel() {
               onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-1 px-3 py-2 text-[11px] font-medium cursor-pointer transition-colors flex-1 justify-center"
               style={{
-                color: isActive ? '#e2e8f0' : '#64748b',
+                color: isActive ? '#0f172a' : '#64748b',
                 borderBottom: isActive ? `2px solid ${color}` : '2px solid transparent',
                 background: isActive ? `${color}08` : 'transparent',
               }}
@@ -113,7 +113,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
         {rows.map(row => (
           <div key={row.label} className="flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748b' }}>{row.label}</span>
-            <span className="text-[11px] font-mono" style={{ color: '#94a3b8' }}>{row.value}</span>
+            <span className="text-[11px] font-mono" style={{ color: '#475569' }}>{row.value}</span>
           </div>
         ))}
       </div>
@@ -133,7 +133,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748b' }}>Cost</span>
         <div className="text-right">
-          <div className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
+          <div className="text-sm font-semibold" style={{ color: '#0f172a' }}>
             ${node.cost.monthly_usd.toFixed(2)}/mo
           </div>
           {node.cost.basis && (
@@ -153,7 +153,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
               <div
                 key={dep}
                 className="text-[10px] font-mono px-2 py-1 rounded"
-                style={{ background: '#0a0e17', color: '#94a3b8' }}
+                style={{ background: '#f8fafc', color: '#475569' }}
               >
                 {dep}
               </div>
@@ -206,7 +206,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
     return (
       <div className="flex flex-col items-center gap-2 py-4 px-3">
         <Lock size={16} style={{ color: '#64748b' }} />
-        <div className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>
+        <div className="text-xs font-semibold" style={{ color: '#0f172a' }}>
           {node.findings.length} finding{node.findings.length !== 1 ? 's' : ''}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -225,7 +225,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
         <div className="w-full flex flex-col gap-1 mt-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="rounded px-3 py-2"
-              style={{ background: '#111827', border: '1px solid #1e293b', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
+              style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
           ))}
         </div>
         <div className="text-[10px] mt-1" style={{ color: '#64748b' }}>
@@ -284,9 +284,9 @@ function ChangesTab({ changes }: { changes: AttributeChange[] }) {
         <div
           key={change.attribute}
           className="p-2 rounded text-[11px]"
-          style={{ background: '#0a0e17' }}
+          style={{ background: '#f8fafc' }}
         >
-          <div className="font-semibold mb-1" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>
+          <div className="font-semibold mb-1" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>
             {change.attribute}
           </div>
           <div className="flex flex-col gap-0.5">

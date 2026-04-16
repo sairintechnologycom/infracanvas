@@ -24,12 +24,12 @@ export function SummaryBar() {
   return (
     <div
       className="flex items-center gap-4 px-4 py-2 shrink-0 z-20"
-      style={{ background: '#111827', borderBottom: '1px solid #1e293b' }}
+      style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}
     >
       {/* Project name */}
       <div className="flex items-center gap-2">
         <Box size={16} color="#3b82f6" />
-        <span className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
+        <span className="text-sm font-semibold" style={{ color: '#0f172a' }}>
           {metadata.project}
         </span>
         <span className="text-[10px]" style={{ color: '#64748b' }}>
@@ -38,7 +38,7 @@ export function SummaryBar() {
       </div>
 
       {/* Separator */}
-      <div className="w-px h-5" style={{ background: '#1e293b' }} />
+      <div className="w-px h-5" style={{ background: '#e2e8f0' }} />
 
       {/* Score badge */}
       <div className="flex items-center gap-1.5">
@@ -50,7 +50,7 @@ export function SummaryBar() {
       </div>
 
       {/* Separator */}
-      <div className="w-px h-5" style={{ background: '#1e293b' }} />
+      <div className="w-px h-5" style={{ background: '#e2e8f0' }} />
 
       {/* Finding pills */}
       <div className="flex items-center gap-1.5">
@@ -80,7 +80,7 @@ export function SummaryBar() {
       {/* Drift counts */}
       {(summary.drift.added > 0 || summary.drift.changed > 0 || summary.drift.deleted > 0) && (
         <>
-          <div className="w-px h-5" style={{ background: '#1e293b' }} />
+          <div className="w-px h-5" style={{ background: '#e2e8f0' }} />
           <div className="flex items-center gap-1.5 text-[10px] font-medium">
             {summary.drift.added > 0 && (
               <span style={{ color: '#22c55e' }}>+{summary.drift.added} added</span>
@@ -108,13 +108,13 @@ export function SummaryBar() {
       )}
 
       {/* Edge legend */}
-      <div className="flex items-center gap-3 text-[9px]" style={{ color: '#475569' }}>
+      <div className="flex items-center gap-3 text-[9px]" style={{ color: '#64748b' }}>
         <span className="flex items-center gap-1">
-          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#334155" strokeWidth="1.5" /><polygon points="14,0 18,1 14,2" fill="#475569" /></svg>
+          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#94a3b8" strokeWidth="1.5" /><polygon points="14,0 18,1 14,2" fill="#94a3b8" /></svg>
           traffic
         </span>
         <span className="flex items-center gap-1">
-          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#1e3a5f" strokeWidth="1" strokeDasharray="4 3" /><polygon points="14,0 18,1 14,2" fill="#3b82f6" /></svg>
+          <svg width="18" height="2"><line x1="0" y1="1" x2="14" y2="1" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" /><polygon points="14,0 18,1 14,2" fill="#3b82f6" /></svg>
           access
         </span>
         <span className="flex items-center gap-1">
@@ -131,9 +131,9 @@ export function SummaryBar() {
         onClick={toggleFilterPanel}
         className="flex items-center gap-1 px-2 py-1 rounded text-[11px] cursor-pointer transition-all"
         style={{
-          background: filterPanelOpen ? '#1e293b' : 'transparent',
-          color: '#94a3b8',
-          border: '1px solid #1e293b',
+          background: filterPanelOpen ? '#f1f5f9' : 'transparent',
+          color: '#475569',
+          border: '1px solid #e2e8f0',
         }}
       >
         <Filter size={12} />
