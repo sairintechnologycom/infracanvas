@@ -1,5 +1,7 @@
 """Tests for the cost estimator (T-017)."""
 
+import pytest
+
 from infracanvas.cost.estimator import CostEstimator, HOURS_PER_MONTH, _estimate_resource
 from infracanvas.graph.models import (
     DriftStatus,
@@ -88,3 +90,15 @@ class TestCostEstimator:
         estimator = CostEstimator()
         delta = estimator.delta(graph, changes)
         assert delta == round(-0.045 * HOURS_PER_MONTH, 2)
+
+
+@pytest.mark.skip("Wave 0 stub — implementation in Plan 05")
+class TestRegionMultiplier:
+    def test_us_east_1_no_change(self): ...
+    def test_eu_west_1_higher(self): ...
+    def test_unknown_region_defaults_to_1(self): ...
+
+
+@pytest.mark.skip("Wave 0 stub — implementation in Plan 05")
+class TestGroupCostAggregation:
+    def test_group_costs_in_metadata(self): ...
