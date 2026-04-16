@@ -1,6 +1,6 @@
 export type Severity = 'critical' | 'high' | 'medium' | 'info';
 
-export type DriftStatus = 'unchanged' | 'added' | 'changed' | 'deleted';
+export type DriftStatus = 'unchanged' | 'added' | 'changed' | 'deleted' | 'shadow';
 
 export interface Finding {
   rule_id: string;
@@ -9,6 +9,18 @@ export interface Finding {
   description: string;
   remediation: string;
   evidence: Record<string, unknown>;
+}
+
+export interface NetworkFinding {
+  source_ip: string;
+  dest_ip: string;
+  protocol: string;
+  port: number;
+  severity: Severity;
+  title: string;
+  description: string;
+  remediation?: string;
+  evidence?: Record<string, unknown>;
 }
 
 export interface CostEstimate {
@@ -74,5 +86,6 @@ export interface ResourceGraph {
 declare global {
   interface Window {
     __INFRACANVAS_DATA__: ResourceGraph | null;
+    __INFRACANVAS_GATE__: boolean | undefined;
   }
 }

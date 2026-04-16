@@ -10,12 +10,15 @@ import type { ResourceGraph } from './types';
 
 export default function App() {
   const setGraph = useStore(s => s.setGraph);
+  const setGateMode = useStore(s => s.setGateMode);
 
   useEffect(() => {
     const injected = window.__INFRACANVAS_DATA__;
     const data: ResourceGraph = injected ?? sampleData;
     setGraph(data);
-  }, [setGraph]);
+    const gateMode = window.__INFRACANVAS_GATE__ ?? true;
+    setGateMode(gateMode);
+  }, [setGraph, setGateMode]);
 
   return (
     <ReactFlowProvider>

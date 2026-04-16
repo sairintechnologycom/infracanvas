@@ -12,6 +12,8 @@ interface StoreState {
   selectedNode: ResourceNode | null;
   filterPanelOpen: boolean;
   filters: Filters;
+  gateMode: boolean;
+  searchQuery: string;
   setGraph: (graph: ResourceGraph) => void;
   setSelectedNode: (node: ResourceNode | null) => void;
   toggleFilterPanel: () => void;
@@ -19,6 +21,8 @@ interface StoreState {
   toggleResourceTypeFilter: (type: string) => void;
   toggleDriftFilter: (status: DriftStatus) => void;
   clearFilters: () => void;
+  setGateMode: (gateMode: boolean) => void;
+  setSearchQuery: (query: string) => void;
 }
 
 const emptyFilters: Filters = {
@@ -32,6 +36,8 @@ export const useStore = create<StoreState>((set) => ({
   selectedNode: null,
   filterPanelOpen: false,
   filters: { ...emptyFilters },
+  gateMode: true,
+  searchQuery: '',
 
   setGraph: (graph) => set({ graph }),
   setSelectedNode: (node) => set({ selectedNode: node }),
@@ -68,4 +74,7 @@ export const useStore = create<StoreState>((set) => ({
     })),
 
   clearFilters: () => set({ filters: { ...emptyFilters } }),
+
+  setGateMode: (gateMode) => set({ gateMode }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }));
