@@ -61,7 +61,16 @@ Plans:
   3. Shadow infrastructure (live AWS API vs state) is flagged with dashed borders and estimated cost; no silent parse failures occur on complex modules
   4. All 30 AWS security rules and all 10 Azure rules carry compliance framework tags (CIS, NIST, SOC2, PCI-DSS) visible in findings output
   5. A `.infracanvas.yml` custom policy (required tags, allowed regions, naming patterns) causes `infracanvas scan --policy ./policies` to fail in CI with a non-zero exit code
-**Plans**: TBD
+**Plans:** 8 plans
+Plans:
+- [ ] 02-01-PLAN.md — Data model extensions + HCL parser hardening (Finding source/framework_ids, SecurityRule framework_ids, parse error collection)
+- [ ] 02-02-PLAN.md — Azure parser + security rules + viewer icon config (10 resource types, AZ-001 through AZ-010, azureServiceConfig.ts)
+- [ ] 02-03-PLAN.md — AWS security rule expansion + staleness checks (SEC-011 through SEC-030, compliance tags on all rules, RST-01/RST-02)
+- [ ] 02-04-PLAN.md — Shadow infrastructure detection (boto3 optional dep, ShadowDetector, 6 AWS resource types)
+- [ ] 02-05-PLAN.md — Multi-region cost estimation (region multipliers, group-level aggregation)
+- [ ] 02-06-PLAN.md — CLI integration: --shadow, --policy, --fail-on flags + policy engine wiring + staleness pipeline
+- [ ] 02-07-PLAN.md — Viewer extensions: POLICY source pill, compliance framework tags, Source filter, Azure icon rendering
+- [ ] 02-08-PLAN.md — Distribution: Dockerfile, PyInstaller spec, GitHub Actions release workflow + visual checkpoint
 
 ### Phase 3: FlowMap v1.0
 **Goal**: Engineers can visualise the full hybrid network path from AWS through a physical data centre to Azure, with asymmetric routing detected and root-cause classified
@@ -108,7 +117,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 0. Validation | 0/3 | Planning complete | - |
 | 1. Canvas MVP | 0/7 | Planning complete | - |
-| 2. Canvas v1.0 | 0/TBD | Not started | - |
+| 2. Canvas v1.0 | 0/8 | Planning complete | - |
 | 3. FlowMap v1.0 | 0/TBD | Not started | - |
 | 4. SaaS Dashboard + CostLens | 0/TBD | Not started | - |
 | 5. Enterprise | 0/TBD | Not started | - |
