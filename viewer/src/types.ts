@@ -9,6 +9,8 @@ export interface Finding {
   description: string;
   remediation: string;
   evidence: Record<string, unknown>;
+  source?: string;              // 'security' | 'policy'
+  framework_ids?: string[];     // ['CIS-2.1.5', 'NIST-SC-7']
 }
 
 export interface NetworkFinding {

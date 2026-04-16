@@ -25,3 +25,4 @@ class SecurityRule:
     condition: RuleCondition
     remediation: str
     description: str
+    framework_ids: list[str] = field(default_factory=list)

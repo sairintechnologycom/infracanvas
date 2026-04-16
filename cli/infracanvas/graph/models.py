@@ -21,6 +21,8 @@ class Finding(BaseModel):
     description: str
     remediation: str
     evidence: dict[str, object] = {}
+    source: str = "security"           # "security" | "policy"
+    framework_ids: list[str] = []      # ["CIS-2.1.5", "NIST-SC-7", "SOC2-CC6.1"]
 
 
 class CostEstimate(BaseModel):

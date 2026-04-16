@@ -36,6 +36,7 @@ class ParsedTerraform:
     data_sources: list[ParsedBlock] = field(default_factory=list)
     implicit_deps: dict[str, set[str]] = field(default_factory=dict)
     _raw_modules: list[dict[str, Any]] = field(default_factory=list)
+    parse_errors: list[tuple[Path, str]] = field(default_factory=list)
 
 
 def _strip_quotes(value: str) -> str:
@@ -89,7 +90,8 @@ def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
     with open(tf_file) as f:
         try:
             parsed = hcl2.load(f)
-        except Exception:
+        except Exception as exc:
+            result.parse_errors.append((tf_file, str(exc)))
             return
 
     _extract_resources(parsed, result)
