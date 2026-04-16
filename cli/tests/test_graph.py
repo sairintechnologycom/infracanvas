@@ -9,6 +9,41 @@ from infracanvas.parser.hcl import parse_directory
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+class TestNetworkFinding:
+    """CLI-02: NetworkFinding model validation tests (Wave 0 Nyquist stub)."""
+
+    def test_resource_graph_version_2_0(self):
+        """GRF-03: ResourceGraph defaults to version 2.0."""
+        graph = ResourceGraph()
+        assert graph.version == "2.0"
+
+    def test_network_finding_valid(self):
+        """CLI-02: NetworkFinding accepts valid fields."""
+        from infracanvas.graph.models import NetworkFinding
+        finding = NetworkFinding(
+            resource_id="aws_security_group.web",
+            protocol="tcp",
+            source_cidr="0.0.0.0/0",
+            dest_cidr="10.0.1.0/24",
+            finding_type="unrestricted_ingress",
+            severity="critical",
+            title="Unrestricted ingress",
+            description="Security group allows unrestricted ingress on tcp",
+        )
+        assert finding.resource_id == "aws_security_group.web"
+        assert finding.protocol == "tcp"
+        assert finding.source_cidr == "0.0.0.0/0"
+        assert finding.dest_cidr == "10.0.1.0/24"
+        assert finding.finding_type == "unrestricted_ingress"
+
+    def test_network_finding_rejects_missing_fields(self):
+        """CLI-02: NetworkFinding requires all mandatory fields."""
+        from infracanvas.graph.models import NetworkFinding
+        import pytest
+        with pytest.raises(Exception):
+            NetworkFinding(resource_id="sg.web")  # missing required fields
+
+
 class TestBuildGraph:
     """B-001 through B-008: Graph builder tests."""
 
