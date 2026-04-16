@@ -10,7 +10,7 @@ import uuid
 import webbrowser
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
@@ -69,8 +69,8 @@ def _should_open_browser() -> bool:
 
 def _run_scan(
     directory: Path,
-    severity_filter: str | None = None,
-    ignore_rules: list[str] | None = None,
+    severity_filter: Optional[str] = None,
+    ignore_rules: Optional[list[str]] = None,
     *,
     allow_empty: bool = False,
     ci: bool = False,
@@ -240,7 +240,7 @@ def scan(
         Path, typer.Argument(help="Directory containing Terraform files")
     ],
     output: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
@@ -252,7 +252,7 @@ def scan(
         typer.Option("--quiet", "-q", help="JSON only to stdout, for CI/CD"),
     ] = False,
     severity: Annotated[
-        str | None,
+        Optional[str],
         typer.Option("--severity", "-s", help="Filter findings by severity"),
     ] = None,
     ci: Annotated[
@@ -267,7 +267,7 @@ def scan(
         typer.Option("--watch", "-w", help="Re-scan on file changes"),
     ] = False,
     ignore: Annotated[
-        list[str] | None,
+        Optional[list[str]],
         typer.Option("--ignore", help="Rule IDs to skip, e.g. --ignore SEC-010"),
     ] = None,
 ) -> None:
@@ -330,9 +330,9 @@ def scan(
 
 def _run_watch(
     directory: Path,
-    output: Path | None,
+    output: Optional[Path],
     fmt: str,
-    severity: str | None,
+    severity: Optional[str],
     ignore_rules: list[str],
     ci: bool,
 ) -> None:
@@ -389,7 +389,7 @@ def serve(
         int, typer.Option("--port", "-p", help="HTTP server port"),
     ] = 8080,
     output: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
 ) -> None:
@@ -494,7 +494,7 @@ def score(
         typer.Option("--format", "-f", help="Output format (terminal, json, html)"),
     ] = "terminal",
     output: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
 ) -> None:
@@ -533,6 +533,13 @@ def score(
     # Terminal output — rich box
     _print_scorecard(card)
 
+    # Always produce infracanvas-score.html alongside terminal output (D-07)
+    score_path = output or Path(config.output_dir) / "infracanvas-score.html"
+    export_scorecard(card, score_path)
+    console.print(f"  Score card saved to: [bold]{score_path}[/bold]")
+    if config.open_browser and _should_open_browser():
+        webbrowser.open(score_path.resolve().as_uri())
+
 
 @app.command()
 def plan(
@@ -544,7 +551,7 @@ def plan(
         typer.Option("--planfile", "-p", help="Terraform plan JSON file"),
     ] = ...,
     output: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
@@ -669,7 +676,7 @@ def export(
         Path, typer.Argument(help="InfraCanvas report JSON file")
     ],
     output: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[

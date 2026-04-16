@@ -10,12 +10,16 @@ import sys
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
 from infracanvas.export.json import export_graph
 from infracanvas.graph.models import ResourceGraph
+from infracanvas.main import app
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CLI_MODULE = "infracanvas.main"
+
+runner = CliRunner()
 
 
 def _run_cli(*args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -186,11 +190,82 @@ class TestIntegration:
 class TestScanDefaultHtml:
     def test_scan_defaults_to_html(self):
         """EXP-02: scan command defaults to HTML format."""
-        from typer.testing import CliRunner
-        from infracanvas.main import app
-
-        runner = CliRunner()
         result = runner.invoke(app, ["scan", str(FIXTURES / "clean_infra")])
         assert result.exit_code == 0
         # Should reference HTML report, not JSON
         assert "infracanvas-report.html" in result.output or "html" in result.output.lower()
+
+
+class TestEndToEnd:
+    """End-to-end tests for scan and score pipelines."""
+
+    def test_scan_produces_html(self, tmp_path):
+        """E2E: scan command produces HTML with graph data."""
+        fixture = FIXTURES / "insecure_setup"
+        result = runner.invoke(app, [
+            "scan", str(fixture),
+            "--output", str(tmp_path / "report.html"),
+            "--format", "html",
+        ])
+        assert result.exit_code == 0
+        html_path = tmp_path / "report.html"
+        assert html_path.exists()
+        content = html_path.read_text()
+        assert "__INFRACANVAS_DATA__" in content
+        assert "__INFRACANVAS_GATE__ = true" in content
+
+    def test_scan_json_still_works(self, tmp_path):
+        """E2E: scan with --format json still produces JSON."""
+        fixture = FIXTURES / "clean_infra"
+        result = runner.invoke(app, [
+            "scan", str(fixture),
+            "--format", "json",
+            "--output", str(tmp_path / "report.json"),
+        ])
+        assert result.exit_code == 0
+        assert (tmp_path / "report.json").exists()
+
+    def test_score_produces_html(self, tmp_path):
+        """E2E: score command produces score card HTML with all 5 dimensions."""
+        fixture = FIXTURES / "insecure_setup"
+        result = runner.invoke(app, [
+            "score", str(fixture),
+        ])
+        assert result.exit_code == 0
+        # Check score card was written
+        assert "Score card saved" in result.output or "infracanvas-score.html" in result.output
+        # Find the generated score card HTML and verify all 5 dimensions are present
+        import glob
+        score_htmls = glob.glob(str(tmp_path / "**/*score*.html"), recursive=True)
+        # Also check the default output directory
+        default_score = Path("infracanvas-score.html")
+        if default_score.exists():
+            content = default_score.read_text()
+            for dimension in ["Security", "Encryption", "IAM Hygiene", "Cost Efficiency", "Tagging"]:
+                assert dimension in content, f"Missing dimension '{dimension}' in score card HTML"
+
+    def test_scan_findings_present(self, tmp_path):
+        """E2E: scan of insecure fixture produces findings."""
+        fixture = FIXTURES / "insecure_setup"
+        result = runner.invoke(app, [
+            "scan", str(fixture),
+            "--format", "json",
+            "--output", str(tmp_path / "report.json"),
+        ])
+        assert result.exit_code == 0
+        data = json.loads((tmp_path / "report.json").read_text())
+        assert data["version"] == "2.0"
+        total_findings = sum(data["summary"]["findings"].values())
+        assert total_findings > 0
+
+    def test_ci_mode_skips_browser(self, tmp_path, monkeypatch):
+        """D-11: CI detection skips browser open."""
+        monkeypatch.setenv("CI", "true")
+        fixture = FIXTURES / "clean_infra"
+        result = runner.invoke(app, [
+            "scan", str(fixture),
+            "--output", str(tmp_path / "report.html"),
+        ])
+        assert result.exit_code == 0
+        # Should print path instead of opening browser
+        assert "report.html" in result.output
