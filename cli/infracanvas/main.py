@@ -85,6 +85,10 @@ def _run_scan(
         out.print("  Run with --verbose for details, or check that this is a valid Terraform directory.")
         raise typer.Exit(code=2)
 
+    if parsed.parse_errors:
+        for path, err in parsed.parse_errors:
+            out.print(f"[yellow]Warning:[/yellow] Could not parse {path.name}: {err}")
+
     # PRS-04: resolve local module sources recursively
     from infracanvas.parser.module import resolve_modules
     resolve_modules(directory, parsed)

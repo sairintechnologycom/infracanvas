@@ -9,21 +9,32 @@ from infracanvas.security.loader import load_rules
 from infracanvas.security.models import SecurityRule
 
 
-def evaluate_all(graph: ResourceGraph) -> ResourceGraph:
-    """Run all security rules against all nodes in the graph."""
+def evaluate_all(
+    graph: ResourceGraph,
+    policy_rules: list[SecurityRule] | None = None,
+) -> ResourceGraph:
+    """Run all security rules (and optional policy rules) against all nodes."""
     rules = load_rules()
 
     for node in graph.nodes:
         for rule in rules:
             if node.type in rule.resource_types:
-                finding = _evaluate_rule(rule, node)
+                finding = _evaluate_rule(rule, node, source="security")
                 if finding:
                     node.findings.append(finding)
+
+    if policy_rules:
+        for node in graph.nodes:
+            for rule in policy_rules:
+                if node.type in rule.resource_types:
+                    finding = _evaluate_rule(rule, node, source="policy")
+                    if finding:
+                        node.findings.append(finding)
 
     return graph
 
 
-def _evaluate_rule(rule: SecurityRule, node: ResourceNode) -> Finding | None:
+def _evaluate_rule(rule: SecurityRule, node: ResourceNode, source: str = "security") -> Finding | None:
     """Evaluate a single rule against a resource node."""
     attrs = node.attributes
     condition = rule.condition
@@ -70,6 +81,8 @@ def _evaluate_rule(rule: SecurityRule, node: ResourceNode) -> Finding | None:
             description=rule.description,
             remediation=rule.remediation,
             evidence={"attribute": attr_name, "value": _sanitize_evidence(evidence_value)},
+            source=source,
+            framework_ids=rule.framework_ids,
         )
     return None
 

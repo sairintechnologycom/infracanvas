@@ -55,7 +55,22 @@ def _load_rules_file(path: Path) -> list[SecurityRule]:
             condition=condition,
             remediation=item.get("remediation", ""),
             description=item.get("description", ""),
+            framework_ids=item.get("framework_ids", []),
         )
         rules.append(rule)
 
+    return rules
+
+
+def load_policy_rules(policy_dir: Path) -> list[SecurityRule]:
+    """Load custom policy rules from user-provided directory.
+
+    Identical to load_rules() — policy YAML uses the same schema.
+    Caller injects source='policy' into resulting Findings at evaluation time.
+    """
+    rules: list[SecurityRule] = []
+    if not policy_dir.is_dir():
+        return rules
+    for yaml_file in sorted(policy_dir.rglob("*.yaml")):
+        rules.extend(_load_rules_file(yaml_file))
     return rules
