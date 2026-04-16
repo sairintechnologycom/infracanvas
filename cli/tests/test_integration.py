@@ -83,6 +83,7 @@ class TestIntegration:
         output_path = tmp_path / "report.json"
         _run_cli(
             "scan", str(FIXTURES / "simple_vpc"),
+            "--format", "json",
             "--output", str(output_path),
             check=False,
         )
@@ -180,3 +181,16 @@ class TestIntegration:
         # Drift buckets
         for status in ["added", "changed", "deleted"]:
             assert status in summary["drift"]
+
+
+class TestScanDefaultHtml:
+    def test_scan_defaults_to_html(self):
+        """EXP-02: scan command defaults to HTML format."""
+        from typer.testing import CliRunner
+        from infracanvas.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", str(FIXTURES / "clean_infra")])
+        assert result.exit_code == 0
+        # Should reference HTML report, not JSON
+        assert "infracanvas-report.html" in result.output or "html" in result.output.lower()

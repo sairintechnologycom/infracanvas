@@ -140,7 +140,7 @@ class TestExportCommand:
     def test_export_json(self, tmp_path):
         # First create a JSON report
         report_path = tmp_path / "report.json"
-        runner.invoke(app, ["scan", str(FIXTURES / "simple_vpc"), "--output", str(report_path)])
+        runner.invoke(app, ["scan", str(FIXTURES / "simple_vpc"), "--format", "json", "--output", str(report_path)])
         # Now export it
         result = runner.invoke(app, ["export", str(report_path), "--format", "json"])
         assert result.exit_code == 0
@@ -148,6 +148,19 @@ class TestExportCommand:
     def test_export_nonexistent_file(self):
         result = runner.invoke(app, ["export", "/nonexistent.json"])
         assert result.exit_code == 1
+
+
+class TestServeCommand:
+    def test_serve_help(self):
+        """CLI-01: serve command exists and shows help."""
+        result = runner.invoke(app, ["serve", "--help"])
+        assert result.exit_code == 0
+        assert "live-reloading" in result.output.lower() or "http" in result.output.lower()
+
+    def test_serve_invalid_directory(self):
+        """CLI-01: serve rejects invalid directory."""
+        result = runner.invoke(app, ["serve", "/nonexistent/path"])
+        assert result.exit_code == 2
 
 
 class TestPlanCommand:

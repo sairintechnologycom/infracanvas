@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import uuid
@@ -54,6 +55,16 @@ def main(
     ] = False,
 ) -> None:
     """InfraCanvas — interactive Terraform architecture diagrams."""
+
+
+def _should_open_browser() -> bool:
+    """Return False when running in CI/headless environment (per D-11)."""
+    ci_env_vars = ["CI", "GITHUB_ACTIONS", "CIRCLECI", "TRAVIS", "JENKINS_URL"]
+    if any(os.environ.get(v) for v in ci_env_vars):
+        return False
+    if not os.environ.get("DISPLAY"):
+        return False
+    return True
 
 
 def _run_scan(
@@ -224,7 +235,7 @@ def scan(
     format: Annotated[
         str,
         typer.Option("--format", "-f", help="Output format (json, html)"),
-    ] = "json",
+    ] = "html",
     quiet: Annotated[
         bool,
         typer.Option("--quiet", "-q", help="JSON only to stdout, for CI/CD"),
@@ -286,10 +297,12 @@ def scan(
     if format == "html":
         out_path = output or Path(config.output_dir) / "infracanvas-report.html"
         try:
-            export_html(graph, out_path)
+            export_html(graph, out_path, gate_mode=True)
             console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-            if config.open_browser:
+            if config.open_browser and _should_open_browser():
                 webbrowser.open(out_path.resolve().as_uri())
+            else:
+                console.print(f"  Report saved: [bold]{out_path}[/bold]")
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
             console.print("  Falling back to JSON output.")
@@ -353,6 +366,110 @@ def _run_watch(
     except KeyboardInterrupt:
         observer.stop()
         console.print("\n[dim]Stopped watching.[/dim]")
+    observer.join()
+
+
+@app.command()
+def serve(
+    directory: Annotated[
+        Path, typer.Argument(help="Directory containing Terraform files")
+    ],
+    port: Annotated[
+        int, typer.Option("--port", "-p", help="HTTP server port"),
+    ] = 8080,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file path"),
+    ] = None,
+) -> None:
+    """Start a local HTTP server with live-reloading diagram. Re-scans on .tf file changes."""
+    import http.server
+    import tempfile
+    import threading
+
+    if not directory.is_dir():
+        console.print(f"[red]Error:[/red] {directory} is not a directory")
+        raise typer.Exit(code=2)
+
+    try:
+        from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
+    except ImportError:
+        console.print("[yellow]Install watchdog for serve: pip install watchdog[/yellow]")
+        raise typer.Exit(1)
+
+    config = load_config(directory)
+
+    # Use a temporary directory for serving, or user-specified output
+    serve_dir = Path(tempfile.mkdtemp(prefix="infracanvas-serve-"))
+    html_path = output or serve_dir / "index.html"
+
+    def _do_scan() -> None:
+        """Run scan pipeline and write HTML."""
+        try:
+            graph = _run_scan(directory, severity_filter=None, ignore_rules=config.ignore_rules, ci=False)
+            export_html(graph, html_path, gate_mode=True)
+            # Append auto-refresh meta tag for live reload
+            content = html_path.read_text()
+            if '<meta http-equiv="refresh"' not in content:
+                content = content.replace(
+                    "</head>",
+                    '<meta http-equiv="refresh" content="2"></head>',
+                )
+                html_path.write_text(content)
+            console.print(f"  [green]Updated:[/green] {html_path.name}")
+        except Exception as exc:
+            console.print(f"  [red]Scan error:[/red] {exc}")
+
+    # Initial scan
+    console.print(f"[cyan]Scanning {directory}...[/cyan]")
+    _do_scan()
+
+    # Start HTTP server bound to localhost only (T-01-11: no external exposure)
+    class QuietHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            super().__init__(*args, directory=str(html_path.parent), **kwargs)
+
+        def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+            pass  # suppress access logs
+
+    server = http.server.HTTPServer(("127.0.0.1", port), QuietHandler)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+
+    url = f"http://127.0.0.1:{port}/{html_path.name}"
+    console.print(f"[bold green]Serving at:[/bold green] {url}")
+
+    if _should_open_browser():
+        webbrowser.open(url)
+
+    # File watcher — re-scans on .tf changes with 1s debounce
+    last_trigger = 0.0
+
+    class TfServeHandler(FileSystemEventHandler):  # type: ignore[misc]
+        def on_modified(self, event) -> None:  # type: ignore[no-untyped-def]
+            nonlocal last_trigger
+            if event.is_directory or not event.src_path.endswith(".tf"):
+                return
+            now = time.time()
+            if now - last_trigger < 1.0:  # 1s debounce for serve
+                return
+            last_trigger = now
+            console.print("\n[cyan]Change detected, re-scanning...[/cyan]")
+            _do_scan()
+
+    observer = Observer()
+    observer.schedule(TfServeHandler(), str(directory), recursive=True)
+    observer.start()
+
+    console.print("[dim]Watching for .tf changes... Press Ctrl+C to stop[/dim]")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+        server.shutdown()
+        console.print("\n[dim]Stopped serving.[/dim]")
     observer.join()
 
 

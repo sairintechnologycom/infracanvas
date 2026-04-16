@@ -11,7 +11,7 @@ TEMPLATE_PATH = Path(__file__).parent / "viewer_template.html"
 PLACEHOLDER = "window.__INFRACANVAS_DATA__ = null;"
 
 
-def export_html(graph: ResourceGraph, output_path: Path) -> None:
+def export_html(graph: ResourceGraph, output_path: Path, gate_mode: bool = True) -> None:
     """Embed graph data into the viewer HTML template and write to output_path."""
     if not TEMPLATE_PATH.exists():
         raise FileNotFoundError(
@@ -21,8 +21,10 @@ def export_html(graph: ResourceGraph, output_path: Path) -> None:
 
     template = TEMPLATE_PATH.read_text()
     graph_json = graph.model_dump_json()
+    gate_js = "true" if gate_mode else "false"
     injected = template.replace(
         PLACEHOLDER,
-        f"window.__INFRACANVAS_DATA__ = {graph_json};",
+        f"window.__INFRACANVAS_DATA__ = {graph_json}; "
+        f"window.__INFRACANVAS_GATE__ = {gate_js};",
     )
     output_path.write_text(injected)
