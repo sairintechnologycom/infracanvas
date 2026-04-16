@@ -81,7 +81,8 @@ const nodeWithFindings: ResourceNode = {
 
 function setupStoreMock(gateMode: boolean) {
   const mockUseStore = vi.mocked(useStore)
-  mockUseStore.mockImplementation((selector: (state: unknown) => unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockUseStore.mockImplementation((selector: (state: any) => unknown) => {
     const state = {
       selectedNode: nodeWithFindings,
       setSelectedNode: mockSetSelectedNode,

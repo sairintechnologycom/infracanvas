@@ -14,6 +14,7 @@ export const driftColors: Record<DriftStatus, string> = {
   added: '#22c55e',
   changed: '#f59e0b',
   deleted: '#ef4444',
+  shadow: '#d97706',
 };
 
 export const edgeColors: Record<string, string> = {

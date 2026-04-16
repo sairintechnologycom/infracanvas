@@ -85,6 +85,10 @@ def _run_scan(
         out.print("  Run with --verbose for details, or check that this is a valid Terraform directory.")
         raise typer.Exit(code=2)
 
+    # PRS-04: resolve local module sources recursively
+    from infracanvas.parser.module import resolve_modules
+    resolve_modules(directory, parsed)
+
     if not allow_empty:
         tf_files = list(directory.glob("*.tf"))
         if not tf_files:
@@ -95,6 +99,13 @@ def _run_scan(
             raise typer.Exit(code=2)
 
     graph = build_graph(parsed)
+
+    # PRS-05: flag shadow resources from .tfstate (state-only resources absent from HCL)
+    state_path = directory / "terraform.tfstate"
+    if state_path.exists():
+        from infracanvas.parser.state import parse_state_file, flag_shadow_resources
+        state = parse_state_file(state_path)
+        flag_shadow_resources(graph, state)
 
     if not allow_empty and len(graph.nodes) == 0:
         out.print(
