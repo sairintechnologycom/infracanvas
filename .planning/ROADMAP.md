@@ -27,8 +27,8 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
   5. A Go/No-Go decision is made: 10 credit cards captured OR 50 strong signals recorded
 **Plans:** 3 plans
 Plans:
-- [ ] 00-01-PLAN.md — Landing page (Next.js static site at infracanvas.dev with Stripe + Typeform CTAs)
-- [ ] 00-02-PLAN.md — Validation content artifacts (post drafts, Typeform spec, tracker, demo script, Go/No-Go framework)
+- [x] 00-01-PLAN.md — Landing page (Next.js static site at infracanvas.dev with Stripe + Typeform CTAs)
+- [x] 00-02-PLAN.md — Validation content artifacts (post drafts, Typeform spec, tracker, demo script, Go/No-Go framework)
 - [ ] 00-03-PLAN.md — External service setup + outreach execution (Stripe, Typeform, Vercel deploy, community posts, customer conversations, Go/No-Go decision)
 
 ### Phase 1: Canvas MVP
