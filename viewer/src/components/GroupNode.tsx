@@ -9,6 +9,7 @@ import {
 const ZONE_BORDER_STYLE: Record<ZoneType, 'solid' | 'dashed'> = {
   internet: 'solid',
   vpc: 'solid',
+  az: 'dashed',
   public_subnet: 'solid',
   private_subnet: 'dashed',
   data_subnet: 'dashed',

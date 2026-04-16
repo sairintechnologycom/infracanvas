@@ -55,6 +55,7 @@ export const EDGE_STYLES: Record<EdgeRelationship, null | {
 export type ZoneType =
   | 'internet'
   | 'vpc'
+  | 'az'
   | 'public_subnet'
   | 'private_subnet'
   | 'data_subnet'
@@ -74,6 +75,11 @@ export const ZONE_COLORS: Record<ZoneType, {
     background: 'rgba(30, 41, 59, 0.60)',
     border: 'rgba(59, 130, 246, 0.35)',
     label: '#60a5fa',
+  },
+  az: {
+    background: 'transparent',
+    border: 'rgba(100, 116, 139, 0.30)',
+    label: '#94a3b8',
   },
   public_subnet: {
     background: 'rgba(34, 197, 94, 0.07)',

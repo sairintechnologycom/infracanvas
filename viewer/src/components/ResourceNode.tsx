@@ -11,101 +11,190 @@ type ResourceNodeProps = NodeProps & {
 
 function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const setSelectedNode = useStore(s => s.setSelectedNode);
-  const graphNodes = useStore(s => s.graph?.nodes);
   const highestSev = getHighestSeverity(data.findings);
   const findingCount = data.findings.length;
   const isShadow = data.drift === 'shadow';
-  const borderColor = isShadow ? '#f59e0b' : (data.drift !== 'unchanged' ? driftColors[data.drift] : (selected ? '#60a5fa' : '#1e293b'));
-  const typeLabel = data.type.replace(/^aws_/, '').replaceAll('_', ' ');
+  const isNew = data.drift === 'added';
+  const isChanged = data.drift === 'changed';
+  const isDeleted = data.drift === 'deleted';
 
-  // Resolve attached security groups from dependencies
-  const securityGroups = (graphNodes ?? []).filter(
-    n => n.type === 'aws_security_group' && data.dependencies.includes(n.id),
-  );
+  const borderColor = selected
+    ? '#60a5fa'
+    : isShadow
+    ? '#f59e0b'
+    : highestSev
+    ? severityColors[highestSev]
+    : isNew
+    ? driftColors.added
+    : isChanged
+    ? driftColors.changed
+    : '#1e293b';
+
+  // e.g. AWS_INSTANCE
+  const typeLabel = data.type.replace(/^aws_/, '').toUpperCase().replaceAll('_', '_');
 
   return (
     <div
-      className="relative cursor-pointer"
       style={{ width: 180 }}
+      className="relative cursor-pointer"
       onClick={() => setSelectedNode(data)}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-500 !border-slate-600 !w-2 !h-2" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-slate-500 !border-slate-600 !w-2 !h-2"
+      />
 
       <div
-        className="rounded-lg p-3 transition-all duration-150"
         style={{
-          background: 'rgba(15, 23, 42, 0.95)',
+          background: 'rgba(15, 23, 42, 0.97)',
           border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
-          boxShadow: selected ? `0 0 12px ${borderColor}40` : '0 1px 3px rgba(0,0,0,0.4)',
-          opacity: data.drift === 'deleted' ? 0.5 : 1,
+          borderRadius: 8,
+          padding: '9px 11px 8px',
+          opacity: isDeleted ? 0.45 : 1,
+          boxShadow: selected
+            ? `0 0 12px ${borderColor}50`
+            : '0 1px 4px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Finding badge */}
-        {findingCount > 0 && highestSev && (
-          <div
-            className="absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold text-white"
+        {/* Header: type label + icon */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 5,
+          }}
+        >
+          <span
             style={{
-              width: 20, height: 20,
-              background: severityColors[highestSev],
-              boxShadow: `0 0 6px ${severityColors[highestSev]}80`,
+              fontSize: 9,
+              fontFamily: 'ui-monospace, monospace',
+              color: '#475569',
+              letterSpacing: '0.04em',
+              fontWeight: 600,
             }}
           >
-            {findingCount}
-          </div>
-        )}
-
-        {/* Icon + name + type */}
-        <div className="flex items-start gap-2">
-          <div style={{
-            width: 32, height: 32,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <AwsIcon resourceType={data.type} size={28} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div
-              className="text-xs font-medium truncate"
-              style={{ fontFamily: 'var(--font-mono)', color: '#e2e8f0' }}
-              title={data.id}
-            >
-              {data.name}
-            </div>
-            <div className="text-[10px]" style={{ color: '#64748b' }}>
-              {typeLabel}
-            </div>
-          </div>
+            {typeLabel}
+          </span>
+          <AwsIcon resourceType={data.type} size={22} />
         </div>
 
-        {/* Security group badges */}
-        {securityGroups.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-            {securityGroups.map(sg => (
-              <span key={sg.id} style={{
-                fontSize: 9, padding: '1px 6px', borderRadius: 3,
-                background: 'rgba(239,68,68,0.15)', color: '#f87171',
-                border: '0.5px solid rgba(239,68,68,0.3)',
-              }}>
-                {'\u{1F6E1}'} {sg.name}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Resource name */}
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            fontFamily: 'ui-monospace, monospace',
+            color: '#e2e8f0',
+            lineHeight: 1.2,
+            marginBottom: 8,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={data.id}
+        >
+          {data.name}
+        </div>
 
-        {/* Cost label */}
-        {data.cost.monthly_usd > 0 && (
-          <div className="text-[10px] mt-1 text-right" style={{ color: '#94a3b8' }}>
-            ${data.cost.monthly_usd.toFixed(0)}/mo
+        {/* Footer: cost + drift badge + finding badge */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {data.cost.monthly_usd > 0 && (
+              <span style={{ fontSize: 10, color: '#64748b' }}>
+                ${data.cost.monthly_usd.toFixed(0)}/mo
+              </span>
+            )}
+            {isNew && (
+              <span
+                style={{
+                  fontSize: 8,
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: 'rgba(34,197,94,0.15)',
+                  color: '#4ade80',
+                  fontWeight: 700,
+                  border: '0.5px solid rgba(34,197,94,0.3)',
+                }}
+              >
+                +NEW
+              </span>
+            )}
+            {isChanged && (
+              <span
+                style={{
+                  fontSize: 8,
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: 'rgba(245,158,11,0.15)',
+                  color: '#fbbf24',
+                  fontWeight: 700,
+                  border: '0.5px solid rgba(245,158,11,0.3)',
+                }}
+              >
+                ~CHG
+              </span>
+            )}
           </div>
-        )}
+
+          {/* Finding badge or clean check */}
+          {findingCount > 0 && highestSev ? (
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: severityColors[highestSev],
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                fontWeight: 800,
+                color: 'white',
+                flexShrink: 0,
+                boxShadow: `0 0 6px ${severityColors[highestSev]}60`,
+              }}
+            >
+              {findingCount}
+            </div>
+          ) : (
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 5,
+                background: 'rgba(34,197,94,0.12)',
+                border: '1px solid rgba(34,197,94,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                color: '#4ade80',
+                flexShrink: 0,
+              }}
+            >
+              ✓
+            </div>
+          )}
+        </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-500 !border-slate-600 !w-2 !h-2" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-slate-500 !border-slate-600 !w-2 !h-2"
+      />
 
-      {/* Shadow badge */}
       {isShadow && (
-        <div className="text-center mt-0.5" style={{ fontSize: 9, color: '#f59e0b' }}>
-          Shadow
+        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#f59e0b' }}>
+          shadow
         </div>
       )}
     </div>

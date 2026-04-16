@@ -5,251 +5,331 @@ import type { ZoneType } from './colors';
 
 // Layout constants
 const NODE_W = 180;
-const NODE_H = 72;
-const GAP_X = 24;
-const TIER_PAD = 24;
-const LABEL_H = 36;
-const ZONE_GAP = 40;
-const VPC_PAD = 24;
+const NODE_H = 84;
+const NODE_GAP = 20;
+
+const SUBNET_PAD = 16;
+const SUBNET_LABEL_H = 32;
+const SUBNET_GAP = 20;
+const MIN_SUBNET_W = 220;
+
+const AZ_PAD = 16;
+const AZ_LABEL_H = 28;
+const AZ_GAP = 24;
+
+const VPC_PAD = 20;
 const VPC_LABEL_H = 40;
-const EMPTY_ZONE_H = 64;
 
-// --- Tier classification ---
+const INTERNET_PAD = 16;
+const INTERNET_LABEL_H = 32;
+const INTERNET_GAP = 32;
 
-type Tier = 'internet' | 'public' | 'private' | 'data' | 'regional';
+const REG_PAD = 16;
+const REG_LABEL_H = 32;
+const REG_COLS = 2;
+const REG_ROW_GAP = 16;
+const VPC_REG_GAP = 36;
 
-const RESOURCE_TIER: Record<string, Tier> = {
-  // Internet/Edge
-  aws_internet_gateway: 'internet',
-  aws_cloudfront_distribution: 'internet',
-  aws_route53_zone: 'internet',
-  aws_route53_record: 'internet',
-  aws_waf_web_acl: 'internet',
-  // Public subnet tier
-  aws_alb: 'public',
-  aws_lb: 'public',
-  aws_nat_gateway: 'public',
-  aws_eip: 'public',
-  // Private subnet tier (compute)
-  aws_instance: 'private',
-  aws_autoscaling_group: 'private',
-  aws_ecs_service: 'private',
-  aws_ecs_cluster: 'private',
-  aws_ecs_task_definition: 'private',
-  aws_eks_cluster: 'private',
-  aws_eks_node_group: 'private',
-  // Data tier
-  aws_db_instance: 'data',
-  aws_rds_instance: 'data',
-  aws_rds_cluster: 'data',
-  aws_elasticache_cluster: 'data',
-  aws_elasticache_replication_group: 'data',
-  aws_redshift_cluster: 'data',
-  // Regional services
-  aws_s3_bucket: 'regional',
-  aws_dynamodb_table: 'regional',
-  aws_sqs_queue: 'regional',
-  aws_sns_topic: 'regional',
-  aws_kms_key: 'regional',
-  aws_iam_role: 'regional',
-  aws_iam_policy: 'regional',
-  aws_iam_instance_profile: 'regional',
-  aws_cloudwatch_log_group: 'regional',
-  aws_cloudwatch_metric_alarm: 'regional',
-  aws_secretsmanager_secret: 'regional',
-  aws_ssm_parameter: 'regional',
-};
-
-// Resources suppressed from node rendering — represented by zone containers or badges
+// Suppressed: become zone containers, not nodes
 const SUPPRESS_AS_NODE = new Set([
   'aws_vpc',
   'aws_subnet',
-  'aws_security_group',
   'aws_network_acl',
   'aws_vpc_dhcp_options',
   'aws_route_table',
   'aws_vpc_endpoint',
 ]);
 
-// Determine tier for compute resources based on their subnet reference
-function getComputeTier(node: ResourceNodeData, allNodes: ResourceNodeData[]): Tier {
-  const subnetRef = node.attributes?.subnet_id as string | undefined;
-  if (subnetRef) {
-    const subnet = allNodes.find(n => n.id === subnetRef || subnetRef.includes(n.name));
-    if (subnet) {
-      if (subnet.name?.includes('public') || subnet.attributes?.map_public_ip_on_launch) {
-        return 'public';
-      }
-      return 'private';
-    }
+const INTERNET_TYPES = new Set([
+  'aws_internet_gateway',
+  'aws_cloudfront_distribution',
+  'aws_route53_zone',
+  'aws_route53_record',
+  'aws_waf_web_acl',
+]);
+
+const REGIONAL_TYPES = new Set([
+  'aws_s3_bucket',
+  'aws_dynamodb_table',
+  'aws_sqs_queue',
+  'aws_sns_topic',
+  'aws_kms_key',
+  'aws_iam_role',
+  'aws_iam_policy',
+  'aws_iam_instance_profile',
+  'aws_cloudwatch_log_group',
+  'aws_cloudwatch_metric_alarm',
+  'aws_secretsmanager_secret',
+  'aws_ssm_parameter',
+]);
+
+// Resources that live inside subnets
+const SUBNET_PLACED_TYPES = new Set([
+  'aws_instance', 'aws_autoscaling_group',
+  'aws_ecs_service', 'aws_ecs_cluster', 'aws_ecs_task_definition',
+  'aws_eks_cluster', 'aws_eks_node_group',
+  'aws_lb', 'aws_alb',
+  'aws_nat_gateway', 'aws_eip',
+  'aws_db_instance', 'aws_rds_instance', 'aws_rds_cluster',
+  'aws_elasticache_cluster', 'aws_elasticache_replication_group',
+  'aws_redshift_cluster',
+  'aws_security_group',
+  'aws_lambda_function',
+]);
+
+function resolveSubnetRef(ref: string, subnetNodes: ResourceNodeData[]): ResourceNodeData | null {
+  for (const s of subnetNodes) {
+    if (s.id === ref || ref.includes(s.name) || ref.includes(s.id)) return s;
   }
-  return 'private';
+  return null;
 }
 
-function getResourceTier(node: ResourceNodeData, allNodes: ResourceNodeData[]): Tier {
-  // Compute resources: check subnet reference for tier placement
-  if (['aws_instance', 'aws_ecs_service', 'aws_ecs_task_definition'].includes(node.type)) {
-    return getComputeTier(node, allNodes);
-  }
-  if (node.type === 'aws_lambda_function') {
-    const vpc = node.attributes?.vpc_config;
-    const hasVpcConfig = vpc && typeof vpc === 'object' && Object.keys(vpc as object).length > 0;
-    return hasVpcConfig ? 'private' : 'regional';
-  }
-  return RESOURCE_TIER[node.type] ?? 'private';
+function getNodeSubnet(node: ResourceNodeData, subnetNodes: ResourceNodeData[]): ResourceNodeData | null {
+  const subnetId = node.attributes?.subnet_id as string | undefined;
+  if (subnetId) return resolveSubnetRef(subnetId, subnetNodes);
+
+  const subnets = node.attributes?.subnets as string[] | undefined;
+  if (subnets?.length) return resolveSubnetRef(subnets[0], subnetNodes);
+
+  return null;
 }
 
-function tierToZone(tier: Tier): ZoneType {
-  switch (tier) {
-    case 'internet': return 'internet';
-    case 'public': return 'public_subnet';
-    case 'private': return 'private_subnet';
-    case 'data': return 'data_subnet';
-    case 'regional': return 'regional';
-  }
+function getSubnetAZ(subnet: ResourceNodeData): string | null {
+  return (subnet.attributes?.availability_zone as string) ?? null;
 }
 
-const TIER_LABELS: Record<Tier, string> = {
-  internet: 'Internet / Edge',
-  public: 'Public Tier',
-  private: 'Private Tier',
-  data: 'Data Tier',
-  regional: 'Regional Services (AWS)',
-};
+function isPublicSubnet(subnet: ResourceNodeData): boolean {
+  return !!(subnet.attributes?.map_public_ip_on_launch) ||
+    subnet.name?.toLowerCase().includes('public') ||
+    (subnet.attributes?.tags as Record<string, string>)?.Tier?.toLowerCase() === 'public';
+}
 
-const TIER_CHIPS: Partial<Record<Tier, string>> = {
-  public: '\uD83C\uDF10 public \u00b7 internet-facing',
-  private: '\uD83D\uDD12 private \u00b7 no public IP',
-  data: '\uD83D\uDDC4 data \u00b7 isolated',
-};
-
-// --- Main layout function ---
+// --- Main layout ---
 
 export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges: Edge[] } {
-  // Suppress VPC-structural nodes — represented by zone containers/badges
   const suppressedIds = new Set<string>();
+  for (const n of graph.nodes) {
+    if (SUPPRESS_AS_NODE.has(n.type)) suppressedIds.add(n.id);
+  }
+
+  const subnetNodes = graph.nodes.filter(n => n.type === 'aws_subnet');
+  const vpcNode = graph.nodes.find(n => n.type === 'aws_vpc');
+
+  // Categorise
+  const internetNodes: ResourceNodeData[] = [];
+  const regionalNodes: ResourceNodeData[] = [];
+  const subnetCandidates: ResourceNodeData[] = [];
+
   for (const node of graph.nodes) {
-    if (SUPPRESS_AS_NODE.has(node.type)) {
-      suppressedIds.add(node.id);
+    if (suppressedIds.has(node.id)) continue;
+    if (INTERNET_TYPES.has(node.type)) {
+      internetNodes.push(node);
+    } else if (REGIONAL_TYPES.has(node.type)) {
+      // Lambda with VPC config goes into subnet instead
+      if (node.type === 'aws_lambda_function') {
+        const vpc = node.attributes?.vpc_config as Record<string, unknown> | undefined;
+        if (vpc && Object.keys(vpc).length > 0) { subnetCandidates.push(node); continue; }
+      }
+      regionalNodes.push(node);
+    } else if (SUBNET_PLACED_TYPES.has(node.type)) {
+      subnetCandidates.push(node);
+    } else {
+      regionalNodes.push(node); // fallback
     }
   }
 
-  // Find VPC node for label
-  const vpcNode = graph.nodes.find(n => n.type === 'aws_vpc');
-  const vpcLabel = vpcNode ? vpcNode.id : 'VPC';
+  // Assign subnet candidates — two passes so SGs can use consumer placements
+  const resourceToSubnet = new Map<string, ResourceNodeData>();
+  const subnetToResources = new Map<string, ResourceNodeData[]>();
+  const unplaced: ResourceNodeData[] = [];
 
-  // Find subnet metadata for CIDR display
-  const subnetNodes = graph.nodes.filter(n => n.type === 'aws_subnet');
-  const publicSubnet = subnetNodes.find(n =>
-    n.name?.includes('public') || n.group?.includes('public')
-  );
-  const privateSubnet = subnetNodes.find(n =>
-    n.name?.includes('private') || n.group?.includes('private')
-  );
-
-  // Filter to renderable nodes (exclude suppressed structural types)
-  const renderableNodes = graph.nodes.filter(n => !suppressedIds.has(n.id));
-
-  // Classify renderable nodes into tiers
-  const tiered: Record<Tier, ResourceNodeData[]> = {
-    internet: [], public: [], private: [], data: [], regional: [],
-  };
-  for (const node of renderableNodes) {
-    tiered[getResourceTier(node, graph.nodes)].push(node);
+  // Pass 1: non-SG resources with direct subnet_id / subnets attr
+  for (const node of subnetCandidates) {
+    if (node.type === 'aws_security_group') continue;
+    const subnet = getNodeSubnet(node, subnetNodes);
+    if (subnet) {
+      resourceToSubnet.set(node.id, subnet);
+      if (!subnetToResources.has(subnet.id)) subnetToResources.set(subnet.id, []);
+      subnetToResources.get(subnet.id)!.push(node);
+    } else {
+      unplaced.push(node);
+    }
   }
 
-  // --- Position calculation ---
+  // Pass 2: security groups — place with their primary consumer
+  for (const node of subnetCandidates) {
+    if (node.type !== 'aws_security_group') continue;
+    let placed = false;
+    for (const candidate of subnetCandidates) {
+      if (candidate.type === 'aws_security_group') continue;
+      if (!resourceToSubnet.has(candidate.id)) continue;
+      const sgIds = (candidate.attributes?.vpc_security_group_ids as string[] | undefined) ?? [];
+      const sgRefs = (candidate.attributes?.security_groups as string[] | undefined) ?? [];
+      const refs = [...sgIds, ...sgRefs];
+      if (refs.some(r => r.includes(node.name) || r.includes(node.id))) {
+        const subnet = resourceToSubnet.get(candidate.id)!;
+        resourceToSubnet.set(node.id, subnet);
+        if (!subnetToResources.has(subnet.id)) subnetToResources.set(subnet.id, []);
+        subnetToResources.get(subnet.id)!.push(node);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      // Place in first available subnet or regional
+      if (subnetNodes.length > 0) {
+        const firstSubnet = subnetNodes[0];
+        resourceToSubnet.set(node.id, firstSubnet);
+        if (!subnetToResources.has(firstSubnet.id)) subnetToResources.set(firstSubnet.id, []);
+        subnetToResources.get(firstSubnet.id)!.push(node);
+      } else {
+        unplaced.push(node);
+      }
+    }
+  }
+
+  regionalNodes.push(...unplaced);
+
+  // Group subnets by AZ
+  const azToSubnets = new Map<string, ResourceNodeData[]>();
+  const hasAZ = subnetNodes.some(s => getSubnetAZ(s) !== null);
+  for (const s of subnetNodes) {
+    const az = getSubnetAZ(s) ?? 'default';
+    if (!azToSubnets.has(az)) azToSubnets.set(az, []);
+    azToSubnets.get(az)!.push(s);
+  }
+
+  // --- Size calculations (bottom-up) ---
+
+  type SubnetLayout = { subnet: ResourceNodeData; resources: ResourceNodeData[]; w: number; h: number };
+  type AZLayout = { az: string; subnets: SubnetLayout[]; w: number; h: number };
+
+  const azLayouts: AZLayout[] = [];
+
+  for (const [az, subnets] of azToSubnets) {
+    const subnetLayouts: SubnetLayout[] = [];
+    for (const subnet of subnets) {
+      const resources = subnetToResources.get(subnet.id) ?? [];
+      const n = Math.max(resources.length, 1);
+      const sw = Math.max(n * (NODE_W + NODE_GAP) - NODE_GAP + 2 * SUBNET_PAD, MIN_SUBNET_W);
+      const sh = SUBNET_LABEL_H + SUBNET_PAD + NODE_H + SUBNET_PAD;
+      subnetLayouts.push({ subnet, resources, w: sw, h: sh });
+    }
+    const totalSubnetW = subnetLayouts.reduce((a, s) => a + s.w, 0) +
+      Math.max(0, subnetLayouts.length - 1) * SUBNET_GAP;
+    const maxSubnetH = Math.max(...subnetLayouts.map(s => s.h));
+
+    const useAZContainer = hasAZ && az !== 'default';
+    const azW = useAZContainer ? totalSubnetW + 2 * AZ_PAD : totalSubnetW;
+    const azH = useAZContainer ? AZ_LABEL_H + AZ_PAD + maxSubnetH + AZ_PAD : maxSubnetH;
+
+    azLayouts.push({ az, subnets: subnetLayouts, w: azW, h: azH });
+  }
+
+  const totalAZW = azLayouts.reduce((a, l) => a + l.w, 0) +
+    Math.max(0, azLayouts.length - 1) * AZ_GAP;
+  const maxAZH = azLayouts.length > 0 ? Math.max(...azLayouts.map(l => l.h)) : 0;
+
+  const vpcContentW = subnetNodes.length > 0
+    ? totalAZW + 2 * VPC_PAD
+    : 400;
+  const vpcContentH = subnetNodes.length > 0
+    ? VPC_LABEL_H + VPC_PAD + maxAZH + VPC_PAD
+    : 200;
+
+  // --- Render ---
   const flowNodes: Node[] = [];
   const startX = 40;
   let currentY = 40;
 
-  function rowWidth(count: number): number {
-    return Math.max(count * (NODE_W + GAP_X) - GAP_X + 2 * TIER_PAD, 400);
-  }
-  const singleTierH = NODE_H + 2 * TIER_PAD + LABEL_H;
-
-  // Internet zone (above VPC, standalone)
-  if (tiered.internet.length > 0) {
-    const w = rowWidth(tiered.internet.length);
-    flowNodes.push(makeZone('zone-internet', 'Internet / Edge', 'internet', startX, currentY, w, singleTierH));
-    tiered.internet.forEach((n, i) => {
-      flowNodes.push(makeResource(n, TIER_PAD + i * (NODE_W + GAP_X), LABEL_H + TIER_PAD, 'zone-internet'));
+  // 1. Internet zone
+  if (internetNodes.length > 0) {
+    const iW = Math.max(
+      internetNodes.length * (NODE_W + NODE_GAP) - NODE_GAP + 2 * INTERNET_PAD,
+      300,
+    );
+    const iH = INTERNET_LABEL_H + INTERNET_PAD + NODE_H + INTERNET_PAD;
+    flowNodes.push(makeZone('zone-internet', 'Internet / Edge', 'internet', startX, currentY, iW, iH));
+    internetNodes.forEach((n, i) => {
+      flowNodes.push(makeResource(n, INTERNET_PAD + i * (NODE_W + NODE_GAP), INTERNET_LABEL_H + INTERNET_PAD, 'zone-internet'));
     });
-    currentY += singleTierH + ZONE_GAP;
+    currentY += iH + INTERNET_GAP;
   }
-
-  // VPC container with nested tier zones — always render all three tiers
-  const vpcTiers: Tier[] = ['public', 'private', 'data'];
-
-  // Calculate max tier width across all tiers (including empty ones for uniform sizing)
-  const populatedTierWidths = vpcTiers
-    .filter(t => tiered[t].length > 0)
-    .map(t => rowWidth(tiered[t].length));
-  const maxTierW = populatedTierWidths.length > 0
-    ? Math.max(...populatedTierWidths, 400)
-    : 400;
-  const vpcContentW = maxTierW + 2 * VPC_PAD;
-
-  // Calculate VPC height — always render all three tier zones
-  let vpcInnerY = VPC_LABEL_H;
-  const tierLayout: { tier: Tier; relY: number; isEmpty: boolean }[] = [];
-  for (const tier of vpcTiers) {
-    tierLayout.push({ tier, relY: vpcInnerY, isEmpty: tiered[tier].length === 0 });
-    const zoneH = tiered[tier].length === 0 ? EMPTY_ZONE_H : singleTierH;
-    vpcInnerY += zoneH + ZONE_GAP;
-  }
-  const vpcH = vpcInnerY - ZONE_GAP + VPC_PAD + 40;
 
   const vpcStartY = currentY;
 
-  // VPC outer group
-  flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcH));
+  // 2. VPC + AZ + subnet zones
+  const vpcLabel = vpcNode
+    ? `${vpcNode.name} · ${(vpcNode.attributes?.cidr_block as string) ?? ''}`
+    : 'VPC';
+  flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcContentH));
 
-  // Tier zones inside VPC — always rendered, even if empty
-  for (const { tier, relY, isEmpty } of tierLayout) {
-    const zoneId = `zone-${tier}`;
-    const zoneH = isEmpty ? EMPTY_ZONE_H : singleTierH;
-    const cidr = tier === 'public'
-      ? (publicSubnet?.attributes?.cidr_block as string | undefined)
-      : tier === 'private' || tier === 'data'
-        ? (privateSubnet?.attributes?.cidr_block as string | undefined)
-        : undefined;
+  let azX = VPC_PAD;
+  const azBaseY = VPC_LABEL_H;
+  const useAZContainers = hasAZ;
 
-    flowNodes.push(makeZone(
-      zoneId, TIER_LABELS[tier], tierToZone(tier),
-      VPC_PAD, relY, maxTierW, zoneH,
-      'zone-vpc', TIER_CHIPS[tier], cidr,
-    ));
+  for (const azLayout of azLayouts) {
+    const useAZContainer = useAZContainers && azLayout.az !== 'default';
+    let subnetParent: string;
+    let subnetOffsetX: number;
+    let subnetOffsetY: number;
 
-    tiered[tier].forEach((n, i) => {
-      flowNodes.push(makeResource(n, TIER_PAD + i * (NODE_W + GAP_X), LABEL_H + TIER_PAD, zoneId));
-    });
+    if (useAZContainer) {
+      const azId = `zone-az-${azLayout.az.replace(/[^a-z0-9]/gi, '-')}`;
+      flowNodes.push(makeZone(azId, `AZ: ${azLayout.az}`, 'az', azX, azBaseY, azLayout.w, azLayout.h, 'zone-vpc'));
+      subnetParent = azId;
+      subnetOffsetX = AZ_PAD;
+      subnetOffsetY = AZ_LABEL_H;
+    } else {
+      subnetParent = 'zone-vpc';
+      subnetOffsetX = azX;
+      subnetOffsetY = azBaseY;
+    }
+
+    let sX = subnetOffsetX;
+
+    for (const sl of azLayout.subnets) {
+      const subnetId = `zone-subnet-${sl.subnet.id.replace(/[^a-z0-9]/gi, '-')}`;
+      const cidr = sl.subnet.attributes?.cidr_block as string | undefined;
+      const shortCidr = cidr ? `/${cidr.split('/')[1]}` : '';
+      const subnetLabel = `${sl.subnet.name}${shortCidr ? ` · ${shortCidr}` : ''}`;
+      const zType: ZoneType = isPublicSubnet(sl.subnet) ? 'public_subnet' : 'private_subnet';
+
+      flowNodes.push(makeZone(subnetId, subnetLabel, zType, sX, subnetOffsetY, sl.w, sl.h, subnetParent));
+
+      sl.resources.forEach((n, i) => {
+        flowNodes.push(makeResource(n, SUBNET_PAD + i * (NODE_W + NODE_GAP), SUBNET_LABEL_H + SUBNET_PAD / 2, subnetId));
+      });
+
+      sX += sl.w + SUBNET_GAP;
+    }
+
+    azX += azLayout.w + AZ_GAP;
   }
 
-  // Regional Services (right column, aligned with VPC top)
-  if (tiered.regional.length > 0) {
-    const cols = 2;
-    const rows = Math.ceil(tiered.regional.length / cols);
-    const regW = cols * (NODE_W + GAP_X) - GAP_X + 2 * TIER_PAD;
-    const regRowGap = 56;
-    const regH = rows * (NODE_H + regRowGap) - regRowGap + 2 * TIER_PAD + LABEL_H;
-    const regX = startX + vpcContentW + ZONE_GAP;
+  // 3. Regional services (right of VPC)
+  if (regionalNodes.length > 0) {
+    const cols = REG_COLS;
+    const rows = Math.ceil(regionalNodes.length / cols);
+    const regW = cols * (NODE_W + NODE_GAP) - NODE_GAP + 2 * REG_PAD;
+    const regH = REG_LABEL_H + REG_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + REG_PAD;
+    const regX = startX + vpcContentW + VPC_REG_GAP;
 
     flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regX, vpcStartY, regW, regH));
 
-    tiered.regional.forEach((n, i) => {
+    regionalNodes.forEach((n, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       flowNodes.push(makeResource(
         n,
-        TIER_PAD + col * (NODE_W + GAP_X),
-        LABEL_H + TIER_PAD + row * (NODE_H + regRowGap),
+        REG_PAD + col * (NODE_W + NODE_GAP),
+        REG_LABEL_H + REG_PAD + row * (NODE_H + REG_ROW_GAP),
         'zone-regional',
       ));
     });
   }
 
-  // Build edges
+  // 4. Edges
   const flowEdges = buildEdges(graph.edges, graph.nodes, suppressedIds);
 
   return { nodes: flowNodes, edges: flowEdges };
@@ -266,14 +346,12 @@ function makeZone(
   width: number,
   height: number,
   parentId?: string,
-  chip?: string,
-  cidr?: string,
 ): Node {
   const node: Node = {
     id,
     type: 'group',
     position: { x, y },
-    data: { label, zoneType, chip, cidr },
+    data: { label, zoneType },
     style: { width, height },
     draggable: true,
     selectable: false,
@@ -285,12 +363,7 @@ function makeZone(
   return node;
 }
 
-function makeResource(
-  data: ResourceNodeData,
-  x: number,
-  y: number,
-  parentId: string,
-): Node {
+function makeResource(data: ResourceNodeData, x: number, y: number, parentId: string): Node {
   return {
     id: data.id,
     type: 'resource',
@@ -314,86 +387,58 @@ function buildEdges(
   let idx = 0;
 
   for (const edge of deduped) {
+    // Skip if either endpoint is a suppressed structural node (VPC/subnet)
     if (suppressedIds.has(edge.source) || suppressedIds.has(edge.target)) continue;
 
     const source = nodes.find(n => n.id === edge.source);
     const target = nodes.find(n => n.id === edge.target);
     if (!source || !target) continue;
 
-    const sourceTier = getResourceTier(source, nodes);
-    const targetTier = getResourceTier(target, nodes);
-    const style = getEdgeStyle(source, target, sourceTier, targetTier);
-    if (!style) continue;
-
     result.push({
       id: `e-${idx++}`,
       source: edge.source,
       target: edge.target,
       type: 'smoothstep',
-      ...style,
+      ...getEdgeStyle(source, target),
     });
   }
 
   return result;
 }
 
-function getEdgeStyle(
-  source: ResourceNodeData,
-  target: ResourceNodeData,
-  sourceTier: Tier,
-  targetTier: Tier,
-): Partial<Edge> | null {
-  // Security group relationships (check first — takes priority)
+function getEdgeStyle(source: ResourceNodeData, target: ResourceNodeData): Partial<Edge> {
+  // Security group attachment
   if (source.type === 'aws_security_group' || target.type === 'aws_security_group') {
     return {
       style: { stroke: '#ef4444', strokeWidth: 1, strokeDasharray: '3 2' },
-      label: 'attached',
+      label: 'sg',
       labelStyle: { fontSize: 9, fill: '#ef4444' } as React.CSSProperties,
       labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
       labelBgPadding: [3, 1] as [number, number],
     };
   }
 
-  // Traffic flow: adjacent VPC tiers (internet→public→private→data)
-  const tierOrder: Tier[] = ['internet', 'public', 'private', 'data'];
-  const si = tierOrder.indexOf(sourceTier);
-  const ti = tierOrder.indexOf(targetTier);
-  if (si >= 0 && ti >= 0 && ti === si + 1) {
+  // Access to regional services
+  if (REGIONAL_TYPES.has(target.type)) {
     return {
-      style: { stroke: '#334155', strokeWidth: 1.5 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#475569', width: 16, height: 16 },
+      style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '5 4' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6', width: 14, height: 14 },
     };
   }
 
-  // Access to regional services
-  if (targetTier === 'regional') {
+  // IGW / internet traffic
+  if (INTERNET_TYPES.has(source.type) || INTERNET_TYPES.has(target.type)) {
     return {
-      style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '5 4' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6', width: 16, height: 16 },
-      label: getAccessLabel(target),
-      labelStyle: { fontSize: 10, fill: '#475569' } as React.CSSProperties,
-      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
-      labelBgPadding: [4, 2] as [number, number],
+      style: { stroke: '#475569', strokeWidth: 1.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b', width: 14, height: 14 },
     };
   }
 
   // Default dependency
   return {
     style: { stroke: '#1e293b', strokeWidth: 1, strokeDasharray: '4 3' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#334155', width: 16, height: 16 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#334155', width: 14, height: 14 },
   };
-}
-
-function getAccessLabel(target: ResourceNodeData): string {
-  if (target.type === 'aws_kms_key') return 'encrypts with';
-  if (target.type === 'aws_iam_role') return 'assumes';
-  if (target.type === 'aws_iam_policy') return 'grants';
-  if (target.type === 'aws_sqs_queue') return 'publishes to';
-  if (target.type === 'aws_sns_topic') return 'publishes to';
-  if (target.type === 'aws_s3_bucket') return 'reads/writes';
-  if (target.type === 'aws_dynamodb_table') return 'queries';
-  if (target.type === 'aws_secretsmanager_secret') return 'reads secret';
-  return 'accesses';
 }
 
 function deduplicateEdges(edges: GraphEdge[]): GraphEdge[] {
