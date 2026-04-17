@@ -85,7 +85,7 @@ export function DiagramCanvas() {
   }, [fitView]);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" style={{ background: '#FAFBFC' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -97,22 +97,22 @@ export function DiagramCanvas() {
         defaultEdgeOptions={{
           type: 'smoothstep',
         }}
-        connectionLineStyle={{ stroke: '#4a5568', strokeWidth: 1 }}
+        connectionLineStyle={{ stroke: '#94A3B8', strokeWidth: 1 }}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.04)" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="#DDE2E8" />
         <Controls position="bottom-left" showInteractive={false} />
         <MiniMap
           position="bottom-right"
           nodeColor={(node) => {
-            if (node.type === 'group') return 'transparent';
-            return '#252d3d';
+            if (node.type === 'group') return 'rgba(148,163,184,0.2)';
+            return '#CBD5E1';
           }}
-          maskColor="rgba(0,0,0,0.6)"
+          maskColor="rgba(255,255,255,0.6)"
           pannable
           zoomable
         />
@@ -123,7 +123,7 @@ export function DiagramCanvas() {
         <button
           onClick={handleFitView}
           className="text-[10px] px-2 py-1 rounded cursor-pointer"
-          style={{ background: '#161b27', border: '1px solid #252d3d', color: '#4a5568' }}
+          style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#475569' }}
         >
           Fit View
         </button>
