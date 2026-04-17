@@ -35,20 +35,21 @@ export function SummaryBar() {
 
   return (
     <div
-      className="flex items-center gap-4 px-4 shrink-0 z-20"
+      className="flex items-center gap-5 px-5 shrink-0 z-20"
       style={{
-        background: '#161b27',
-        borderBottom: '1px solid #252d3d',
-        height: 44,
+        background: 'linear-gradient(180deg, #0f1419 0%, #1a202c 100%)',
+        borderBottom: '1.5px solid #252d3d',
+        height: 48,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
       {/* Project name */}
-      <div className="flex items-center gap-2">
-        <Box size={15} color="#60a5fa" />
-        <span className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
+      <div className="flex items-center gap-2.5">
+        <Box size={16} color="#60a5fa" />
+        <span className="text-sm font-bold" style={{ color: '#f1f5f9' }}>
           {metadata.project}
         </span>
-        <span className="text-[10px]" style={{ color: '#4a5568' }}>
+        <span className="text-xs" style={{ color: '#64748b', fontWeight: 500 }}>
           {scanDate}
         </span>
       </div>
@@ -58,24 +59,25 @@ export function SummaryBar() {
 
       {/* Score badge */}
       <div
-        className="flex items-center gap-1.5 px-2 py-0.5 rounded"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all"
         style={{
           background: scoreBg,
-          border: `1px solid ${scoreBorder}`,
+          border: `1.5px solid ${scoreBorder}`,
+          boxShadow: `0 2px 8px ${scoreBg}`,
         }}
       >
-        <Shield size={13} color={scoreColor} />
+        <Shield size={14} color={scoreColor} />
         <span className="text-sm font-bold" style={{ color: scoreColor }}>
           {summary.score}
         </span>
-        <span className="text-[10px]" style={{ color: scoreColor, opacity: 0.7 }}>/100</span>
+        <span className="text-xs" style={{ color: scoreColor, opacity: 0.8, fontWeight: 600 }}>/100</span>
       </div>
 
       {/* Separator */}
       <div className="w-px h-5" style={{ background: '#252d3d' }} />
 
-      {/* Finding chips — dot + count, no background */}
-      <div className="flex items-center gap-3">
+      {/* Finding chips — dot + count */}
+      <div className="flex items-center gap-3.5">
         {severityOrder.map(sev => {
           const count = summary.findings[sev] ?? 0;
           const isActive = activeSeverities.includes(sev);
@@ -83,10 +85,10 @@ export function SummaryBar() {
             <button
               key={sev}
               onClick={() => toggleSeverityFilter(sev)}
-              className="flex items-center gap-1.5 text-[11px] font-medium cursor-pointer transition-opacity"
+              className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-all hover:opacity-100"
               style={{
                 color: severityColors[sev],
-                opacity: isActive ? 1 : 0.5,
+                opacity: isActive ? 1 : 0.45,
                 background: 'none',
                 border: 'none',
                 padding: 0,
@@ -100,6 +102,7 @@ export function SummaryBar() {
                   background: severityColors[sev],
                   display: 'inline-block',
                   flexShrink: 0,
+                  boxShadow: `0 0 6px ${severityColors[sev]}40`,
                 }}
               />
               {count}
@@ -171,14 +174,14 @@ export function SummaryBar() {
       {/* Filter toggle */}
       <button
         onClick={toggleFilterPanel}
-        className="flex items-center gap-1 px-2 py-1 rounded text-[11px] cursor-pointer transition-all"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:border-slate-500"
         style={{
-          background: filterPanelOpen ? '#252d3d' : 'transparent',
-          color: filterPanelOpen ? '#e2e8f0' : '#4a5568',
-          border: '1px solid #252d3d',
+          background: filterPanelOpen ? 'rgba(45,55,72,0.6)' : 'transparent',
+          color: filterPanelOpen ? '#f1f5f9' : '#64748b',
+          border: `1.5px solid ${filterPanelOpen ? '#404d5c' : '#2d3748'}`,
         }}
       >
-        <Filter size={12} />
+        <Filter size={14} />
         Filters
       </button>
     </div>

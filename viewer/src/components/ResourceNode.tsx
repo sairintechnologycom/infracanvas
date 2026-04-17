@@ -55,38 +55,39 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
 
       <div
         style={{
-          background: '#1c2333',
-          border: `1px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
-          borderRadius: 8,
-          padding: '12px 14px',
-          opacity: isDeleted ? 0.4 : 1,
+          background: 'linear-gradient(135deg, #0f1419 0%, #1a202c 100%)',
+          border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
+          borderRadius: 10,
+          padding: '14px 16px',
+          opacity: isDeleted ? 0.5 : 1,
           boxShadow: selected
-            ? `0 0 0 1px ${borderColor}, 0 4px 24px rgba(0,0,0,0.5)`
-            : '0 2px 8px rgba(0,0,0,0.3)',
-          transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
+            ? `0 0 0 2px ${borderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
+            : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.2)';
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 24px rgba(0,0,0,0.4)';
+          (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
+          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 0 2px ${borderColor}66, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`;
         }}
         onMouseLeave={e => {
           (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
           (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
           (e.currentTarget as HTMLDivElement).style.boxShadow = selected
-            ? `0 0 0 1px ${borderColor}, 0 4px 24px rgba(0,0,0,0.5)`
-            : '0 2px 8px rgba(0,0,0,0.3)';
+            ? `0 0 0 2px ${borderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
+            : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)';
         }}
       >
         {/* Header: icon box + meta */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 10 }}>
           {/* Icon box */}
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              background: `${svc.color}1F`,
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: `linear-gradient(135deg, ${svc.color}2F 0%, ${svc.color}10 100%)`,
+              border: `1px solid ${svc.color}40`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -95,18 +96,19 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           >
             <div
               style={{
-                width: 20,
-                height: 20,
-                borderRadius: 4,
+                width: 22,
+                height: 22,
+                borderRadius: 5,
                 background: svc.color,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: svc.label.length > 3 ? 6 : 8,
-                fontWeight: 800,
+                fontWeight: 900,
                 fontFamily: 'ui-monospace, monospace',
                 color: '#ffffff',
                 letterSpacing: '-0.5px',
+                boxShadow: `0 2px 8px ${svc.color}40`,
               }}
             >
               {svc.label}
@@ -117,13 +119,13 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 600,
+                fontSize: 9.5,
+                fontWeight: 700,
                 fontFamily: 'ui-monospace, monospace',
-                color: '#4a5568',
-                letterSpacing: '0.5px',
+                color: '#64748b',
+                letterSpacing: '0.6px',
                 textTransform: 'uppercase',
-                marginBottom: 2,
+                marginBottom: 3,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -133,13 +135,14 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             </div>
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#e2e8f0',
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: '#f1f5f9',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                lineHeight: 1.2,
+                lineHeight: 1.3,
+                letterSpacing: '-0.2px',
               }}
               title={data.id}
             >
@@ -150,13 +153,14 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
 
         {/* Footer: cost + drift + finding badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {data.cost.monthly_usd > 0 && (
               <span
                 style={{
                   fontSize: 11,
                   fontFamily: 'ui-monospace, monospace',
-                  color: '#4a5568',
+                  color: '#94a3b8',
+                  fontWeight: 600,
                 }}
               >
                 ${data.cost.monthly_usd.toFixed(0)}/mo
@@ -165,13 +169,14 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             {isNew && (
               <span
                 style={{
-                  fontSize: 8,
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: 'rgba(34,197,94,0.12)',
-                  color: '#22c55e',
-                  fontWeight: 700,
-                  border: '0.5px solid rgba(34,197,94,0.3)',
+                  fontSize: 7.5,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: 'rgba(34,197,94,0.15)',
+                  color: '#4ade80',
+                  fontWeight: 800,
+                  border: '1px solid rgba(34,197,94,0.4)',
+                  letterSpacing: '0.3px',
                 }}
               >
                 +NEW
@@ -180,13 +185,14 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             {isChanged && (
               <span
                 style={{
-                  fontSize: 8,
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: 'rgba(234,179,8,0.12)',
-                  color: '#eab308',
-                  fontWeight: 700,
-                  border: '0.5px solid rgba(234,179,8,0.3)',
+                  fontSize: 7.5,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: 'rgba(250,204,21,0.15)',
+                  color: '#facc15',
+                  fontWeight: 800,
+                  border: '1px solid rgba(250,204,21,0.4)',
+                  letterSpacing: '0.3px',
                 }}
               >
                 ~CHG
@@ -198,18 +204,19 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           {findingCount > 0 && highestSev ? (
             <div
               style={{
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 borderRadius: '50%',
-                background: `${severityColors[highestSev]}22`,
-                border: `1px solid ${severityColors[highestSev]}55`,
+                background: `${severityColors[highestSev]}25`,
+                border: `1.5px solid ${severityColors[highestSev]}66`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 10,
-                fontWeight: 800,
+                fontWeight: 900,
                 color: severityColors[highestSev],
                 flexShrink: 0,
+                boxShadow: `0 0 8px ${severityColors[highestSev]}30`,
               }}
             >
               {findingCount}
@@ -217,16 +224,17 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           ) : (
             <div
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 5,
-                background: 'rgba(34,197,94,0.08)',
-                border: '1px solid rgba(34,197,94,0.25)',
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                background: 'rgba(34,197,94,0.12)',
+                border: '1.5px solid rgba(34,197,94,0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 11,
-                color: '#22c55e',
+                fontSize: 12,
+                fontWeight: 800,
+                color: '#4ade80',
                 flexShrink: 0,
               }}
             >
