@@ -56,7 +56,7 @@ describe('ResourceNode', () => {
     setupStoreMock()
   })
 
-  test('renders Azure resource with correct icon color', () => {
+  test('renders Azure resource name', () => {
     const props = makeNodeProps({
       id: 'azurerm_storage_account.data',
       type: 'azurerm_storage_account',
@@ -64,11 +64,10 @@ describe('ResourceNode', () => {
       provider: 'azurerm',
     })
     render(<ResourceNodeMemo {...props} />)
-    // azurerm_storage_account has color '#3F8624' and label 'STG' in azureServiceConfig
-    expect(screen.getByText('STG')).toBeInTheDocument()
+    expect(screen.getByText('data')).toBeInTheDocument()
   })
 
-  test('strips azurerm_ prefix from type label', () => {
+  test('title-cases type label and strips provider prefix', () => {
     const props = makeNodeProps({
       id: 'azurerm_storage_account.data',
       type: 'azurerm_storage_account',
@@ -76,28 +75,24 @@ describe('ResourceNode', () => {
       provider: 'azurerm',
     })
     render(<ResourceNodeMemo {...props} />)
-    // azurerm_storage_account -> STORAGE ACCOUNT after stripping prefix + uppercase
-    expect(screen.getByText('STORAGE ACCOUNT')).toBeInTheDocument()
+    expect(screen.getByText('Storage Account')).toBeInTheDocument()
   })
 
-  test('uses getAzureServiceConfig for azurerm provider (label differs from AWS fallback)', () => {
-    // azurerm_virtual_network -> label 'VNet' from azureServiceConfig
-    // AWS fallback would produce 'AZURERM VIRTUAL NETWORK' type label if not stripped
+  test('renders azurerm resource icon as an svg', () => {
     const props = makeNodeProps({
       id: 'azurerm_virtual_network.vnet',
       type: 'azurerm_virtual_network',
       name: 'vnet',
       provider: 'azurerm',
     })
-    render(<ResourceNodeMemo {...props} />)
-    expect(screen.getByText('VNet')).toBeInTheDocument()
-    expect(screen.getByText('VIRTUAL NETWORK')).toBeInTheDocument()
+    const { container } = render(<ResourceNodeMemo {...props} />)
+    expect(container.querySelector('svg')).toBeInTheDocument()
+    expect(screen.getByText('Virtual Network')).toBeInTheDocument()
   })
 
-  test('applies +NEW badge and green drift indicator for added status', () => {
+  test('applies NEW badge for added drift', () => {
     const props = makeNodeProps({ drift: 'added' })
     render(<ResourceNodeMemo {...props} />)
-    // Added nodes show +NEW badge (visual indicator of drift=added)
-    expect(screen.getByText('+NEW')).toBeInTheDocument()
+    expect(screen.getByText('NEW')).toBeInTheDocument()
   })
 })

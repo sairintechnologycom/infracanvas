@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ResourceNode as ResourceNodeData } from '../types';
 import { severityColors, driftColors, getHighestSeverity } from '../lib/colors';
-import { getServiceConfig } from '../icons/awsServiceConfig';
-import { getAzureServiceConfig } from '../icons/azureServiceConfig';
+import { detectProvider } from '../lib/providerTheme';
+import { ServiceIcon } from './icons/ServiceIcon';
 import { useStore } from '../store';
 
 type ResourceNodeProps = NodeProps & {
@@ -19,135 +19,102 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const isChanged = data.drift === 'changed';
   const isDeleted = data.drift === 'deleted';
 
-  const svc = data.provider === 'azurerm'
-    ? getAzureServiceConfig(data.type)
-    : getServiceConfig(data.type);
+  const provider = data.provider === 'azurerm' ? 'azurerm' : detectProvider(data.type);
 
   const typeLabel = data.type
     .replace(/^aws_/, '')
     .replace(/^azurerm_/, '')
-    .toUpperCase()
-    .replaceAll('_', ' ');
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
 
-  const hasSeverityAccent = !selected && !isShadow && highestSev !== null;
-  const baseBorderColor = selected
-    ? '#60a5fa'
+  const borderColor = selected
+    ? '#3B82F6'
     : isShadow
-    ? '#f59e0b'
+    ? '#D97706'
     : isNew
     ? driftColors.added
     : isChanged
     ? driftColors.changed
-    : '#252d3d';
+    : '#E2E8F0';
 
   return (
     <div
-      style={{ width: 168 }}
+      style={{ width: 160 }}
       className="relative cursor-pointer"
       onClick={() => setSelectedNode(data)}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-slate-600 !border-slate-700 !w-2 !h-2"
+        className="!bg-slate-400 !border-slate-500 !w-2 !h-2"
       />
 
       <div
         style={{
-          background: 'linear-gradient(135deg, #0f1419 0%, #1a202c 100%)',
-          border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${baseBorderColor}`,
-          borderTop: hasSeverityAccent
-            ? `2.5px solid ${severityColors[highestSev!]}`
-            : `1.5px ${isShadow ? 'dashed' : 'solid'} ${baseBorderColor}`,
-          borderRadius: 10,
-          padding: '14px 16px',
-          opacity: isDeleted ? 0.5 : 1,
+          background: '#FFFFFF',
+          border: `${selected ? 2 : 1}px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
+          borderRadius: 8,
+          padding: '14px 12px 10px 12px',
+          opacity: isDeleted ? 0.45 : 1,
           boxShadow: selected
-            ? `0 0 0 2px ${baseBorderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
-            : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            ? '0 0 0 3px rgba(59,130,246,0.18), 0 4px 12px rgba(15,23,42,0.1)'
+            : '0 1px 3px rgba(15,23,42,0.06)',
+          transition: 'all 0.15s ease',
+          textAlign: 'center',
           position: 'relative',
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = hasSeverityAccent
-            ? `0 0 0 1px ${severityColors[highestSev!]}55, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`
-            : `0 0 0 1px ${baseBorderColor}55, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`;
+          if (selected) return;
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+          (e.currentTarget as HTMLDivElement).style.borderColor = '#CBD5E1';
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = selected
-            ? `0 0 0 2px ${baseBorderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
-            : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)';
+          if (selected) return;
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px rgba(15,23,42,0.06)';
+          (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
         }}
       >
-        {/* Header: icon tile + meta */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: svc.color,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: svc.label.length > 3 ? 9 : 11,
-              fontWeight: 900,
-              fontFamily: 'ui-monospace, monospace',
-              color: '#ffffff',
-              letterSpacing: '-0.5px',
-              flexShrink: 0,
-              boxShadow: `0 2px 8px ${svc.color}40, inset 0 1px 1px rgba(255,255,255,0.15)`,
-            }}
-          >
-            {svc.label}
-          </div>
-
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                fontSize: 9.5,
-                fontWeight: 700,
-                fontFamily: 'ui-monospace, monospace',
-                color: '#64748b',
-                letterSpacing: '0.6px',
-                textTransform: 'uppercase',
-                marginBottom: 3,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {typeLabel}
-            </div>
-            <div
-              style={{
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: '#f1f5f9',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                lineHeight: 1.3,
-                letterSpacing: '-0.2px',
-              }}
-              title={data.id}
-            >
-              {data.name}
-            </div>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+          <ServiceIcon provider={provider} type={data.type} size={44} />
         </div>
 
-        {/* Footer: cost + drift + finding badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#0F172A',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.25,
+          }}
+          title={data.id}
+        >
+          {data.name}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 500,
+            color: '#64748B',
+            letterSpacing: '0.2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            marginTop: 2,
+          }}
+        >
+          {typeLabel}
+        </div>
+
+        {(data.cost.monthly_usd > 0 || isNew || isChanged) && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 6 }}>
             {data.cost.monthly_usd > 0 && (
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 10,
                   fontFamily: 'ui-monospace, monospace',
-                  color: '#94a3b8',
+                  color: '#16A34A',
                   fontWeight: 600,
                 }}
               >
@@ -157,88 +124,69 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             {isNew && (
               <span
                 style={{
-                  fontSize: 7.5,
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                  background: 'rgba(34,197,94,0.15)',
-                  color: '#4ade80',
-                  fontWeight: 800,
-                  border: '1px solid rgba(34,197,94,0.4)',
-                  letterSpacing: '0.3px',
+                  fontSize: 8,
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: 'rgba(34,197,94,0.12)',
+                  color: '#15803D',
+                  fontWeight: 700,
+                  border: '1px solid rgba(34,197,94,0.3)',
                 }}
               >
-                +NEW
+                NEW
               </span>
             )}
             {isChanged && (
               <span
                 style={{
-                  fontSize: 7.5,
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                  background: 'rgba(250,204,21,0.15)',
-                  color: '#facc15',
-                  fontWeight: 800,
-                  border: '1px solid rgba(250,204,21,0.4)',
-                  letterSpacing: '0.3px',
+                  fontSize: 8,
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: 'rgba(234,179,8,0.12)',
+                  color: '#A16207',
+                  fontWeight: 700,
+                  border: '1px solid rgba(234,179,8,0.3)',
                 }}
               >
-                ~CHG
+                CHG
               </span>
             )}
           </div>
+        )}
 
-          {findingCount > 0 && highestSev ? (
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: `${severityColors[highestSev]}25`,
-                border: `1.5px solid ${severityColors[highestSev]}66`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 900,
-                color: severityColors[highestSev],
-                flexShrink: 0,
-                boxShadow: `0 0 8px ${severityColors[highestSev]}30`,
-              }}
-            >
-              {findingCount}
-            </div>
-          ) : (
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 6,
-                background: 'rgba(34,197,94,0.08)',
-                border: '1px solid rgba(34,197,94,0.22)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'rgba(74,222,128,0.75)',
-                flexShrink: 0,
-              }}
-            >
-              ✓
-            </div>
-          )}
-        </div>
+        {findingCount > 0 && highestSev && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              minWidth: 20,
+              height: 20,
+              padding: '0 6px',
+              borderRadius: 10,
+              background: severityColors[highestSev],
+              color: '#ffffff',
+              fontSize: 11,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 1px 4px ${severityColors[highestSev]}66, 0 0 0 2px #FFFFFF`,
+            }}
+          >
+            {findingCount}
+          </div>
+        )}
       </div>
 
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-slate-600 !border-slate-700 !w-2 !h-2"
+        className="!bg-slate-400 !border-slate-500 !w-2 !h-2"
       />
 
       {isShadow && (
-        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#f59e0b' }}>
+        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#D97706' }}>
           shadow
         </div>
       )}
