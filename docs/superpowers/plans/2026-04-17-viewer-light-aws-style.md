@@ -596,7 +596,23 @@ For each of the following, create a file at `viewer/src/icons/azure/<Name>.tsx` 
 | `ResourceGroup.tsx` | `AzureResourceGroup` | Resource group | Folder/group glyph |
 | `Firewall.tsx` | `AzureFirewall` | Firewall | Brick wall |
 
-Source SVGs from Microsoft's official icon pack: <https://learn.microsoft.com/en-us/azure/architecture/icons/>. Download the SVG, trim any `<metadata>`/`<title>`, extract the inner paths/defs, rewrite as a React component matching the `StorageAccount.tsx` / `VirtualMachine.tsx` pattern. Each icon should be self-contained (inline gradient with a unique `id` prefixed like `azurefw-a`, `azurevnet-a` etc. to avoid `<defs>` id collisions).
+**Source: Microsoft's official Azure icon archive.**
+
+```bash
+# From any temp directory
+curl -o /tmp/azure-icons.zip https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V23.zip
+unzip -q /tmp/azure-icons.zip -d /tmp/azure-icons
+ls /tmp/azure-icons  # archive will contain many SVGs named by product
+```
+
+For each of the 12 entries above:
+
+1. Search the unzipped folder for the matching Azure service SVG (e.g. `grep -ril "virtual network" /tmp/azure-icons | head` or `find /tmp/azure-icons -iname "*virtual*network*.svg"`).
+2. Open the SVG, copy its inner `<defs>` and shape elements.
+3. Paste into a new `viewer/src/icons/azure/<Name>.tsx` following the `StorageAccount.tsx` / `VirtualMachine.tsx` shape (exported named function taking `SVGProps<SVGSVGElement>`, spread on the `<svg>`, inner content unchanged except for prefixed `<defs>` ids to avoid collisions across components).
+4. Trim any `<metadata>`, `<title>`, or external references. The SVG should be self-contained.
+
+Each icon's inline `<defs>` gradient `id` must be unique across the bundle. Prefix by service: `azurevnet-a`, `azurenet-a`, `azurenic-a`, `azurekv-a`, `azuresql-a`, `azurecosmos-a`, `azureapp-a`, `azurefn-a`, `azurelb-a`, `azurepip-a`, `azurerg-a`, `azurefw-a`.
 
 For each icon, include as a prop `SVGProps<SVGSVGElement>` so `size` passed as `width`/`height` attributes works.
 
