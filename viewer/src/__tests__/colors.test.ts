@@ -70,6 +70,17 @@ describe('driftColors', () => {
 describe('ZONE_COLORS', () => {
   it('includes category zone type', () => {
     expect(ZONE_COLORS.category).toBeDefined();
-    expect(ZONE_COLORS.category.pillText).toBe('#94a3b8');
+    expect(ZONE_COLORS.category.pillText).toBe('#475569');
+  });
+
+  test('ZONE_COLORS includes cloud and region zone types for light theme', () => {
+    expect(ZONE_COLORS.cloud).toBeDefined();
+    expect(ZONE_COLORS.region).toBeDefined();
+    expect(ZONE_COLORS.cloud.borderStyle).toBe('dashed');
+  });
+
+  test('light-theme regional background is white-ish (not dark)', () => {
+    // Light theme invariant — background should be semi-transparent near-white
+    expect(ZONE_COLORS.regional.background.toLowerCase()).toContain('255');
   });
 });
