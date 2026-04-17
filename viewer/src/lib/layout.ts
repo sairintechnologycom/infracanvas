@@ -258,53 +258,60 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
 
   const vpcStartY = currentY;
 
-  // 2. VPC + AZ + subnet zones
-  const vpcLabel = vpcNode
-    ? `${vpcNode.name} · ${(vpcNode.attributes?.cidr_block as string) ?? ''}`
-    : 'VPC';
-  flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcContentH));
+  // 2. VPC + AZ + subnet zones (only when VPC has content)
+  const vpcHasContent = subnetNodes.length > 0 || resourceToSubnet.size > 0;
+  let regionalX = startX;
 
-  let azX = VPC_PAD;
-  const azBaseY = VPC_LABEL_H;
-  const useAZContainers = hasAZ;
+  if (vpcHasContent) {
+    const vpcLabel = vpcNode
+      ? `${vpcNode.name} · ${(vpcNode.attributes?.cidr_block as string) ?? ''}`
+      : 'VPC';
+    flowNodes.push(makeZone('zone-vpc', vpcLabel, 'vpc', startX, vpcStartY, vpcContentW, vpcContentH));
 
-  for (const azLayout of azLayouts) {
-    const useAZContainer = useAZContainers && azLayout.az !== 'default';
-    let subnetParent: string;
-    let subnetOffsetX: number;
-    let subnetOffsetY: number;
+    let azX = VPC_PAD;
+    const azBaseY = VPC_LABEL_H;
+    const useAZContainers = hasAZ;
 
-    if (useAZContainer) {
-      const azId = `zone-az-${azLayout.az.replace(/[^a-z0-9]/gi, '-')}`;
-      flowNodes.push(makeZone(azId, `AZ: ${azLayout.az}`, 'az', azX, azBaseY, azLayout.w, azLayout.h, 'zone-vpc'));
-      subnetParent = azId;
-      subnetOffsetX = AZ_PAD;
-      subnetOffsetY = AZ_LABEL_H;
-    } else {
-      subnetParent = 'zone-vpc';
-      subnetOffsetX = azX;
-      subnetOffsetY = azBaseY;
+    for (const azLayout of azLayouts) {
+      const useAZContainer = useAZContainers && azLayout.az !== 'default';
+      let subnetParent: string;
+      let subnetOffsetX: number;
+      let subnetOffsetY: number;
+
+      if (useAZContainer) {
+        const azId = `zone-az-${azLayout.az.replace(/[^a-z0-9]/gi, '-')}`;
+        flowNodes.push(makeZone(azId, `AZ: ${azLayout.az}`, 'az', azX, azBaseY, azLayout.w, azLayout.h, 'zone-vpc'));
+        subnetParent = azId;
+        subnetOffsetX = AZ_PAD;
+        subnetOffsetY = AZ_LABEL_H;
+      } else {
+        subnetParent = 'zone-vpc';
+        subnetOffsetX = azX;
+        subnetOffsetY = azBaseY;
+      }
+
+      let sX = subnetOffsetX;
+
+      for (const sl of azLayout.subnets) {
+        const subnetId = `zone-subnet-${sl.subnet.id.replace(/[^a-z0-9]/gi, '-')}`;
+        const cidr = sl.subnet.attributes?.cidr_block as string | undefined;
+        const shortCidr = cidr ? `/${cidr.split('/')[1]}` : '';
+        const subnetLabel = `${sl.subnet.name}${shortCidr ? ` · ${shortCidr}` : ''}`;
+        const zType: ZoneType = isPublicSubnet(sl.subnet) ? 'public_subnet' : 'private_subnet';
+
+        flowNodes.push(makeZone(subnetId, subnetLabel, zType, sX, subnetOffsetY, sl.w, sl.h, subnetParent));
+
+        sl.resources.forEach((n, i) => {
+          flowNodes.push(makeResource(n, SUBNET_PAD + i * (NODE_W + NODE_GAP), SUBNET_LABEL_H + SUBNET_PAD / 2, subnetId));
+        });
+
+        sX += sl.w + SUBNET_GAP;
+      }
+
+      azX += azLayout.w + AZ_GAP;
     }
 
-    let sX = subnetOffsetX;
-
-    for (const sl of azLayout.subnets) {
-      const subnetId = `zone-subnet-${sl.subnet.id.replace(/[^a-z0-9]/gi, '-')}`;
-      const cidr = sl.subnet.attributes?.cidr_block as string | undefined;
-      const shortCidr = cidr ? `/${cidr.split('/')[1]}` : '';
-      const subnetLabel = `${sl.subnet.name}${shortCidr ? ` · ${shortCidr}` : ''}`;
-      const zType: ZoneType = isPublicSubnet(sl.subnet) ? 'public_subnet' : 'private_subnet';
-
-      flowNodes.push(makeZone(subnetId, subnetLabel, zType, sX, subnetOffsetY, sl.w, sl.h, subnetParent));
-
-      sl.resources.forEach((n, i) => {
-        flowNodes.push(makeResource(n, SUBNET_PAD + i * (NODE_W + NODE_GAP), SUBNET_LABEL_H + SUBNET_PAD / 2, subnetId));
-      });
-
-      sX += sl.w + SUBNET_GAP;
-    }
-
-    azX += azLayout.w + AZ_GAP;
+    regionalX = startX + vpcContentW + VPC_REG_GAP;
   }
 
   // 3. Regional services (right of VPC)
@@ -313,7 +320,7 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     const rows = Math.ceil(regionalNodes.length / cols);
     const regW = cols * (NODE_W + NODE_GAP) - NODE_GAP + 2 * REG_PAD;
     const regH = REG_LABEL_H + REG_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + REG_PAD;
-    const regX = startX + vpcContentW + VPC_REG_GAP;
+    const regX = regionalX;
 
     flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regX, vpcStartY, regW, regH));
 
