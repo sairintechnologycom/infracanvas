@@ -14,6 +14,11 @@ type GroupNodeProps = NodeProps & {
 function GroupNodeComponent({ data }: GroupNodeProps) {
   const zone = ZONE_COLORS[data.zoneType] ?? ZONE_COLORS.regional;
   const isAz = data.zoneType === 'az';
+  const isCategory = data.zoneType === 'category';
+
+  const pillPadding = isCategory ? '1px 8px' : '2px 10px';
+  const pillFontSize = isCategory ? 9 : 11;
+  const labelTop = isCategory ? 6 : 10;
 
   return (
     <div
@@ -22,16 +27,16 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
         height: '100%',
         background: zone.background,
         border: `${zone.borderWidth} ${zone.borderStyle} ${zone.border}`,
-        borderRadius: 12,
+        borderRadius: isCategory ? 8 : 12,
         position: 'relative',
       }}
     >
-      {/* Zone label pill */}
+      {/* Zone label pill — anchored inside the container */}
       <div
         style={{
           position: 'absolute',
-          top: -11,
-          left: 16,
+          top: labelTop,
+          left: 14,
           display: 'flex',
           alignItems: 'center',
           gap: 5,
@@ -39,13 +44,13 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
       >
         <span
           style={{
-            fontSize: 11,
+            fontSize: pillFontSize,
             fontWeight: 600,
             fontFamily: 'ui-monospace, monospace',
             color: zone.pillText,
             background: isAz ? 'transparent' : zone.pill,
             border: isAz ? 'none' : `1px solid ${zone.pillBorder}`,
-            padding: isAz ? '0' : '2px 10px',
+            padding: isAz ? '0' : pillPadding,
             borderRadius: 4,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
@@ -58,8 +63,7 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
           {data.label}
         </span>
 
-        {/* Chip (public/private/data tier) */}
-        {data.chip && !isAz && (
+        {data.chip && !isAz && !isCategory && (
           <span
             style={{
               fontSize: 9,
@@ -79,8 +83,7 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
         )}
       </div>
 
-      {/* CIDR block */}
-      {data.cidr && (
+      {data.cidr && !isCategory && (
         <span
           style={{
             position: 'absolute',
