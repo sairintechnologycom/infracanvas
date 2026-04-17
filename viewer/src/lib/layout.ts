@@ -632,10 +632,10 @@ function getEdgeStyle(source: ResourceNodeData, target: ResourceNodeData): Parti
   // Security group attachment
   if (source.type === 'aws_security_group' || target.type === 'aws_security_group') {
     return {
-      style: { stroke: '#ef4444', strokeWidth: 1, strokeDasharray: '3 2' },
+      style: { stroke: '#DC2626', strokeWidth: 1, strokeDasharray: '3 2' },
       label: 'sg',
-      labelStyle: { fontSize: 9, fill: '#ef4444' } as React.CSSProperties,
-      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
+      labelStyle: { fontSize: 9, fill: '#DC2626' } as React.CSSProperties,
+      labelBgStyle: { fill: '#FFFFFF', fillOpacity: 0.9 },
       labelBgPadding: [3, 1] as [number, number],
     };
   }
@@ -643,8 +643,8 @@ function getEdgeStyle(source: ResourceNodeData, target: ResourceNodeData): Parti
   // Access to regional services
   if (REGIONAL_TYPES.has(target.type)) {
     return {
-      style: { stroke: '#1e3a5f', strokeWidth: 1, strokeDasharray: '5 4' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6', width: 14, height: 14 },
+      style: { stroke: '#3B82F6', strokeWidth: 1.25, strokeDasharray: '5 3' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#3B82F6', width: 14, height: 14 },
     };
   }
 
@@ -652,14 +652,14 @@ function getEdgeStyle(source: ResourceNodeData, target: ResourceNodeData): Parti
   if (INTERNET_TYPES.has(source.type) || INTERNET_TYPES.has(target.type)) {
     return {
       style: { stroke: '#475569', strokeWidth: 1.5 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b', width: 14, height: 14 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#475569', width: 14, height: 14 },
     };
   }
 
   // Default dependency
   return {
-    style: { stroke: '#1e293b', strokeWidth: 1, strokeDasharray: '4 3' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#334155', width: 14, height: 14 },
+    style: { stroke: '#94A3B8', strokeWidth: 1.25, strokeDasharray: '4 3' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#94A3B8', width: 14, height: 14 },
   };
 }
 
