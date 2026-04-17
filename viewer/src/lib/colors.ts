@@ -62,7 +62,8 @@ export type ZoneType =
   | 'public_subnet'
   | 'private_subnet'
   | 'data_subnet'
-  | 'regional';
+  | 'regional'
+  | 'category';
 
 export const ZONE_COLORS: Record<ZoneType, {
   background: string;
@@ -143,6 +144,16 @@ export const ZONE_COLORS: Record<ZoneType, {
     pillText: '#94a3b8',
     borderWidth: '1.5px',
     borderStyle: 'solid',
+  },
+  category: {
+    background: 'transparent',
+    border: 'rgba(71,85,105,0.18)',
+    label: '#64748b',
+    pill: 'rgba(45,55,72,0.5)',
+    pillBorder: 'rgba(71,85,105,0.25)',
+    pillText: '#94a3b8',
+    borderWidth: '1px',
+    borderStyle: 'dashed',
   },
 };
 

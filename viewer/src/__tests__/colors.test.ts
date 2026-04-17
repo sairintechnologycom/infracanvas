@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getResourceColor, getHighestSeverity, severityColors, driftColors } from '../lib/colors';
+import { getResourceColor, getHighestSeverity, severityColors, driftColors, ZONE_COLORS } from '../lib/colors';
 
 describe('getResourceColor', () => {
   it('returns correct color for known types', () => {
@@ -64,5 +64,12 @@ describe('driftColors', () => {
     expect(driftColors.added).toBe('#22c55e');
     expect(driftColors.changed).toBe('#f59e0b');
     expect(driftColors.deleted).toBe('#ef4444');
+  });
+});
+
+describe('ZONE_COLORS', () => {
+  it('includes category zone type', () => {
+    expect(ZONE_COLORS.category).toBeDefined();
+    expect(ZONE_COLORS.category.pillText).toBe('#94a3b8');
   });
 });
