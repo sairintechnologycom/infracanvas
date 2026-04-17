@@ -96,3 +96,29 @@ describe('buildFlowElements — regional categorisation', () => {
     expect(categoryZones).toEqual(['IDENTITY & ACCESS', 'DATA', 'MESSAGING']);
   });
 });
+
+describe('buildFlowElements — cloud wrapping', () => {
+  test('wraps AWS resources in a zone-cloud-aws container', () => {
+    const graph = makeGraph([
+      makeNode('aws_s3_bucket.logs', 'aws_s3_bucket', 'logs'),
+      makeNode('aws_iam_policy.p', 'aws_iam_policy', 'p'),
+    ]);
+    const { nodes } = buildFlowElements(graph);
+    const cloud = nodes.find(n => n.id === 'zone-cloud-aws');
+    expect(cloud).toBeDefined();
+    expect((cloud!.data as { zoneType: string }).zoneType).toBe('cloud');
+    // Regional zone should be nested under the cloud
+    const regional = nodes.find(n => n.id === 'zone-regional');
+    expect(regional?.parentId).toBe('zone-cloud-aws');
+  });
+
+  test('emits a separate cloud per provider in a mixed graph', () => {
+    const graph = makeGraph([
+      makeNode('aws_s3_bucket.a', 'aws_s3_bucket', 'a'),
+      makeNode('azurerm_storage_account.b', 'azurerm_storage_account', 'b'),
+    ]);
+    const { nodes } = buildFlowElements(graph);
+    expect(nodes.find(n => n.id === 'zone-cloud-aws')).toBeDefined();
+    expect(nodes.find(n => n.id === 'zone-cloud-azurerm')).toBeDefined();
+  });
+});

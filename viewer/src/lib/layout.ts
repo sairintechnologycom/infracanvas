@@ -2,6 +2,7 @@ import { MarkerType } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import type { ResourceGraph, ResourceNode as ResourceNodeData, GraphEdge } from '../types';
 import type { ZoneType } from './colors';
+import { detectProvider, PROVIDER_THEMES, type Provider } from './providerTheme';
 
 // Layout constants
 const NODE_W = 180;
@@ -26,9 +27,12 @@ const INTERNET_GAP = 32;
 
 const REG_PAD = 16;
 const REG_LABEL_H = 32;
-const REG_COLS = 2;
 const REG_ROW_GAP = 16;
 const VPC_REG_GAP = 36;
+
+const CLOUD_PAD = 20;
+const CLOUD_LABEL_H = 36;
+const CLOUD_GAP = 40;
 
 type CategoryKey = 'identity' | 'data' | 'messaging' | 'observability' | 'network' | 'other';
 
@@ -352,57 +356,199 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     regionalX = startX + vpcContentW + VPC_REG_GAP;
   }
 
-  // 3. Regional services — categorised sub-zones
+  // 3. Regional services — split by provider, then categorised sub-zones laid out in a grid
   if (regionalNodes.length > 0) {
-    const cols = REG_COLS;
-
-    const byCategory = new Map<CategoryKey, ResourceNodeData[]>();
+    // Group regional nodes by provider so each provider gets its own regional zone
+    const byProvider = new Map<Provider, ResourceNodeData[]>();
     for (const node of regionalNodes) {
-      const key = categorise(node.type);
-      if (!byCategory.has(key)) byCategory.set(key, []);
-      byCategory.get(key)!.push(node);
+      const prov = detectProvider(node.type);
+      if (!byProvider.has(prov)) byProvider.set(prov, []);
+      byProvider.get(prov)!.push(node);
     }
 
-    type CatLayout = { key: CategoryKey; label: string; resources: ResourceNodeData[]; w: number; h: number; cols: number };
-    const catLayouts: CatLayout[] = [];
-    for (const key of CATEGORY_ORDER) {
-      const resources = byCategory.get(key);
-      if (!resources || resources.length === 0) continue;
-      const c = resources.length <= 2 ? 1 : resources.length <= 6 ? 2 : 3;
-      const rows = Math.ceil(resources.length / c);
-      const catW = c * (NODE_W + NODE_GAP) - NODE_GAP + 2 * CAT_PAD;
-      const catH = CAT_LABEL_H + CAT_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + CAT_PAD;
-      catLayouts.push({ key, label: CATEGORY_LABELS[key], resources, w: catW, h: catH, cols: c });
-    }
+    // Emit providers in a stable order: aws first, then azurerm, then generic
+    const providerOrder: Provider[] = ['aws', 'azurerm', 'generic'];
+    let regXCursor = regionalX;
 
-    const regW = Math.max(...catLayouts.map(c => c.w), cols * (NODE_W + NODE_GAP) - NODE_GAP + 2 * REG_PAD);
-    const regH =
-      REG_LABEL_H +
-      REG_PAD +
-      catLayouts.reduce((a, c) => a + c.h, 0) +
-      Math.max(0, catLayouts.length - 1) * CAT_GAP +
-      REG_PAD;
+    for (const prov of providerOrder) {
+      const provNodes = byProvider.get(prov);
+      if (!provNodes || provNodes.length === 0) continue;
 
-    flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regionalX, vpcStartY, regW, regH));
+      // Use 'zone-regional' for aws (backward compat), provider-suffixed for others
+      const zoneRegId = prov === 'aws' ? 'zone-regional' : `zone-regional-${prov}`;
+      const zoneRegLabel = prov === 'aws'
+        ? 'Regional Services (AWS)'
+        : `Regional Services (${PROVIDER_THEMES[prov].label})`;
 
-    let catY = REG_LABEL_H + REG_PAD;
-    for (const cat of catLayouts) {
-      const catId = `zone-category-${cat.key}`;
-      flowNodes.push(makeZone(catId, cat.label, 'category', REG_PAD, catY, cat.w, cat.h, 'zone-regional'));
+      type CatLayout = { key: CategoryKey; label: string; resources: ResourceNodeData[]; w: number; h: number; cols: number };
 
-      cat.resources.forEach((n, i) => {
-        const col = i % cat.cols;
-        const row = Math.floor(i / cat.cols);
-        flowNodes.push(makeResource(
-          n,
-          CAT_PAD + col * (NODE_W + NODE_GAP),
-          CAT_LABEL_H + CAT_PAD / 2 + row * (NODE_H + REG_ROW_GAP),
-          catId,
-        ));
+      const byCategory = new Map<CategoryKey, ResourceNodeData[]>();
+      for (const node of provNodes) {
+        const key = categorise(node.type);
+        if (!byCategory.has(key)) byCategory.set(key, []);
+        byCategory.get(key)!.push(node);
+      }
+
+      const catLayouts: CatLayout[] = [];
+      for (const key of CATEGORY_ORDER) {
+        const resources = byCategory.get(key);
+        if (!resources || resources.length === 0) continue;
+        const c = resources.length <= 3 ? 2 : resources.length <= 6 ? 2 : 3;
+        const rows = Math.ceil(resources.length / c);
+        const catW = c * (NODE_W + NODE_GAP) - NODE_GAP + 2 * CAT_PAD;
+        const catH = CAT_LABEL_H + CAT_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + CAT_PAD;
+        catLayouts.push({ key, label: CATEGORY_LABELS[key], resources, w: catW, h: catH, cols: c });
+      }
+
+      // Non-AWS resources won't match CATEGORY_ORDER keys — emit them flat in an 'other' bucket
+      if (catLayouts.length === 0) {
+        const c = provNodes.length <= 3 ? 2 : provNodes.length <= 6 ? 2 : 3;
+        const rows = Math.ceil(provNodes.length / c);
+        const catW = c * (NODE_W + NODE_GAP) - NODE_GAP + 2 * CAT_PAD;
+        const catH = CAT_LABEL_H + CAT_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + CAT_PAD;
+        catLayouts.push({ key: 'other', label: CATEGORY_LABELS['other'], resources: provNodes, w: catW, h: catH, cols: c });
+      }
+
+      // Arrange categories in a grid — 2 across when we have 3+ categories, 1 across for ≤2
+      const catGridCols = catLayouts.length >= 3 ? 2 : 1;
+      const colWidth = Math.max(...catLayouts.map(c => c.w));
+
+      // Row heights = max category height in each row
+      const rowHeights: number[] = [];
+      for (let i = 0; i < catLayouts.length; i += catGridCols) {
+        const rowCats = catLayouts.slice(i, i + catGridCols);
+        rowHeights.push(Math.max(...rowCats.map(c => c.h)));
+      }
+
+      const regW =
+        catGridCols * colWidth + Math.max(0, catGridCols - 1) * CAT_GAP + 2 * REG_PAD;
+      const regH =
+        REG_LABEL_H +
+        REG_PAD +
+        rowHeights.reduce((a, h) => a + h, 0) +
+        Math.max(0, rowHeights.length - 1) * CAT_GAP +
+        REG_PAD;
+
+      flowNodes.push(makeZone(zoneRegId, zoneRegLabel, 'regional', regXCursor, vpcStartY, regW, regH));
+
+      catLayouts.forEach((cat, idx) => {
+        const gridRow = Math.floor(idx / catGridCols);
+        const gridCol = idx % catGridCols;
+        const catX = REG_PAD + gridCol * (colWidth + CAT_GAP);
+        const catY =
+          REG_LABEL_H +
+          REG_PAD +
+          rowHeights.slice(0, gridRow).reduce((a, h) => a + h, 0) +
+          gridRow * CAT_GAP;
+
+        const catId = `zone-category-${cat.key}`;
+        flowNodes.push(makeZone(catId, cat.label, 'category', catX, catY, colWidth, cat.h, zoneRegId));
+
+        // Centre resources horizontally within the fixed colWidth
+        const contentW = cat.cols * (NODE_W + NODE_GAP) - NODE_GAP;
+        const leftPad = (colWidth - contentW) / 2;
+
+        cat.resources.forEach((n, i) => {
+          const col = i % cat.cols;
+          const row = Math.floor(i / cat.cols);
+          flowNodes.push(makeResource(
+            n,
+            leftPad + col * (NODE_W + NODE_GAP),
+            CAT_LABEL_H + CAT_PAD + row * (NODE_H + REG_ROW_GAP),
+            catId,
+          ));
+        });
       });
 
-      catY += cat.h + CAT_GAP;
+      regXCursor += regW + VPC_REG_GAP;
     }
+  }
+
+  // 5. Wrap top-level zones in per-provider cloud containers
+  const providerOfResource = (id: string): Provider => {
+    const n = graph.nodes.find(gn => gn.id === id);
+    if (!n) return 'generic';
+    return detectProvider(n.type);
+  };
+
+  // Classify top-level zones (those without parentId) by provider
+  type TopZone = { id: string; provider: Provider };
+  const topZones: TopZone[] = [];
+
+  // Collect all zone IDs that descend from a given top-level zone (direct children and their children)
+  const descendantZoneIds = (parentId: string): string[] => {
+    const result: string[] = [];
+    for (const fn of flowNodes) {
+      if (fn.type === 'group' && fn.parentId === parentId) {
+        result.push(fn.id);
+        result.push(...descendantZoneIds(fn.id));
+      }
+    }
+    return result;
+  };
+
+  for (const fn of flowNodes) {
+    if (fn.type !== 'group') continue;
+    if (fn.parentId) continue; // already nested
+    // Determine the provider by looking at the first resource that claims this zone or any
+    // descendant zone as parent (resources may be nested under category sub-zones)
+    const zoneFamily = [fn.id, ...descendantZoneIds(fn.id)];
+    const child = flowNodes.find(c => c.type === 'resource' && zoneFamily.includes(c.parentId ?? ''));
+    let prov: Provider = 'generic';
+    if (child) prov = providerOfResource(child.id);
+    topZones.push({ id: fn.id, provider: prov });
+  }
+
+  const providersSeen = new Set(topZones.map(t => t.provider));
+  if (providersSeen.size === 0) {
+    const flowEdges = buildEdges(graph.edges, graph.nodes, suppressedIds);
+    return { nodes: flowNodes, edges: flowEdges };
+  }
+
+  // Build a bounding box per provider from their top-level zones
+  type Box = { x: number; y: number; w: number; h: number };
+  const boxOf = (id: string): Box => {
+    const n = flowNodes.find(f => f.id === id)!;
+    const w = (n.style?.width as number) ?? 0;
+    const h = (n.style?.height as number) ?? 0;
+    return { x: n.position.x, y: n.position.y, w, h };
+  };
+
+  let cloudXCursor = startX;
+  const cloudYOrigin = 40;
+
+  for (const prov of providersSeen) {
+    const myZones = topZones.filter(t => t.provider === prov).map(t => t.id);
+    if (myZones.length === 0) continue;
+
+    const boxes = myZones.map(boxOf);
+    const minX = Math.min(...boxes.map(b => b.x));
+    const minY = Math.min(...boxes.map(b => b.y));
+    const maxX = Math.max(...boxes.map(b => b.x + b.w));
+    const maxY = Math.max(...boxes.map(b => b.y + b.h));
+
+    const cloudW = maxX - minX + 2 * CLOUD_PAD;
+    const cloudH = maxY - minY + CLOUD_LABEL_H + 2 * CLOUD_PAD;
+    const cloudId = `zone-cloud-${prov}`;
+
+    flowNodes.push(
+      makeZone(cloudId, PROVIDER_THEMES[prov].label, 'cloud', cloudXCursor, cloudYOrigin, cloudW, cloudH),
+    );
+
+    // Reparent the top-level zones under the cloud and rewrite their positions relative to the cloud
+    for (const zId of myZones) {
+      const zone = flowNodes.find(f => f.id === zId)!;
+      const origX = zone.position.x;
+      const origY = zone.position.y;
+      zone.parentId = cloudId;
+      zone.extent = 'parent' as const;
+      zone.position = {
+        x: origX - minX + CLOUD_PAD,
+        y: origY - minY + CLOUD_LABEL_H + CLOUD_PAD,
+      };
+    }
+
+    cloudXCursor += cloudW + CLOUD_GAP;
   }
 
   // 4. Edges
