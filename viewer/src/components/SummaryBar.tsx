@@ -163,21 +163,21 @@ export function SummaryBar() {
         >
           <span className="flex items-center gap-2">
             <svg width="22" height="6">
-              <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
-              <polygon points="16,1 22,3 16,5" fill="rgba(71,85,105,0.6)" />
+              <line x1="0" y1="3" x2="16" y2="3" stroke="#475569" strokeWidth="1.5" />
+              <polygon points="16,1 22,3 16,5" fill="#475569" />
             </svg>
             traffic
           </span>
           <span className="flex items-center gap-2">
             <svg width="22" height="6">
-              <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(59,130,246,0.45)" strokeWidth="1.5" strokeDasharray="5 3" />
-              <polygon points="16,1 22,3 16,5" fill="rgba(59,130,246,0.45)" />
+              <line x1="0" y1="3" x2="16" y2="3" stroke="#3B82F6" strokeWidth="1.25" strokeDasharray="5 3" />
+              <polygon points="16,1 22,3 16,5" fill="#3B82F6" />
             </svg>
             access
           </span>
           <span className="flex items-center gap-2">
             <svg width="22" height="6">
-              <line x1="0" y1="3" x2="22" y2="3" stroke="rgba(221,52,76,0.4)" strokeWidth="1" strokeDasharray="3 2" />
+              <line x1="0" y1="3" x2="22" y2="3" stroke="#DC2626" strokeWidth="1" strokeDasharray="3 2" />
             </svg>
             security
           </span>
