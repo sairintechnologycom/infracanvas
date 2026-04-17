@@ -132,10 +132,11 @@ export function SummaryBar() {
         )}
       </div>
 
-      {/* Edge legend — behind hover "?" */}
-      <div className="relative group">
+      {/* Edge legend — hover or focus-within reveals */}
+      <div className="relative group focus-within:z-30">
         <button
-          className="flex items-center justify-center rounded-full text-[10px] font-bold cursor-help transition-all"
+          type="button"
+          className="peer flex items-center justify-center rounded-full text-[10px] font-bold cursor-help transition-colors hover:border-slate-500 focus-visible:border-slate-500 focus-visible:outline-none"
           style={{
             width: 20,
             height: 20,
@@ -144,11 +145,14 @@ export function SummaryBar() {
             color: '#64748b',
           }}
           aria-label="Edge legend"
+          aria-describedby="edge-legend-tooltip"
         >
           ?
         </button>
         <div
-          className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-1.5 px-3 py-2 rounded-lg z-30 text-[10px]"
+          id="edge-legend-tooltip"
+          role="tooltip"
+          className="absolute right-0 top-full mt-2 hidden group-hover:flex peer-focus-visible:flex flex-col gap-1.5 px-3 py-2 rounded-lg z-30 text-[10px]"
           style={{
             background: '#0f1419',
             border: '1.5px solid #252d3d',
