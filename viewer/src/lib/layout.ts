@@ -4,10 +4,10 @@ import type { ResourceGraph, ResourceNode as ResourceNodeData, GraphEdge } from 
 import type { ZoneType } from './colors';
 import { detectProvider, PROVIDER_THEMES, type Provider } from './providerTheme';
 
-// Layout constants
-const NODE_W = 180;
-const NODE_H = 84;
-const NODE_GAP = 20;
+// Layout constants — must match ResourceNode.tsx NODE_W / NODE_H exactly.
+const NODE_W = 120;
+const NODE_H = 90;
+const NODE_GAP = 28;
 
 const SUBNET_PAD = 16;
 const SUBNET_LABEL_H = 32;
@@ -532,7 +532,7 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     const cloudId = `zone-cloud-${prov}`;
 
     flowNodes.push(
-      makeZone(cloudId, PROVIDER_THEMES[prov].label, 'cloud', cloudXCursor, cloudYOrigin, cloudW, cloudH),
+      makeZone(cloudId, PROVIDER_THEMES[prov].label, 'cloud', cloudXCursor, cloudYOrigin, cloudW, cloudH, undefined, { provider: prov }),
     );
 
     // Reparent the top-level zones under the cloud and rewrite their positions relative to the cloud
@@ -568,12 +568,13 @@ function makeZone(
   width: number,
   height: number,
   parentId?: string,
+  extra?: Record<string, unknown>,
 ): Node {
   const node: Node = {
     id,
     type: 'group',
     position: { x, y },
-    data: { label, zoneType },
+    data: { label, zoneType, ...(extra ?? {}) },
     style: { width, height },
     draggable: true,
     selectable: false,

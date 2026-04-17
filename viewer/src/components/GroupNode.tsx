@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { ZONE_COLORS, type ZoneType } from '../lib/colors';
+import type { Provider } from '../lib/providerTheme';
 
 type GroupNodeProps = NodeProps & {
   data: {
@@ -8,34 +9,51 @@ type GroupNodeProps = NodeProps & {
     zoneType: ZoneType;
     chip?: string;
     cidr?: string;
+    provider?: Provider;
   };
 };
 
-function GroupNodeComponent({ data }: GroupNodeProps) {
-  const zone = ZONE_COLORS[data.zoneType] ?? ZONE_COLORS.regional;
-  const isAz = data.zoneType === 'az';
-  const isCategory = data.zoneType === 'category';
+// Provider-branded palette for the top-level cloud container.
+// Mirrors the official AWS / Azure reference-architecture styling.
+const CLOUD_PROVIDER_PALETTE: Record<Provider, { border: string; text: string }> = {
+  aws:     { border: 'rgba(255,153,0,0.85)',  text: '#D97706' },
+  azurerm: { border: 'rgba(0,120,212,0.85)',  text: '#0078D4' },
+  generic: { border: 'rgba(100,116,139,0.7)', text: '#475569' },
+};
 
-  const pillPadding = isCategory ? '1px 8px' : '2px 10px';
-  const pillFontSize = isCategory ? 9 : 11;
-  const labelTop = isCategory ? 6 : 10;
+function GroupNodeComponent({ data }: GroupNodeProps) {
+  const baseZone = ZONE_COLORS[data.zoneType] ?? ZONE_COLORS.regional;
+  const isCloud = data.zoneType === 'cloud';
+  const cloudPalette = isCloud ? CLOUD_PROVIDER_PALETTE[data.provider ?? 'generic'] : null;
+
+  const borderColor = cloudPalette ? cloudPalette.border : baseZone.border;
+  const labelColor = cloudPalette ? cloudPalette.text : baseZone.pillText;
+
+  const isCategory = data.zoneType === 'category';
+  const isAz = data.zoneType === 'az';
+
+  // Label tab (AWS/Azure ref-arch style): small rounded pill that straddles the top-left
+  // of the container, white fill with a thin colored border, colored uppercase text.
+  const tabFontSize = isCategory ? 9 : isCloud ? 11 : 10;
+  const tabPadding = isCategory ? '2px 8px' : '3px 10px';
 
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        background: zone.background,
-        border: `${zone.borderWidth} ${zone.borderStyle} ${zone.border}`,
-        borderRadius: isCategory ? 8 : 12,
+        background: 'transparent',
+        border: `${baseZone.borderWidth} ${baseZone.borderStyle} ${borderColor}`,
+        borderRadius: isCategory ? 6 : isCloud ? 14 : 10,
         position: 'relative',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Zone label pill — anchored inside the container */}
+      {/* Label tab — anchored straddling the top-left border like AWS ref diagrams */}
       <div
         style={{
           position: 'absolute',
-          top: labelTop,
+          top: -10,
           left: 14,
           display: 'flex',
           alignItems: 'center',
@@ -44,22 +62,23 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
       >
         <span
           style={{
-            fontSize: pillFontSize,
+            fontSize: tabFontSize,
             fontWeight: 600,
-            fontFamily: 'ui-monospace, monospace',
-            color: zone.pillText,
-            background: isAz ? 'transparent' : zone.pill,
-            border: isAz ? 'none' : `1px solid ${zone.pillBorder}`,
-            padding: isAz ? '0' : pillPadding,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            color: labelColor,
+            background: '#FFFFFF',
+            border: `1px solid ${borderColor}`,
+            padding: tabPadding,
             borderRadius: 4,
-            letterSpacing: '0.06em',
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
             display: 'flex',
             alignItems: 'center',
             gap: 5,
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
           }}
         >
-          {data.zoneType === 'vpc' && <span style={{ fontSize: 10 }}>⬡</span>}
           {data.label}
         </span>
 
@@ -69,13 +88,14 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
               fontSize: 9,
               fontWeight: 500,
               fontFamily: 'ui-monospace, monospace',
-              color: zone.pillText,
-              background: zone.pill,
-              border: `1px solid ${zone.pillBorder}`,
+              color: labelColor,
+              background: '#FFFFFF',
+              border: `1px solid ${borderColor}`,
               padding: '2px 6px',
               borderRadius: 3,
               letterSpacing: '0.04em',
-              opacity: 0.8,
+              lineHeight: 1,
+              opacity: 0.9,
             }}
           >
             {data.chip}
@@ -88,10 +108,10 @@ function GroupNodeComponent({ data }: GroupNodeProps) {
           style={{
             position: 'absolute',
             bottom: 6,
-            left: 12,
+            right: 12,
             fontSize: 10,
             fontFamily: 'ui-monospace, monospace',
-            color: '#374151',
+            color: '#64748B',
           }}
         >
           {data.cidr}

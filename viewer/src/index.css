@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas-bg: #0f1117;
-  --color-card-bg: #1c2333;
-  --color-card-border: #252d3d;
-  --color-card-hover: #252d3d;
+  --color-canvas-bg: #FAFBFC;
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #E2E8F0;
+  --color-card-hover: #F1F5F9;
   --color-sev-critical: #ef4444;
   --color-sev-high: #f97316;
   --color-sev-medium: #eab308;
-  --color-sev-info: #60a5fa;
+  --color-sev-info: #3b82f6;
   --color-sev-clean: #22c55e;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -20,59 +20,33 @@ html, body, #root {
   width: 100%;
   height: 100%;
   background: var(--color-canvas-bg);
-  color: #e2e8f0;
+  color: #0f172a;
   font-family: var(--font-sans);
   overflow: hidden;
 }
 
-/* React Flow dark theme overrides */
-.react-flow__background {
-  background-color: #0f1117 !important;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px) !important;
-  background-size: 28px 28px !important;
-}
-.react-flow__minimap {
-  background: #161b27 !important;
-  border: 1px solid #252d3d !important;
-  border-radius: 8px !important;
-}
-.react-flow__minimap-mask {
-  fill: rgba(0,0,0,0.6) !important;
-}
-.react-flow__controls {
-  background: #161b27 !important;
-  border: 1px solid #252d3d !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
-}
-.react-flow__controls-button {
-  background: #161b27 !important;
-  border-bottom: 1px solid #252d3d !important;
-  fill: #4a5568 !important;
-  color: #4a5568 !important;
-}
-.react-flow__controls-button:hover {
-  background: #252d3d !important;
-  fill: #e2e8f0 !important;
+/* React Flow — light theme. Inline styles on <ReactFlow>, <Background>, <Controls>,
+   and <MiniMap> drive the look; the rules below only reset chrome that React Flow
+   styles via internal classes. */
+.react-flow__attribution {
+  display: none !important;
 }
 .react-flow__edge-path {
   stroke-width: 1.5;
 }
-.react-flow__attribution {
-  display: none !important;
-}
 
-/* Scrollbar styling */
+/* Scrollbar styling — light */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #252d3d;
+  background: #CBD5E1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #94A3B8;
 }

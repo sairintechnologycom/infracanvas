@@ -10,6 +10,11 @@ type ResourceNodeProps = NodeProps & {
   data: ResourceNodeData;
 };
 
+// Must match layout.ts NODE_W / NODE_H so the layout math is truthful.
+const NODE_W = 120;
+const NODE_H = 90;
+const ICON_SIZE = 40;
+
 function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const setSelectedNode = useStore(s => s.setSelectedNode);
   const highestSev = getHighestSeverity(data.findings);
@@ -27,20 +32,28 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
     .replaceAll('_', ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
 
-  const borderColor = selected
-    ? '#3B82F6'
-    : isShadow
+  const driftTint = isShadow
     ? '#D97706'
     : isNew
     ? driftColors.added
     : isChanged
     ? driftColors.changed
-    : '#E2E8F0';
+    : null;
 
   return (
     <div
-      style={{ width: 160 }}
-      className="relative cursor-pointer"
+      style={{
+        width: NODE_W,
+        height: NODE_H,
+        opacity: isDeleted ? 0.45 : 1,
+        cursor: 'pointer',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        gap: 2,
+      }}
       onClick={() => setSelectedNode(data)}
     >
       <Handle
@@ -49,147 +62,91 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
         className="!bg-slate-400 !border-slate-500 !w-2 !h-2"
       />
 
+      {/* Icon — the visual anchor. Selected/drift states use a subtle ring, no card. */}
       <div
         style={{
-          background: '#FFFFFF',
-          border: `${selected ? 2 : 1}px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
+          width: ICON_SIZE + 8,
+          height: ICON_SIZE + 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           borderRadius: 8,
-          padding: '14px 12px 10px 12px',
-          opacity: isDeleted ? 0.45 : 1,
           boxShadow: selected
-            ? '0 0 0 3px rgba(59,130,246,0.18), 0 4px 12px rgba(15,23,42,0.1)'
-            : '0 1px 3px rgba(15,23,42,0.06)',
-          transition: 'all 0.15s ease',
-          textAlign: 'center',
-          position: 'relative',
-        }}
-        onMouseEnter={e => {
-          if (selected) return;
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-          (e.currentTarget as HTMLDivElement).style.borderColor = '#CBD5E1';
-        }}
-        onMouseLeave={e => {
-          if (selected) return;
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px rgba(15,23,42,0.06)';
-          (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
+            ? '0 0 0 2px #3B82F6, 0 0 0 5px rgba(59,130,246,0.18)'
+            : driftTint
+            ? `0 0 0 2px ${driftTint}`
+            : 'none',
+          background: 'transparent',
+          transition: 'box-shadow 0.12s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <ServiceIcon provider={provider} type={data.type} size={44} />
-        </div>
-
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#0F172A',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.25,
-          }}
-          title={data.id}
-        >
-          {data.name}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 500,
-            color: '#64748B',
-            letterSpacing: '0.2px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            marginTop: 2,
-          }}
-        >
-          {typeLabel}
-        </div>
-
-        {(data.cost.monthly_usd > 0 || isNew || isChanged) && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 6 }}>
-            {data.cost.monthly_usd > 0 && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontFamily: 'ui-monospace, monospace',
-                  color: '#16A34A',
-                  fontWeight: 600,
-                }}
-              >
-                ${data.cost.monthly_usd.toFixed(0)}/mo
-              </span>
-            )}
-            {isNew && (
-              <span
-                style={{
-                  fontSize: 8,
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: 'rgba(34,197,94,0.12)',
-                  color: '#15803D',
-                  fontWeight: 700,
-                  border: '1px solid rgba(34,197,94,0.3)',
-                }}
-              >
-                NEW
-              </span>
-            )}
-            {isChanged && (
-              <span
-                style={{
-                  fontSize: 8,
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: 'rgba(234,179,8,0.12)',
-                  color: '#A16207',
-                  fontWeight: 700,
-                  border: '1px solid rgba(234,179,8,0.3)',
-                }}
-              >
-                CHG
-              </span>
-            )}
-          </div>
-        )}
-
-        {findingCount > 0 && highestSev && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -6,
-              right: -6,
-              minWidth: 20,
-              height: 20,
-              padding: '0 6px',
-              borderRadius: 10,
-              background: severityColors[highestSev],
-              color: '#ffffff',
-              fontSize: 11,
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: `0 1px 4px ${severityColors[highestSev]}66, 0 0 0 2px #FFFFFF`,
-            }}
-          >
-            {findingCount}
-          </div>
-        )}
+        <ServiceIcon provider={provider} type={data.type} size={ICON_SIZE} />
       </div>
+
+      {/* Caption — bold name, muted type below, centered. Matches AWS ref-arch style. */}
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#0F172A',
+          lineHeight: 1.15,
+          textAlign: 'center',
+          width: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          marginTop: 2,
+        }}
+        title={data.id}
+      >
+        {data.name}
+      </div>
+      <div
+        style={{
+          fontSize: 9,
+          fontWeight: 500,
+          color: '#64748B',
+          lineHeight: 1.1,
+          textAlign: 'center',
+          width: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {typeLabel}
+      </div>
+
+      {/* Severity badge — floating top-right of the icon */}
+      {findingCount > 0 && highestSev && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -4,
+            right: 22,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            borderRadius: 9,
+            background: severityColors[highestSev],
+            color: '#ffffff',
+            fontSize: 10,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 1px 3px ${severityColors[highestSev]}66, 0 0 0 2px #FFFFFF`,
+          }}
+        >
+          {findingCount}
+        </div>
+      )}
 
       <Handle
         type="source"
         position={Position.Bottom}
         className="!bg-slate-400 !border-slate-500 !w-2 !h-2"
       />
-
-      {isShadow && (
-        <div style={{ textAlign: 'center', marginTop: 2, fontSize: 9, color: '#D97706' }}>
-          shadow
-        </div>
-      )}
     </div>
   );
 }
