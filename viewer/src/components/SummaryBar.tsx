@@ -35,7 +35,7 @@ export function SummaryBar() {
 
   return (
     <div
-      className="flex items-center gap-5 px-5 shrink-0 z-20"
+      className="flex items-center gap-4 px-5 shrink-0 z-20"
       style={{
         background: 'linear-gradient(180deg, #0f1419 0%, #1a202c 100%)',
         borderBottom: '1.5px solid #252d3d',
@@ -54,7 +54,6 @@ export function SummaryBar() {
         </span>
       </div>
 
-      {/* Separator */}
       <div className="w-px h-5" style={{ background: '#252d3d' }} />
 
       {/* Score badge */}
@@ -67,17 +66,18 @@ export function SummaryBar() {
         }}
       >
         <Shield size={14} color={scoreColor} />
-        <span className="text-sm font-bold" style={{ color: scoreColor }}>
+        <span className="text-sm font-bold" style={{ color: scoreColor, letterSpacing: '-0.02em' }}>
           {summary.score}
         </span>
-        <span className="text-xs" style={{ color: scoreColor, opacity: 0.8, fontWeight: 600 }}>/100</span>
+        <span className="text-[10px] font-semibold" style={{ color: scoreColor, opacity: 0.6 }}>
+          /100
+        </span>
       </div>
 
-      {/* Separator */}
       <div className="w-px h-5" style={{ background: '#252d3d' }} />
 
-      {/* Finding chips — dot + count */}
-      <div className="flex items-center gap-3.5">
+      {/* Severity chips — tightened cluster */}
+      <div className="flex items-center gap-2.5">
         {severityOrder.map(sev => {
           const count = summary.findings[sev] ?? 0;
           const isActive = activeSeverities.includes(sev);
@@ -111,67 +111,77 @@ export function SummaryBar() {
         })}
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Drift counts */}
-      {(summary.drift.added > 0 || summary.drift.changed > 0 || summary.drift.deleted > 0) && (
-        <>
-          <div className="w-px h-5" style={{ background: '#252d3d' }} />
+      {/* Metadata cluster — single group */}
+      <div className="flex items-center gap-3">
+        <span className="text-[11px]" style={{ color: '#4a5568' }}>
+          {summary.total_resources} resources
+        </span>
+        {summary.estimated_monthly_cost > 0 && (
+          <span className="text-[11px] font-medium" style={{ color: '#22c55e' }}>
+            ${summary.estimated_monthly_cost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
+          </span>
+        )}
+        {(summary.drift.added > 0 || summary.drift.changed > 0 || summary.drift.deleted > 0) && (
           <div className="flex items-center gap-1.5 text-[10px] font-medium">
-            {summary.drift.added > 0 && (
-              <span style={{ color: '#22c55e' }}>+{summary.drift.added}</span>
-            )}
-            {summary.drift.changed > 0 && (
-              <span style={{ color: '#eab308' }}>~{summary.drift.changed}</span>
-            )}
-            {summary.drift.deleted > 0 && (
-              <span style={{ color: '#ef4444' }}>-{summary.drift.deleted}</span>
-            )}
+            {summary.drift.added > 0 && <span style={{ color: '#22c55e' }}>+{summary.drift.added}</span>}
+            {summary.drift.changed > 0 && <span style={{ color: '#eab308' }}>~{summary.drift.changed}</span>}
+            {summary.drift.deleted > 0 && <span style={{ color: '#ef4444' }}>-{summary.drift.deleted}</span>}
           </div>
-        </>
-      )}
-
-      {/* Resource count */}
-      <span className="text-[11px]" style={{ color: '#4a5568' }}>
-        {summary.total_resources} resources
-      </span>
-
-      {/* Cost */}
-      {summary.estimated_monthly_cost > 0 && (
-        <span className="text-[11px] font-medium" style={{ color: '#22c55e' }}>
-          ${summary.estimated_monthly_cost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
-        </span>
-      )}
-
-      {/* Edge legend — actual stroke samples */}
-      <div className="flex items-center gap-3 text-[9px]" style={{ color: '#4a5568' }}>
-        <span className="flex items-center gap-1.5">
-          <svg width="22" height="6">
-            <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
-            <polygon points="16,1 22,3 16,5" fill="rgba(71,85,105,0.6)" />
-          </svg>
-          traffic
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg width="22" height="6">
-            <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(59,130,246,0.45)" strokeWidth="1.5" strokeDasharray="5 3" />
-            <polygon points="16,1 22,3 16,5" fill="rgba(59,130,246,0.45)" />
-          </svg>
-          access
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg width="22" height="6">
-            <line x1="0" y1="3" x2="22" y2="3" stroke="rgba(221,52,76,0.4)" strokeWidth="1" strokeDasharray="3 2" />
-          </svg>
-          security
-        </span>
+        )}
       </div>
 
-      {/* Search */}
+      {/* Edge legend — behind hover "?" */}
+      <div className="relative group">
+        <button
+          className="flex items-center justify-center rounded-full text-[10px] font-bold cursor-help transition-all"
+          style={{
+            width: 20,
+            height: 20,
+            background: 'transparent',
+            border: '1.5px solid #2d3748',
+            color: '#64748b',
+          }}
+          aria-label="Edge legend"
+        >
+          ?
+        </button>
+        <div
+          className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-1.5 px-3 py-2 rounded-lg z-30 text-[10px]"
+          style={{
+            background: '#0f1419',
+            border: '1.5px solid #252d3d',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            color: '#94a3b8',
+            minWidth: 140,
+          }}
+        >
+          <span className="flex items-center gap-2">
+            <svg width="22" height="6">
+              <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
+              <polygon points="16,1 22,3 16,5" fill="rgba(71,85,105,0.6)" />
+            </svg>
+            traffic
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="22" height="6">
+              <line x1="0" y1="3" x2="16" y2="3" stroke="rgba(59,130,246,0.45)" strokeWidth="1.5" strokeDasharray="5 3" />
+              <polygon points="16,1 22,3 16,5" fill="rgba(59,130,246,0.45)" />
+            </svg>
+            access
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="22" height="6">
+              <line x1="0" y1="3" x2="22" y2="3" stroke="rgba(221,52,76,0.4)" strokeWidth="1" strokeDasharray="3 2" />
+            </svg>
+            security
+          </span>
+        </div>
+      </div>
+
       <SearchBar />
 
-      {/* Filter toggle */}
       <button
         onClick={toggleFilterPanel}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:border-slate-500"
