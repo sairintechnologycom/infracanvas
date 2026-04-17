@@ -63,3 +63,36 @@ describe('buildFlowElements — VPC suppression', () => {
     expect(nodes.find(n => n.id === 'zone-vpc')).toBeDefined();
   });
 });
+
+describe('buildFlowElements — regional categorisation', () => {
+  test('groups regional resources into category sub-zones', () => {
+    const graph = makeGraph([
+      makeNode('aws_iam_policy.admin', 'aws_iam_policy', 'admin'),
+      makeNode('aws_kms_key.key', 'aws_kms_key', 'key'),
+      makeNode('aws_s3_bucket.logs', 'aws_s3_bucket', 'logs'),
+      makeNode('aws_db_instance.db', 'aws_db_instance', 'db'),
+    ]);
+    const { nodes } = buildFlowElements(graph);
+
+    const categoryZones = nodes.filter(
+      n => typeof n.id === 'string' && n.id.startsWith('zone-category-'),
+    );
+    const labels = categoryZones.map(n => (n.data as { label: string }).label);
+    expect(labels).toContain('IDENTITY & ACCESS');
+    expect(labels).toContain('DATA');
+  });
+
+  test('orders categories: identity, data, messaging, observability, network, other', () => {
+    const graph = makeGraph([
+      makeNode('aws_sns_topic.t', 'aws_sns_topic', 't'),
+      makeNode('aws_s3_bucket.b', 'aws_s3_bucket', 'b'),
+      makeNode('aws_iam_policy.p', 'aws_iam_policy', 'p'),
+    ]);
+    const { nodes } = buildFlowElements(graph);
+    const categoryZones = nodes
+      .filter(n => typeof n.id === 'string' && n.id.startsWith('zone-category-'))
+      .sort((a, b) => a.position.y - b.position.y)
+      .map(n => (n.data as { label: string }).label);
+    expect(categoryZones).toEqual(['IDENTITY & ACCESS', 'DATA', 'MESSAGING']);
+  });
+});

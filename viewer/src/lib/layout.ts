@@ -30,6 +30,44 @@ const REG_COLS = 2;
 const REG_ROW_GAP = 16;
 const VPC_REG_GAP = 36;
 
+type CategoryKey = 'identity' | 'data' | 'messaging' | 'observability' | 'network' | 'other';
+
+const CATEGORY_ORDER: CategoryKey[] = ['identity', 'data', 'messaging', 'observability', 'network', 'other'];
+
+const CATEGORY_LABELS: Record<CategoryKey, string> = {
+  identity: 'IDENTITY & ACCESS',
+  data: 'DATA',
+  messaging: 'MESSAGING',
+  observability: 'OBSERVABILITY',
+  network: 'NETWORK',
+  other: 'OTHER',
+};
+
+function categorise(type: string): CategoryKey {
+  if (
+    type.startsWith('aws_iam_') ||
+    type === 'aws_kms_key' ||
+    type.startsWith('aws_secretsmanager_') ||
+    type === 'aws_ssm_parameter'
+  ) return 'identity';
+  if (
+    type === 'aws_s3_bucket' ||
+    type === 'aws_db_instance' ||
+    type.startsWith('aws_rds_') ||
+    type === 'aws_dynamodb_table' ||
+    type.startsWith('aws_elasticache_') ||
+    type.startsWith('aws_redshift_')
+  ) return 'data';
+  if (type === 'aws_sqs_queue' || type === 'aws_sns_topic') return 'messaging';
+  if (type.startsWith('aws_cloudwatch_')) return 'observability';
+  if (type === 'aws_security_group' || type.startsWith('aws_route53_')) return 'network';
+  return 'other';
+}
+
+const CAT_LABEL_H = 22;
+const CAT_GAP = 20;
+const CAT_PAD = 12;
+
 // Suppressed: become zone containers, not nodes
 const SUPPRESS_AS_NODE = new Set([
   'aws_vpc',
@@ -314,26 +352,57 @@ export function buildFlowElements(graph: ResourceGraph): { nodes: Node[]; edges:
     regionalX = startX + vpcContentW + VPC_REG_GAP;
   }
 
-  // 3. Regional services (right of VPC)
+  // 3. Regional services — categorised sub-zones
   if (regionalNodes.length > 0) {
     const cols = REG_COLS;
-    const rows = Math.ceil(regionalNodes.length / cols);
-    const regW = cols * (NODE_W + NODE_GAP) - NODE_GAP + 2 * REG_PAD;
-    const regH = REG_LABEL_H + REG_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + REG_PAD;
-    const regX = regionalX;
 
-    flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regX, vpcStartY, regW, regH));
+    const byCategory = new Map<CategoryKey, ResourceNodeData[]>();
+    for (const node of regionalNodes) {
+      const key = categorise(node.type);
+      if (!byCategory.has(key)) byCategory.set(key, []);
+      byCategory.get(key)!.push(node);
+    }
 
-    regionalNodes.forEach((n, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      flowNodes.push(makeResource(
-        n,
-        REG_PAD + col * (NODE_W + NODE_GAP),
-        REG_LABEL_H + REG_PAD + row * (NODE_H + REG_ROW_GAP),
-        'zone-regional',
-      ));
-    });
+    type CatLayout = { key: CategoryKey; label: string; resources: ResourceNodeData[]; w: number; h: number; cols: number };
+    const catLayouts: CatLayout[] = [];
+    for (const key of CATEGORY_ORDER) {
+      const resources = byCategory.get(key);
+      if (!resources || resources.length === 0) continue;
+      const c = resources.length <= 2 ? 1 : resources.length <= 6 ? 2 : 3;
+      const rows = Math.ceil(resources.length / c);
+      const catW = c * (NODE_W + NODE_GAP) - NODE_GAP + 2 * CAT_PAD;
+      const catH = CAT_LABEL_H + CAT_PAD + rows * (NODE_H + REG_ROW_GAP) - REG_ROW_GAP + CAT_PAD;
+      catLayouts.push({ key, label: CATEGORY_LABELS[key], resources, w: catW, h: catH, cols: c });
+    }
+
+    const regW = Math.max(...catLayouts.map(c => c.w), cols * (NODE_W + NODE_GAP) - NODE_GAP + 2 * REG_PAD);
+    const regH =
+      REG_LABEL_H +
+      REG_PAD +
+      catLayouts.reduce((a, c) => a + c.h, 0) +
+      Math.max(0, catLayouts.length - 1) * CAT_GAP +
+      REG_PAD;
+
+    flowNodes.push(makeZone('zone-regional', 'Regional Services (AWS)', 'regional', regionalX, vpcStartY, regW, regH));
+
+    let catY = REG_LABEL_H + REG_PAD;
+    for (const cat of catLayouts) {
+      const catId = `zone-category-${cat.key}`;
+      flowNodes.push(makeZone(catId, cat.label, 'category', REG_PAD, catY, cat.w, cat.h, 'zone-regional'));
+
+      cat.resources.forEach((n, i) => {
+        const col = i % cat.cols;
+        const row = Math.floor(i / cat.cols);
+        flowNodes.push(makeResource(
+          n,
+          CAT_PAD + col * (NODE_W + NODE_GAP),
+          CAT_LABEL_H + CAT_PAD / 2 + row * (NODE_H + REG_ROW_GAP),
+          catId,
+        ));
+      });
+
+      catY += cat.h + CAT_GAP;
+    }
   }
 
   // 4. Edges
