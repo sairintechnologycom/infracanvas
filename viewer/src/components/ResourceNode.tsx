@@ -23,23 +23,22 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
     ? getAzureServiceConfig(data.type)
     : getServiceConfig(data.type);
 
-  const borderColor = selected
-    ? '#60a5fa'
-    : isShadow
-    ? '#f59e0b'
-    : highestSev
-    ? severityColors[highestSev]
-    : isNew
-    ? driftColors.added
-    : isChanged
-    ? driftColors.changed
-    : '#252d3d';
-
   const typeLabel = data.type
     .replace(/^aws_/, '')
     .replace(/^azurerm_/, '')
     .toUpperCase()
     .replaceAll('_', ' ');
+
+  const hasSeverityAccent = !selected && !isShadow && highestSev !== null;
+  const baseBorderColor = selected
+    ? '#60a5fa'
+    : isShadow
+    ? '#f59e0b'
+    : isNew
+    ? driftColors.added
+    : isChanged
+    ? driftColors.changed
+    : '#252d3d';
 
   return (
     <div
@@ -56,66 +55,55 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
       <div
         style={{
           background: 'linear-gradient(135deg, #0f1419 0%, #1a202c 100%)',
-          border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${borderColor}`,
+          border: `1.5px ${isShadow ? 'dashed' : 'solid'} ${baseBorderColor}`,
+          borderTop: hasSeverityAccent
+            ? `2.5px solid ${severityColors[highestSev!]}`
+            : `1.5px ${isShadow ? 'dashed' : 'solid'} ${baseBorderColor}`,
           borderRadius: 10,
           padding: '14px 16px',
           opacity: isDeleted ? 0.5 : 1,
           boxShadow: selected
-            ? `0 0 0 2px ${borderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
+            ? `0 0 0 2px ${baseBorderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
             : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative',
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 0 2px ${borderColor}66, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`;
+          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = hasSeverityAccent
+            ? `0 0 0 1px ${severityColors[highestSev!]}55, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`
+            : `0 0 0 1px ${baseBorderColor}55, 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05)`;
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = borderColor;
           (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
           (e.currentTarget as HTMLDivElement).style.boxShadow = selected
-            ? `0 0 0 2px ${borderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
+            ? `0 0 0 2px ${baseBorderColor}66, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05)`
             : '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03)';
         }}
       >
-        {/* Header: icon box + meta */}
+        {/* Header: icon tile + meta */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 10 }}>
-          {/* Icon box */}
           <div
             style={{
               width: 36,
               height: 36,
               borderRadius: 8,
-              background: `linear-gradient(135deg, ${svc.color}2F 0%, ${svc.color}10 100%)`,
-              border: `1px solid ${svc.color}40`,
+              background: svc.color,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              fontSize: svc.label.length > 3 ? 9 : 11,
+              fontWeight: 900,
+              fontFamily: 'ui-monospace, monospace',
+              color: '#ffffff',
+              letterSpacing: '-0.5px',
               flexShrink: 0,
+              boxShadow: `0 2px 8px ${svc.color}40, inset 0 1px 1px rgba(255,255,255,0.15)`,
             }}
           >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 5,
-                background: svc.color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: svc.label.length > 3 ? 6 : 8,
-                fontWeight: 900,
-                fontFamily: 'ui-monospace, monospace',
-                color: '#ffffff',
-                letterSpacing: '-0.5px',
-                boxShadow: `0 2px 8px ${svc.color}40`,
-              }}
-            >
-              {svc.label}
-            </div>
+            {svc.label}
           </div>
 
-          {/* Meta */}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
@@ -200,7 +188,6 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
             )}
           </div>
 
-          {/* Finding badge or clean check */}
           {findingCount > 0 && highestSev ? (
             <div
               style={{
@@ -224,17 +211,17 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           ) : (
             <div
               style={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 borderRadius: 6,
-                background: 'rgba(34,197,94,0.12)',
-                border: '1.5px solid rgba(34,197,94,0.35)',
+                background: 'rgba(34,197,94,0.08)',
+                border: '1px solid rgba(34,197,94,0.22)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 12,
-                fontWeight: 800,
-                color: '#4ade80',
+                fontSize: 10,
+                fontWeight: 700,
+                color: 'rgba(74,222,128,0.75)',
                 flexShrink: 0,
               }}
             >
