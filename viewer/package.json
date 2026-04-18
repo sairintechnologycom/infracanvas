@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@xyflow/react": "^12.6.0",
     "aws-react-icons": "^3.3.0",
     "dagre": "^0.8.5",
