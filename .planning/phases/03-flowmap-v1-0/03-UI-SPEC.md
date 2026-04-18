@@ -1,10 +1,12 @@
 ---
 phase: 3
 slug: flowmap-v1-0
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-18
+reviewed_at: 2026-04-18
+reviewer_notes: "6/6 dimensions reviewed. 2 non-blocking FLAGs on D4 typography (5 sizes / 3 weights) and D5 spacing (6px/7px SVG dots + 2px/6px badge padding) — both accepted as locked Phase 1–2 visual-parity precedent per CONTEXT.md D-06."
 ---
 
 # Phase 3 — FlowMap v1.0 (scope 3a) UI Design Contract
