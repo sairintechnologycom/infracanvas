@@ -67,38 +67,24 @@ verification: |
 
 ### 9. Single-file HTML export — size + offline integrity
 expected: Run `infracanvas scan --output report.html`. Single self-contained file under 5MB, opens with no network requests required (no external fetches).
-result: issue
-reported: "Exported HTML fetches https://fonts.googleapis.com at load time (Google Fonts CDN). Violates 'zero external fetches' criterion. File size 469KB (well under 5MB). All other URLs in the bundle are either SVG/XML namespaces (not fetched), comment/attribution text inside bundled JS (reactflow.dev, tailwindcss.com, pro.reactflow.dev), React error-decoder URLs (only hit on error), or the infracanvas.dev founding CTA (loaded only on user click)."
-severity: minor
+result: pass
+closed_by: 02-09-PLAN.md (fix(viewer): inline JetBrains Mono + Inter via @fontsource)
 verification: |
-  - Size: 469KB (✓ well under 5MB limit)
-  - Single file: ✓ no sidecar assets
-  - Network dependency found: `<link href='https://fonts.googleapis.com/css2?family=JetBrains+Mono...&family=Inter...' rel='stylesheet'>` — loaded unconditionally at page load
-  - Impact: Offline viewing falls back to system fonts (still functional, looks different). Air-gapped / secure envs may block the request entirely. Counts against "zero deps" marketing.
+  Re-verified 2026-04-18 after plan 02-09 landed:
+  - grep -cE 'fonts\.googleapis\.com|fonts\.gstatic\.com' report.html → 0 (was 1)
+  - stat -f%z report.html → 2,081,117 bytes (~1.98MB, well under 5MB limit)
+  - grep -oE '@font-face' report.html | wc -l → 46 (7 weights × unicode subsets inlined)
+  - Fonts: Inter + JetBrains Mono now bundled as base64 woff2 via @fontsource/*
+  - Single file: ✓ no sidecar assets, no CDN fetches
 
 ## Summary
 
 total: 9
-passed: 8
-issues: 1
+passed: 9
+issues: 0
 pending: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "Exported HTML must be self-contained with no external network fetches (Phase 1 success criterion: 'opens in any browser with zero dependencies')"
-  status: failed
-  reason: "User reported: Exported HTML fetches https://fonts.googleapis.com CDN at load — viewer/index.html or build pipeline injects a Google Fonts <link> tag (JetBrains Mono + Inter)"
-  severity: minor
-  test: 9
-  artifacts:
-    - /tmp/uat_report.html (repro: infracanvas scan --output /tmp/uat_report.html cli/tests/fixtures/prod_infra/)
-    - viewer/index.html (likely source of Google Fonts <link>)
-    - viewer/src/index.css (may reference font-family: Inter, JetBrains Mono)
-  missing:
-    - Inline self-hosted font files in the bundle, OR fallback to system-font stack only (font-family: -apple-system, 'Segoe UI', ...), OR a build flag `--no-fonts` for offline mode.
-  fix_hint: |
-    Options ranked by cost:
-    1. (cheapest) Remove Google Fonts <link> from viewer/index.html; update CSS font-family to system-font stack. Marketing-accurate, loses JetBrains Mono/Inter aesthetic.
-    2. Inline fonts as base64 in the bundled CSS via vite-plugin-singlefile or similar — keeps aesthetic, slightly larger bundle (+~200KB likely), fully offline.
-    3. Use @fontsource/inter + @fontsource/jetbrains-mono npm packages so Vite bundles the woff2 files instead of fetching from CDN.
+(none — all tests pass; test 9 fonts gap closed by plan 02-09 on 2026-04-18)
