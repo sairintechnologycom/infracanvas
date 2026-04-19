@@ -1,0 +1,11 @@
+- id: NET-012
+  title: "ExpressRoute Circuit Not Provisioned"
+  severity: critical
+  resource_types: ["azurerm_express_route_circuit"]
+  framework_ids: ["CIS-Azure-6.1", "NIST-CM-6", "SOC2-A1.2"]
+  condition:
+    attribute: "service_provider_provisioning_state"
+    operator: "not_equals"
+    value: "Provisioned"
+  remediation: "Coordinate with the ExpressRoute service provider to complete provisioning. Hybrid connectivity through this circuit is non-functional until provisioned."
+  description: "An ExpressRoute circuit is not in 'Provisioned' state (e.g., NotProvisioned, Provisioning, Deprovisioning). On-prem <-> Azure traffic through this circuit is impaired."

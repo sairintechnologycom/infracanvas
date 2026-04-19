@@ -1,0 +1,23 @@
+- id: NET-009
+  title: "vNet Peering Misconfigured Gateway Transit"
+  severity: medium
+  resource_types: ["azurerm_virtual_network_peering"]
+  framework_ids: ["CIS-Azure-6.2", "NIST-CM-6", "SOC2-CC7.1"]
+  condition:
+    attribute: "use_remote_gateways"
+    operator: "equals"
+    value: true
+  remediation: "If UseRemoteGateways is true on this side, the REMOTE peering MUST set AllowGatewayTransit true. Otherwise, gateway routing fails silently."
+  description: "A vNet peering asserts UseRemoteGateways. Verify the corresponding peering on the remote vNet has AllowGatewayTransit enabled."
+
+- id: NET-011
+  title: "NSG Rule Uses Wildcard Destination"
+  severity: high
+  resource_types: ["azurerm_network_security_group"]
+  framework_ids: ["CIS-Azure-6.1", "NIST-SC-7", "SOC2-CC6.6", "PCI-DSS-1.2"]
+  condition:
+    attribute: "security_rules.properties.destinationAddressPrefix"
+    operator: "any_equals"
+    value: "*"
+  remediation: "Replace wildcard destinationAddressPrefix with specific IP ranges, service tags (VirtualNetwork, AzureLoadBalancer), or ASGs."
+  description: "A network security group rule uses '*' as the destination address prefix. This is overly permissive and bypasses network segmentation."
