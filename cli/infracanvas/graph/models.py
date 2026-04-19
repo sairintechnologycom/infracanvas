@@ -95,23 +95,83 @@ class ScoreCard(BaseModel):
 
 
 class NetworkFinding(BaseModel):
-    """CLI-02: Network-level security finding for a resource."""
+    """Network-level security finding for a path or hop (FDM-01, NFN-01).
 
-    resource_id: str
+    Shape aligned with the generic rule engine (`Finding`) so NET-* YAML rules
+    surface through the unified findings pipeline (Phase 2 D-09, Phase 3 D-12).
+    """
+
+    # Network-layer evidence
+    source_ip: str
+    dest_ip: str
     protocol: str
-    source_cidr: str
-    dest_cidr: str
-    finding_type: str
+    port: int
+    # Rule-engine-compatible fields (mirror of `Finding` shape)
     severity: Severity
     title: str
     description: str
     remediation: str = ""
-    evidence: dict[str, object] = {}
+    evidence: dict[str, object] = Field(default_factory=dict)
+    rule_id: str = ""
+    source: str = "network"
+    framework_ids: list[str] = Field(default_factory=list)
+    # FlowMap linkage
+    path_id: str = ""
+    hop_id: str = ""
+
+
+class PathHop(BaseModel):
+    """FDM-01: Single hop along a NetworkPath (router / firewall / TGW attachment)."""
+
+    hop_index: int
+    node_id: str
+    source_ip: str = ""
+    dest_ip: str = ""
+    protocol: str = ""
+    port: int = 0
+    interface_in: str = ""
+    interface_out: str = ""
+    bgp_as_path: list[int] = Field(default_factory=list)
+    next_hop: str = ""
+    evidence: dict[str, object] = Field(default_factory=dict)
+
+
+class NetworkPath(BaseModel):
+    """FDM-01: Forward or return network path between two ResourceNodes."""
+
+    id: str
+    source_node_id: str
+    dest_node_id: str
+    direction: str  # "forward" | "return"
+    hops: list[PathHop] = Field(default_factory=list)
+    evidence: dict[str, object] = Field(default_factory=dict)
+
+
+class DCCollectorReading(BaseModel):
+    """FDM-02: One reading emitted by a DC Collector Agent (populated in Phase 3b)."""
+
+    site_id: str
+    collector_type: str  # "router" | "firewall" | "checkpoint"
+    collected_at: str  # ISO-8601 timestamp
+    payload: dict[str, object] = Field(default_factory=dict)
+
+
+class DCSite(BaseModel):
+    """FDM-02: Physical data-centre site (populated in Phase 3b)."""
+
+    id: str
+    name: str
+    location: str = ""
+    routers: list[str] = Field(default_factory=list)  # ResourceNode.id references
+    firewalls: list[str] = Field(default_factory=list)
+    readings: list[DCCollectorReading] = Field(default_factory=list)
 
 
 class ResourceGraph(BaseModel):
-    version: str = "2.0"
+    version: str = "2.1"
     metadata: dict[str, object] = Field(default_factory=dict)
     nodes: list[ResourceNode] = Field(default_factory=list)
     edges: list[dict[str, str]] = Field(default_factory=list)
     summary: GraphSummary = Field(default_factory=GraphSummary)
+    network_paths: list[NetworkPath] = Field(default_factory=list)
+    dc_sites: list[DCSite] = Field(default_factory=list)

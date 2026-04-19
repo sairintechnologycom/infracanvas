@@ -50,7 +50,7 @@ class TestIntegration:
         # Validate against Pydantic model
         graph = ResourceGraph.model_validate(data)
         assert len(graph.nodes) >= 4
-        assert graph.version == "2.0"
+        assert graph.version == "2.1"
         assert graph.metadata["project"] == "simple_vpc"
 
         # At least one finding
@@ -254,7 +254,7 @@ class TestEndToEnd:
         ])
         assert result.exit_code == 0
         data = json.loads((tmp_path / "report.json").read_text())
-        assert data["version"] == "2.0"
+        assert data["version"] == "2.1"
         total_findings = sum(data["summary"]["findings"].values())
         assert total_findings > 0
 
