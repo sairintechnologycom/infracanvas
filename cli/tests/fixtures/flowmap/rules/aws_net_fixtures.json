@@ -1,0 +1,121 @@
+{
+  "NET-001_positive": {
+    "id": "aws_ec2_transit_gateway_route_table.broken",
+    "type": "aws_ec2_transit_gateway_route_table",
+    "name": "broken",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {
+      "state": "available",
+      "routes": [
+        {"DestinationCidrBlock": "10.0.0.0/16", "State": "active"},
+        {"DestinationCidrBlock": "172.16.0.0/12", "State": "blackhole"}
+      ]
+    }
+  },
+  "NET-001_negative": {
+    "id": "aws_ec2_transit_gateway_route_table.healthy",
+    "type": "aws_ec2_transit_gateway_route_table",
+    "name": "healthy",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {
+      "state": "available",
+      "routes": [
+        {"DestinationCidrBlock": "10.0.0.0/16", "State": "active"}
+      ]
+    }
+  },
+  "NET-002_positive": {
+    "id": "aws_ec2_transit_gateway_attachment.pending",
+    "type": "aws_ec2_transit_gateway_attachment",
+    "name": "pending",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "pending"}
+  },
+  "NET-002_negative": {
+    "id": "aws_ec2_transit_gateway_attachment.ok",
+    "type": "aws_ec2_transit_gateway_attachment",
+    "name": "ok",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "available"}
+  },
+  "NET-003_positive": {
+    "id": "aws_network_acl.open",
+    "type": "aws_network_acl",
+    "name": "open",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {
+      "entries": [
+        {"rule_number": 100, "cidr_block": "0.0.0.0/0", "rule_action": "allow", "egress": false}
+      ]
+    }
+  },
+  "NET-003_negative": {
+    "id": "aws_network_acl.closed",
+    "type": "aws_network_acl",
+    "name": "closed",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {
+      "entries": [
+        {"rule_number": 100, "cidr_block": "10.0.0.0/16", "rule_action": "allow", "egress": false}
+      ]
+    }
+  },
+  "NET-004_positive": {
+    "id": "aws_vpc.no_flowlog",
+    "type": "aws_vpc",
+    "name": "no_flowlog",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"vpc_id": "vpc-x", "cidr_block": "10.0.0.0/16"}
+  },
+  "NET-004_negative": {
+    "id": "aws_vpc.with_flowlog",
+    "type": "aws_vpc",
+    "name": "with_flowlog",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {
+      "vpc_id": "vpc-y",
+      "cidr_block": "10.0.0.0/16",
+      "flow_log": {"log_group": "/aws/vpc/prod", "traffic_type": "ALL"}
+    }
+  },
+  "NET-005_positive": {
+    "id": "aws_dx_virtual_interface.down",
+    "type": "aws_dx_virtual_interface",
+    "name": "down",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "down", "vlan": 100}
+  },
+  "NET-005_negative": {
+    "id": "aws_dx_virtual_interface.up",
+    "type": "aws_dx_virtual_interface",
+    "name": "up",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "available", "vlan": 100}
+  },
+  "NET-006_positive": {
+    "id": "aws_dx_connection.down",
+    "type": "aws_dx_connection",
+    "name": "down",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "down", "bandwidth": "1Gbps"}
+  },
+  "NET-006_negative": {
+    "id": "aws_dx_connection.up",
+    "type": "aws_dx_connection",
+    "name": "up",
+    "provider": "aws",
+    "region": "us-east-1",
+    "attributes": {"state": "available", "bandwidth": "1Gbps"}
+  }
+}
