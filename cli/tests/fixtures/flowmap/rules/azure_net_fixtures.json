@@ -1,0 +1,90 @@
+{
+  "NET-007_positive": {
+    "id": "azurerm_virtual_hub_connection.insecure",
+    "type": "azurerm_virtual_hub_connection",
+    "name": "insecure",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"enable_internet_security": false, "provisioning_state": "Succeeded"}
+  },
+  "NET-007_negative": {
+    "id": "azurerm_virtual_hub_connection.secure",
+    "type": "azurerm_virtual_hub_connection",
+    "name": "secure",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"enable_internet_security": true, "provisioning_state": "Succeeded"}
+  },
+  "NET-008_positive": {
+    "id": "azurerm_virtual_hub_connection.failed",
+    "type": "azurerm_virtual_hub_connection",
+    "name": "failed",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"enable_internet_security": true, "provisioning_state": "Failed"}
+  },
+  "NET-008_negative": {
+    "id": "azurerm_virtual_hub_connection.succeeded",
+    "type": "azurerm_virtual_hub_connection",
+    "name": "succeeded",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"enable_internet_security": true, "provisioning_state": "Succeeded"}
+  },
+  "NET-009_positive": {
+    "id": "azurerm_virtual_network_peering.broken",
+    "type": "azurerm_virtual_network_peering",
+    "name": "broken",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"use_remote_gateways": true, "allow_gateway_transit": false}
+  },
+  "NET-009_negative": {
+    "id": "azurerm_virtual_network_peering.ok",
+    "type": "azurerm_virtual_network_peering",
+    "name": "ok",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"use_remote_gateways": false, "allow_gateway_transit": false}
+  },
+  "NET-011_positive": {
+    "id": "azurerm_network_security_group.wildcard",
+    "type": "azurerm_network_security_group",
+    "name": "wildcard",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {
+      "security_rules": [
+        {"name": "open_all", "properties": {"destinationAddressPrefix": "*", "access": "Allow"}}
+      ]
+    }
+  },
+  "NET-011_negative": {
+    "id": "azurerm_network_security_group.scoped",
+    "type": "azurerm_network_security_group",
+    "name": "scoped",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {
+      "security_rules": [
+        {"name": "scoped", "properties": {"destinationAddressPrefix": "10.0.0.0/16", "access": "Allow"}}
+      ]
+    }
+  },
+  "NET-012_positive": {
+    "id": "azurerm_express_route_circuit.notprov",
+    "type": "azurerm_express_route_circuit",
+    "name": "notprov",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"service_provider_provisioning_state": "NotProvisioned", "circuit_provisioning_state": "Enabled"}
+  },
+  "NET-012_negative": {
+    "id": "azurerm_express_route_circuit.prov",
+    "type": "azurerm_express_route_circuit",
+    "name": "prov",
+    "provider": "azure",
+    "region": "eastus",
+    "attributes": {"service_provider_provisioning_state": "Provisioned", "circuit_provisioning_state": "Enabled"}
+  }
+}

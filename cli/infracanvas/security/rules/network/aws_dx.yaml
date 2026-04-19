@@ -1,0 +1,23 @@
+- id: NET-005
+  title: "Direct Connect Virtual Interface Not In 'available' State"
+  severity: critical
+  resource_types: ["aws_dx_virtual_interface"]
+  framework_ids: ["CIS-3.4", "NIST-CM-6", "SOC2-A1.2"]
+  condition:
+    attribute: "state"
+    operator: "not_equals"
+    value: "available"
+  remediation: "Investigate the VIF state (pending, confirming, down, rejected). Hybrid connectivity is degraded while a VIF is not available."
+  description: "A Direct Connect virtual interface is not in the 'available' state. On-prem <-> AWS traffic through this interface is impaired."
+
+- id: NET-006
+  title: "Direct Connect Connection Not In 'available' State"
+  severity: high
+  resource_types: ["aws_dx_connection"]
+  framework_ids: ["CIS-3.4", "NIST-CM-6", "SOC2-A1.2"]
+  condition:
+    attribute: "state"
+    operator: "not_equals"
+    value: "available"
+  remediation: "Investigate connection state; coordinate with the DX provider if the port is in a non-available state."
+  description: "A Direct Connect connection is not in 'available' state. All VIFs on this connection are offline."

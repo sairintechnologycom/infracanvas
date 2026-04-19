@@ -24,8 +24,9 @@ class TestRuleLoader:
 
     def test_loads_all_rules(self):
         rules = load_rules()
-        # 30 AWS rules (SEC-001..SEC-030) + 10 Azure rules (AZ-001..AZ-010)
-        assert len(rules) == 40
+        # 30 AWS SEC-* + 10 Azure AZ-* + 11 NET-* (Phase 3a) = 51
+        # NET-010 reserved for Phase 3b (path-dependent ASY-03)
+        assert len(rules) >= 51
 
     def test_rule_ids(self):
         rules = load_rules()

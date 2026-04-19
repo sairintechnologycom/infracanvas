@@ -1,0 +1,23 @@
+- id: NET-007
+  title: "vWAN Hub Connection Missing Internet Security"
+  severity: high
+  resource_types: ["azurerm_virtual_hub_connection"]
+  framework_ids: ["CIS-Azure-6.5", "NIST-SC-7", "SOC2-CC6.6"]
+  condition:
+    attribute: "enable_internet_security"
+    operator: "equals"
+    value: false
+  remediation: "Enable 'Propagate to None' + internet security on the hub connection so egress traffic is inspected by Azure Firewall in Secure Hub mode."
+  description: "A vWAN hub-to-vNet connection has internet security disabled. Outbound traffic from this vNet is not inspected by a Secure Hub firewall."
+
+- id: NET-008
+  title: "vWAN Hub Connection Not In Succeeded State"
+  severity: medium
+  resource_types: ["azurerm_virtual_hub_connection"]
+  framework_ids: ["CIS-Azure-6.1", "NIST-CM-6", "SOC2-A1.2"]
+  condition:
+    attribute: "provisioning_state"
+    operator: "not_equals"
+    value: "Succeeded"
+  remediation: "Investigate the connection provisioning state (Creating / Failed / Updating). Traffic may be incorrectly routed until provisioning completes."
+  description: "A vWAN hub connection is not in 'Succeeded' state. Routing through this connection may be impaired."
