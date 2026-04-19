@@ -116,3 +116,104 @@ describe('Store', () => {
     expect(useStore.getState().filters.severities).toEqual(['critical', 'high']);
   });
 });
+
+describe('FlowMap store slices (Plan 03-06)', () => {
+  beforeEach(() => {
+    useStore.setState({
+      activeTab: 'canvas',
+      flowMapFilters: { severities: [], cloud: 'both', nodeTypes: [], hasFlowLogs: false },
+      selectedPath: null,
+      filters: { severities: [], resourceTypes: [], driftStatuses: [], sources: [] },
+    });
+  });
+
+  it('activeTab default is canvas', () => {
+    expect(useStore.getState().activeTab).toBe('canvas');
+  });
+
+  it('setActiveTab flips to flowmap', () => {
+    useStore.getState().setActiveTab('flowmap');
+    expect(useStore.getState().activeTab).toBe('flowmap');
+  });
+
+  it('switching tabs preserves existing canvas filters', () => {
+    useStore.getState().toggleSeverityFilter('critical');
+    useStore.getState().setActiveTab('flowmap');
+    useStore.getState().setActiveTab('canvas');
+    expect(useStore.getState().filters.severities).toContain('critical');
+  });
+
+  it('switching tabs preserves flowMapFilters', () => {
+    useStore.getState().toggleFlowMapSeverity('high');
+    useStore.getState().setActiveTab('canvas');
+    useStore.getState().setActiveTab('flowmap');
+    expect(useStore.getState().flowMapFilters.severities).toContain('high');
+  });
+
+  it('toggleFlowMapSeverity adds and removes', () => {
+    useStore.getState().toggleFlowMapSeverity('high');
+    expect(useStore.getState().flowMapFilters.severities).toEqual(['high']);
+    useStore.getState().toggleFlowMapSeverity('high');
+    expect(useStore.getState().flowMapFilters.severities).toEqual([]);
+  });
+
+  it('setFlowMapCloud is mutually exclusive', () => {
+    useStore.getState().setFlowMapCloud('aws');
+    expect(useStore.getState().flowMapFilters.cloud).toBe('aws');
+    useStore.getState().setFlowMapCloud('azure');
+    expect(useStore.getState().flowMapFilters.cloud).toBe('azure');
+    useStore.getState().setFlowMapCloud('both');
+    expect(useStore.getState().flowMapFilters.cloud).toBe('both');
+  });
+
+  it('toggleFlowMapNodeType adds and removes', () => {
+    useStore.getState().toggleFlowMapNodeType('aws_ec2_transit_gateway');
+    expect(useStore.getState().flowMapFilters.nodeTypes).toContain('aws_ec2_transit_gateway');
+    useStore.getState().toggleFlowMapNodeType('aws_ec2_transit_gateway');
+    expect(useStore.getState().flowMapFilters.nodeTypes).not.toContain('aws_ec2_transit_gateway');
+  });
+
+  it('toggleFlowMapFlowLogs flips boolean', () => {
+    expect(useStore.getState().flowMapFilters.hasFlowLogs).toBe(false);
+    useStore.getState().toggleFlowMapFlowLogs();
+    expect(useStore.getState().flowMapFilters.hasFlowLogs).toBe(true);
+    useStore.getState().toggleFlowMapFlowLogs();
+    expect(useStore.getState().flowMapFilters.hasFlowLogs).toBe(false);
+  });
+
+  it('clearFlowMapFilters resets all flowMap filters', () => {
+    useStore.getState().toggleFlowMapSeverity('critical');
+    useStore.getState().setFlowMapCloud('aws');
+    useStore.getState().toggleFlowMapNodeType('aws_vpc');
+    useStore.getState().toggleFlowMapFlowLogs();
+    useStore.getState().clearFlowMapFilters();
+    const f = useStore.getState().flowMapFilters;
+    expect(f.severities).toEqual([]);
+    expect(f.cloud).toBe('both');
+    expect(f.nodeTypes).toEqual([]);
+    expect(f.hasFlowLogs).toBe(false);
+  });
+
+  it('setSelectedPath round-trip', () => {
+    const p = {
+      id: 'p1',
+      source_node_id: 'a',
+      dest_node_id: 'b',
+      direction: 'forward' as const,
+      hops: [],
+      evidence: {},
+    };
+    useStore.getState().setSelectedPath(p);
+    expect(useStore.getState().selectedPath?.id).toBe('p1');
+    useStore.getState().setSelectedPath(null);
+    expect(useStore.getState().selectedPath).toBeNull();
+  });
+
+  it('clearFlowMapFilters does not touch canvas filters', () => {
+    useStore.getState().toggleSeverityFilter('critical');
+    useStore.getState().toggleFlowMapSeverity('high');
+    useStore.getState().clearFlowMapFilters();
+    expect(useStore.getState().filters.severities).toContain('critical');
+    expect(useStore.getState().flowMapFilters.severities).toEqual([]);
+  });
+});
