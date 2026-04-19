@@ -75,6 +75,7 @@ def _run_scan(
     allow_empty: bool = False,
     ci: bool = False,
     shadow: bool = False,
+    flowmap: bool = False,
     policy: Optional[Path] = None,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
@@ -127,6 +128,11 @@ def _run_scan(
             graph = detector.detect(graph)
         except RuntimeError as exc:
             out.print(f"[yellow]Warning:[/yellow] {exc}. Skipping shadow scan.")
+
+    # FDM-02: Cloud network topology collection (opt-in)
+    if flowmap:
+        from infracanvas.flowmap.collector import run_flowmap_collection
+        graph = run_flowmap_collection(graph, out)
 
     if not allow_empty and len(graph.nodes) == 0:
         out.print(
@@ -307,6 +313,16 @@ def scan(
         bool,
         typer.Option("--shadow", help="Compare live AWS API vs Terraform state (requires boto3)"),
     ] = False,
+    flowmap: Annotated[
+        bool,
+        typer.Option(
+            "--flowmap",
+            help=(
+                "Collect cloud network topology (AWS TGW + Azure vWAN + "
+                "Direct Connect/ExpressRoute). Beta, free during preview."
+            ),
+        ),
+    ] = False,
     policy: Annotated[
         Optional[Path],
         typer.Option("--policy", help="Directory containing custom policy YAML files"),
@@ -332,7 +348,7 @@ def scan(
 
     graph = _run_scan(directory, severity_filter=effective_severity,
                       ignore_rules=effective_ignore, ci=ci,
-                      shadow=shadow, policy=policy)
+                      shadow=shadow, flowmap=flowmap, policy=policy)
 
     if ci or quiet:
         # CI mode: only valid JSON to stdout, diagnostics to stderr
