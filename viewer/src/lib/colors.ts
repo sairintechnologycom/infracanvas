@@ -226,3 +226,13 @@ export function getHighestSeverity(findings: { severity: Severity }[]): Severity
   }
   return null;
 }
+
+// FlowMap Phase 3a additions — path + flow-log color tokens
+// Kept as a const-as-assertion so TypeScript narrows each key to its literal hex.
+export const flowmapPathColors = {
+  forward:    '#3B82F6',
+  return:     '#F97316',
+  divergence: '#EF4444',
+  flowOk:     '#22C55E',
+  flowStale:  '#94A3B8',
+} as const;
