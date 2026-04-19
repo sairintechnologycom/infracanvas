@@ -1,0 +1,23 @@
+- id: NET-001
+  title: "Transit Gateway Route Table Has Blackhole Route"
+  severity: high
+  resource_types: ["aws_ec2_transit_gateway_route_table"]
+  framework_ids: ["CIS-3.4", "NIST-SC-7", "SOC2-CC6.6"]
+  condition:
+    attribute: "routes.State"
+    operator: "any_equals"
+    value: "blackhole"
+  remediation: "Remove blackhole routes or replace with a valid attachment; blackholes silently drop traffic and confuse asymmetric-routing analysis."
+  description: "A TGW route table entry is in blackhole state. Traffic matching this destination is dropped without notification."
+
+- id: NET-002
+  title: "Transit Gateway Attachment Not In 'available' State"
+  severity: medium
+  resource_types: ["aws_ec2_transit_gateway_attachment"]
+  framework_ids: ["CIS-3.4", "NIST-CM-6", "SOC2-CC7.1"]
+  condition:
+    attribute: "state"
+    operator: "not_equals"
+    value: "available"
+  remediation: "Investigate the attachment state — pending/failed/deleting attachments indicate an incomplete or broken integration."
+  description: "A Transit Gateway attachment is not in the 'available' state. Traffic through this attachment may be dropped."

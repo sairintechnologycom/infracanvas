@@ -1,0 +1,22 @@
+- id: NET-003
+  title: "Network ACL Allows Unrestricted Ingress From Internet"
+  severity: high
+  resource_types: ["aws_network_acl"]
+  framework_ids: ["CIS-5.1", "NIST-SC-7", "SOC2-CC6.6", "PCI-DSS-1.3"]
+  condition:
+    attribute: "entries.cidr_block"
+    operator: "any_equals"
+    value: "0.0.0.0/0"
+  remediation: "Restrict NACL ingress entries to specific CIDR ranges or layer SGs for fine-grained control."
+  description: "A Network ACL entry allows inbound traffic from 0.0.0.0/0. Combined with a permissive security group, this exposes the subnet to the public internet."
+
+- id: NET-004
+  title: "VPC Without Flow Logs Enabled"
+  severity: medium
+  resource_types: ["aws_vpc"]
+  framework_ids: ["CIS-3.9", "NIST-AU-2", "SOC2-CC7.2", "PCI-DSS-10.1"]
+  condition:
+    attribute: "flow_log"
+    operator: "not_exists"
+  remediation: "Enable VPC Flow Logs targeting CloudWatch Logs or S3 to capture accepted/rejected traffic for forensics."
+  description: "This VPC has no associated flow log. Network traffic is not being recorded; incident response and asymmetric-routing analysis will be blind."
