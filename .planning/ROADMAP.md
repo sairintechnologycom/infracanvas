@@ -10,6 +10,7 @@ InfraCanvas v2.0 is built in 6 phases: validate demand before writing code (Phas
 - [ ] **Phase 1: Canvas MVP** - CLI-first tool with HCL parsing, interactive diagram, security scoring, and PyPI release
 - [ ] **Phase 2: Canvas v1.0** - Azure support, 30 AWS rules, drift + shadow infra, multi-region cost, policy engine
 - [ ] **Phase 3: FlowMap v1.0** - Go DC Agent, hybrid network topology, path tracer, asymmetric routing detection
+- [ ] **Phase 3.5: Retroactive Verification Documentation** - Author missing VERIFICATION.md files for Phases 01/02/03 to close milestone audit gaps
 - [ ] **Phase 4: SaaS Dashboard + CostLens** - FastAPI backend, Next.js 15 dashboard, Neon/Clerk/Stripe, shared cost allocation
 - [ ] **Phase 5: Enterprise** - Compliance engine, SSO, OPA/Rego policies, self-hosted, Zscaler, NMS, troubleshooting wizard
 
@@ -85,6 +86,19 @@ Plans:
   5. FlowMap is accessible only on Team/Enterprise tier ($299/mo Stripe product); free/Pro users see a gated upgrade prompt
 **Plans**: TBD
 
+### Phase 3.5: Retroactive Verification Documentation
+**Goal**: Close v1.0 milestone audit gaps by authoring VERIFICATION.md files for Phases 01, 02, 03 — documenting evidence trails for all 75 satisfied requirements and scope notes for 24 deferred items
+**Depends on**: Phase 3
+**Requirements**: None new — closes verification gaps for CLI-01..REL-04, PLN-01..DST-02, FDM-01..FMV-05
+**Gap Closure**: Closes 3 verification gaps + 3 Nyquist gaps from `v1.0-MILESTONE-AUDIT.md`
+**Success Criteria** (what must be TRUE):
+  1. `01-VERIFICATION.md` documents evidence for all 32 Phase 1 requirements (CLI, parser, graph, security, scoring, viewer, export, release) with file paths and test counts
+  2. `02-VERIFICATION.md` documents evidence for all 23 Phase 2 requirements (Azure parser, drift, shadow, policy engine, cost, staleness, Docker/PyInstaller) with UAT cross-references
+  3. `03-VERIFICATION.md` documents evidence for 20 satisfied Phase 3a requirements + explicit scope note for 24 deferred 3b/Phase 4 items (NET-010, DC Agent, ASA, path computation, asymmetry, tiering)
+  4. Each VERIFICATION.md includes a self-check section (commit hash, test counts, build status, rule inventory)
+  5. Re-running `/gsd-audit-milestone v1.0` reports `nyquist: compliant_phases: [01, 02, 03]` and `status: complete` (Phase 0 remains `human_needed`)
+**Plans**: TBD
+
 ### Phase 4: SaaS Dashboard + CostLens
 **Goal**: Teams can collaborate on infrastructure scans in a web dashboard, shared cost is allocated across workloads, and the full viewer (Canvas + FlowMap + CostLens) is embedded in Next.js — with the viewer extracted to a shared package before any dashboard work begins
 **Depends on**: Phase 3
@@ -120,5 +134,6 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5
 | 1. Canvas MVP | 0/7 | Planning complete | - |
 | 2. Canvas v1.0 | 0/8 | Planning complete | - |
 | 3. FlowMap v1.0 | 0/TBD | Not started | - |
+| 3.5. Retroactive Verification Documentation | 0/TBD | Not started | - |
 | 4. SaaS Dashboard + CostLens | 0/TBD | Not started | - |
 | 5. Enterprise | 0/TBD | Not started | - |
