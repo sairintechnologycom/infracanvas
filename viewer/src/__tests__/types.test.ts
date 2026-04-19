@@ -1,6 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, test } from 'vitest';
 import { sampleData } from '../sample-data';
-import type { ResourceGraph, ResourceNode, Finding, GraphSummary } from '../types';
+import type {
+  DCCollectorReading,
+  DCSite,
+  Finding,
+  GraphSummary,
+  NetworkPath,
+  PathHop,
+  ResourceGraph,
+  ResourceNode,
+} from '../types';
 
 describe('Types conformance', () => {
   it('E-010: sample-data matches ResourceGraph shape', () => {
@@ -92,5 +101,70 @@ describe('Types conformance', () => {
     for (const node of sampleData.nodes) {
       expect(validDrift).toContain(node.drift);
     }
+  });
+});
+
+describe('FlowMap types (FDM-01, FDM-02)', () => {
+  test('NetworkPath compiles with required fields', () => {
+    const p: NetworkPath = {
+      id: 'p1',
+      source_node_id: 'a',
+      dest_node_id: 'b',
+      direction: 'forward',
+      hops: [],
+      evidence: {},
+    };
+    expect(p.direction).toBe('forward');
+    expect(p.hops).toEqual([]);
+  });
+
+  test('PathHop compiles with required fields', () => {
+    const h: PathHop = {
+      hop_index: 0,
+      node_id: 'vpc-rt-1',
+      source_ip: '10.0.0.1',
+      dest_ip: '10.1.0.1',
+      protocol: 'tcp',
+      port: 443,
+      interface_in: 'eth0',
+      interface_out: 'eth1',
+      bgp_as_path: [],
+      next_hop: '',
+      evidence: {},
+    };
+    expect(h.port).toBe(443);
+  });
+
+  test('DCCollectorReading compiles with required fields', () => {
+    const r: DCCollectorReading = {
+      site_id: 'dc-nyc',
+      collector_type: 'router',
+      collected_at: '2026-04-18T10:00:00Z',
+      payload: {},
+    };
+    expect(r.collector_type).toBe('router');
+  });
+
+  test('DCSite compiles with required fields', () => {
+    const s: DCSite = {
+      id: 'dc-nyc',
+      name: 'New York DC',
+      location: 'NYC',
+      routers: [],
+      firewalls: [],
+      readings: [],
+    };
+    expect(s.name).toBe('New York DC');
+  });
+
+  test('ResourceGraph accepts network_paths and dc_sites', () => {
+    const g: Partial<ResourceGraph> = { network_paths: [], dc_sites: [] };
+    expect(g.network_paths).toEqual([]);
+    expect(g.dc_sites).toEqual([]);
+  });
+
+  test('sampleData includes empty network_paths and dc_sites arrays', () => {
+    expect(sampleData.network_paths).toEqual([]);
+    expect(sampleData.dc_sites).toEqual([]);
   });
 });
