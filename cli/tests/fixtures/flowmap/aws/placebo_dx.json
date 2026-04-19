@@ -1,0 +1,38 @@
+{
+  "describe_connections": {
+    "connections": [
+      {
+        "connectionId": "dxcon-abc123",
+        "connectionName": "NYC-primary",
+        "connectionState": "available",
+        "region": "us-east-1",
+        "location": "EqDC2",
+        "bandwidth": "10Gbps",
+        "ownerAccount": "123456789012"
+      }
+    ]
+  },
+  "describe_virtual_interfaces": {
+    "virtualInterfaces": [
+      {
+        "virtualInterfaceId": "dxvif-aaa111",
+        "virtualInterfaceName": "prod-private",
+        "virtualInterfaceType": "private",
+        "virtualInterfaceState": "available",
+        "connectionId": "dxcon-abc123",
+        "asn": 64520,
+        "amazonAddress": "192.0.2.1/30",
+        "customerAddress": "192.0.2.2/30"
+      },
+      {
+        "virtualInterfaceId": "dxvif-bbb222",
+        "virtualInterfaceName": "prod-transit",
+        "virtualInterfaceType": "transit",
+        "virtualInterfaceState": "available",
+        "connectionId": "dxcon-abc123",
+        "asn": 64520,
+        "directConnectGatewayId": "dxgw-0xxx555"
+      }
+    ]
+  }
+}

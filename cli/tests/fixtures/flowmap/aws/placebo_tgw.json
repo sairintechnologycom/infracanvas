@@ -1,0 +1,74 @@
+{
+  "describe_transit_gateways": {
+    "TransitGateways": [
+      {
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "TransitGatewayArn": "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-0a1b2c3d4e5f67890",
+        "State": "available",
+        "OwnerId": "123456789012",
+        "Description": "Primary hybrid TGW",
+        "Options": {
+          "AmazonSideAsn": 64512,
+          "DefaultRouteTableAssociation": "enable",
+          "DefaultRouteTablePropagation": "enable"
+        },
+        "Tags": [{"Key": "Name", "Value": "hybrid-primary"}]
+      }
+    ]
+  },
+  "describe_transit_gateway_attachments": {
+    "TransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachmentId": "tgw-attach-0aa111222",
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "ResourceType": "vpc",
+        "ResourceId": "vpc-0abc111",
+        "State": "available"
+      },
+      {
+        "TransitGatewayAttachmentId": "tgw-attach-0bb222333",
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "ResourceType": "vpc",
+        "ResourceId": "vpc-0abc222",
+        "State": "available"
+      },
+      {
+        "TransitGatewayAttachmentId": "tgw-attach-0cc333444",
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "ResourceType": "vpn",
+        "ResourceId": "vpn-0abc333",
+        "State": "available"
+      }
+    ]
+  },
+  "describe_transit_gateway_route_tables": {
+    "TransitGatewayRouteTables": [
+      {
+        "TransitGatewayRouteTableId": "tgw-rtb-0aaabbbccc",
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "State": "available",
+        "DefaultAssociationRouteTable": true,
+        "DefaultPropagationRouteTable": true
+      }
+    ]
+  },
+  "search_transit_gateway_routes": {
+    "Routes": [
+      {"DestinationCidrBlock": "10.1.0.0/16", "Type": "propagated", "State": "active", "TransitGatewayAttachments": [{"ResourceId": "vpc-0abc111"}]},
+      {"DestinationCidrBlock": "10.2.0.0/16", "Type": "propagated", "State": "active", "TransitGatewayAttachments": [{"ResourceId": "vpc-0abc222"}]},
+      {"DestinationCidrBlock": "0.0.0.0/0", "Type": "static", "State": "active", "TransitGatewayAttachments": [{"ResourceId": "vpn-0abc333"}]}
+    ]
+  },
+  "describe_vpn_connections": {
+    "VpnConnections": [
+      {
+        "VpnConnectionId": "vpn-0abc333",
+        "CustomerGatewayId": "cgw-0xxx444",
+        "TransitGatewayId": "tgw-0a1b2c3d4e5f67890",
+        "State": "available",
+        "Type": "ipsec.1",
+        "CustomerGatewayConfiguration": "<sanitized>"
+      }
+    ]
+  }
+}
