@@ -1,0 +1,43 @@
+{
+  "virtual_wans": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/virtualWans/vwan-primary",
+      "name": "vwan-primary",
+      "location": "eastus",
+      "type": "Microsoft.Network/virtualWans",
+      "properties": {
+        "provisioningState": "Succeeded",
+        "allowBranchToBranchTraffic": true,
+        "type": "Standard"
+      }
+    }
+  ],
+  "virtual_hubs": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/virtualHubs/hub-east",
+      "name": "hub-east",
+      "location": "eastus",
+      "resource_group": "rg-hybrid",
+      "properties": {
+        "provisioningState": "Succeeded",
+        "addressPrefix": "10.100.0.0/23",
+        "virtualWan": {"id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/virtualWans/vwan-primary"}
+      }
+    }
+  ],
+  "hub_connections": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/virtualHubs/hub-east/hubVirtualNetworkConnections/conn-vnet-prod",
+      "name": "conn-vnet-prod",
+      "resource_group": "rg-hybrid",
+      "virtual_hub_name": "hub-east",
+      "properties": {
+        "remoteVirtualNetwork": {"id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Network/virtualNetworks/vnet-prod"},
+        "allowHubToRemoteVnetTransit": true,
+        "allowRemoteVnetToUseHubVnetGateways": false,
+        "enableInternetSecurity": true,
+        "provisioningState": "Succeeded"
+      }
+    }
+  ]
+}

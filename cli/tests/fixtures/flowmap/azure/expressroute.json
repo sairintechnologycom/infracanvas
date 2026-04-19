@@ -1,0 +1,51 @@
+{
+  "express_route_circuits": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/expressRouteCircuits/er-nyc-10g",
+      "name": "er-nyc-10g",
+      "location": "eastus",
+      "resource_group": "rg-hybrid",
+      "sku": {"name": "Premium_MeteredData", "tier": "Premium", "family": "MeteredData"},
+      "properties": {
+        "serviceProviderProperties": {
+          "serviceProviderName": "Equinix",
+          "peeringLocation": "New York",
+          "bandwidthInMbps": 10000
+        },
+        "serviceProviderProvisioningState": "Provisioned",
+        "circuitProvisioningState": "Enabled"
+      }
+    }
+  ],
+  "peerings": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hybrid/providers/Microsoft.Network/expressRouteCircuits/er-nyc-10g/peerings/AzurePrivatePeering",
+      "name": "AzurePrivatePeering",
+      "resource_group": "rg-hybrid",
+      "circuit_name": "er-nyc-10g",
+      "properties": {
+        "peeringType": "AzurePrivatePeering",
+        "state": "Enabled",
+        "peerASN": 64521,
+        "primaryPeerAddressPrefix": "192.0.2.0/30",
+        "secondaryPeerAddressPrefix": "192.0.2.4/30",
+        "vlanId": 100
+      }
+    }
+  ],
+  "flow_logs": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/NetworkWatcherRG/providers/Microsoft.Network/networkWatchers/NetworkWatcher_eastus/flowLogs/fl-nsg-app",
+      "name": "fl-nsg-app",
+      "resource_group": "NetworkWatcherRG",
+      "network_watcher_name": "NetworkWatcher_eastus",
+      "properties": {
+        "targetResourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+        "enabled": true,
+        "retentionPolicy": {"days": 30, "enabled": true},
+        "format": {"type": "JSON", "version": 2},
+        "storageId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/stflowlogs"
+      }
+    }
+  ]
+}

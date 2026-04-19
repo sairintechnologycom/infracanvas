@@ -1,0 +1,58 @@
+{
+  "virtual_networks": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Network/virtualNetworks/vnet-prod",
+      "name": "vnet-prod",
+      "location": "eastus",
+      "resource_group": "rg-prod",
+      "properties": {
+        "addressSpace": {"addressPrefixes": ["10.10.0.0/16"]},
+        "subnets": [
+          {"name": "subnet-app", "properties": {"addressPrefix": "10.10.1.0/24"}},
+          {"name": "subnet-db", "properties": {"addressPrefix": "10.10.2.0/24"}}
+        ]
+      }
+    }
+  ],
+  "peerings": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Network/virtualNetworks/vnet-prod/virtualNetworkPeerings/peer-to-shared",
+      "name": "peer-to-shared",
+      "resource_group": "rg-prod",
+      "virtual_network_name": "vnet-prod",
+      "properties": {
+        "remoteVirtualNetwork": {"id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.Network/virtualNetworks/vnet-shared"},
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": false,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false,
+        "peeringState": "Connected"
+      }
+    }
+  ],
+  "network_security_groups": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "name": "nsg-app",
+      "location": "eastus",
+      "resource_group": "rg-prod",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-https",
+            "properties": {
+              "priority": 100,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "443"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
