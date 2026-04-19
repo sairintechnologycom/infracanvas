@@ -23,6 +23,12 @@ export interface NetworkFinding {
   description: string;
   remediation?: string;
   evidence?: Record<string, unknown>;
+  // FDM-01: rule-engine-compatible extensions (mirror of Finding shape)
+  rule_id?: string;
+  source?: string;            // 'network'
+  framework_ids?: string[];
+  path_id?: string;
+  hop_id?: string;
 }
 
 export interface CostEstimate {
@@ -77,12 +83,58 @@ export interface GraphMetadata {
   terraform_version: string;
 }
 
+// FDM-01: FlowMap path + hop models (mirror of cli/infracanvas/graph/models.py)
+
+export interface PathHop {
+  hop_index: number;
+  node_id: string;
+  source_ip: string;
+  dest_ip: string;
+  protocol: string;
+  port: number;
+  interface_in: string;
+  interface_out: string;
+  bgp_as_path: number[];
+  next_hop: string;
+  evidence: Record<string, unknown>;
+}
+
+export interface NetworkPath {
+  id: string;
+  source_node_id: string;
+  dest_node_id: string;
+  direction: 'forward' | 'return';
+  hops: PathHop[];
+  evidence: Record<string, unknown>;
+}
+
+// FDM-02: DC collector models (populated in Phase 3b)
+
+export interface DCCollectorReading {
+  site_id: string;
+  collector_type: 'router' | 'firewall' | 'checkpoint';
+  collected_at: string;
+  payload: Record<string, unknown>;
+}
+
+export interface DCSite {
+  id: string;
+  name: string;
+  location: string;
+  routers: string[];
+  firewalls: string[];
+  readings: DCCollectorReading[];
+}
+
 export interface ResourceGraph {
   version: string;
   metadata: GraphMetadata;
   nodes: ResourceNode[];
   edges: GraphEdge[];
   summary: GraphSummary;
+  // FDM-01/FDM-02: populated in Phase 3b; empty arrays in Phase 3a.
+  network_paths: NetworkPath[];
+  dc_sites: DCSite[];
 }
 
 declare global {

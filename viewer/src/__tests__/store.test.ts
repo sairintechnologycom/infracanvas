@@ -36,6 +36,8 @@ const mockGraph: ResourceGraph = {
     score: 100,
     drift: { added: 0, changed: 0, deleted: 0 },
   },
+  network_paths: [],
+  dc_sites: [],
 };
 
 describe('Store', () => {

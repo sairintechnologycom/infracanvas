@@ -10,38 +10,48 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 class TestNetworkFinding:
-    """CLI-02: NetworkFinding model validation tests (Wave 0 Nyquist stub)."""
+    """FDM-01: NetworkFinding model validation tests.
 
-    def test_resource_graph_version_2_0(self):
-        """GRF-03: ResourceGraph defaults to version 2.0."""
+    Note: Phase 3a (03-01-PLAN.md) realigned NetworkFinding to the rule-engine
+    shape (source_ip/dest_ip/protocol/port + rule_id/source/framework_ids/
+    path_id/hop_id). ResourceGraph schema bumped v2.0 -> v2.1 additively.
+    """
+
+    def test_resource_graph_version_2_1(self):
+        """GRF-03: ResourceGraph defaults to version 2.1 (bumped from 2.0)."""
         graph = ResourceGraph()
-        assert graph.version == "2.0"
+        assert graph.version == "2.1"
 
     def test_network_finding_valid(self):
-        """CLI-02: NetworkFinding accepts valid fields."""
+        """FDM-01: NetworkFinding accepts the rule-engine-aligned shape."""
         from infracanvas.graph.models import NetworkFinding
         finding = NetworkFinding(
-            resource_id="aws_security_group.web",
+            rule_id="NET-001",
+            source_ip="0.0.0.0/0",
+            dest_ip="10.0.1.0/24",
             protocol="tcp",
-            source_cidr="0.0.0.0/0",
-            dest_cidr="10.0.1.0/24",
-            finding_type="unrestricted_ingress",
+            port=22,
             severity="critical",
             title="Unrestricted ingress",
             description="Security group allows unrestricted ingress on tcp",
         )
-        assert finding.resource_id == "aws_security_group.web"
+        assert finding.rule_id == "NET-001"
         assert finding.protocol == "tcp"
-        assert finding.source_cidr == "0.0.0.0/0"
-        assert finding.dest_cidr == "10.0.1.0/24"
-        assert finding.finding_type == "unrestricted_ingress"
+        assert finding.source_ip == "0.0.0.0/0"
+        assert finding.dest_ip == "10.0.1.0/24"
+        assert finding.port == 22
+        # Defaults for rule-engine-compatible fields
+        assert finding.source == "network"
+        assert finding.framework_ids == []
+        assert finding.path_id == ""
+        assert finding.hop_id == ""
 
     def test_network_finding_rejects_missing_fields(self):
-        """CLI-02: NetworkFinding requires all mandatory fields."""
+        """FDM-01: NetworkFinding requires mandatory network-layer fields."""
         from infracanvas.graph.models import NetworkFinding
         import pytest
         with pytest.raises(Exception):
-            NetworkFinding(resource_id="sg.web")  # missing required fields
+            NetworkFinding(source_ip="0.0.0.0/0")  # type: ignore[call-arg]
 
 
 class TestBuildGraph:

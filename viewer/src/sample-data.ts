@@ -257,4 +257,7 @@ export const sampleData: ResourceGraph = {
     score: 45,
     drift: { added: 1, changed: 1, deleted: 0 },
   },
+  // FDM-01/FDM-02: populated in Phase 3b; empty arrays in Phase 3a sample data.
+  network_paths: [],
+  dc_sites: [],
 };
