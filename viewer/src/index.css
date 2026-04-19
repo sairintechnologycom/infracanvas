@@ -10,6 +10,9 @@
   --color-sev-medium: #eab308;
   --color-sev-info: #3b82f6;
   --color-sev-clean: #22c55e;
+  --color-flow-forward: #3B82F6;
+  --color-flow-return:  #F97316;
+  --color-flow-divergence: #EF4444;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }

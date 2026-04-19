@@ -32,6 +32,10 @@ interface StoreState {
   filters: Filters;
   gateMode: boolean;
   searchQuery: string;
+  // FlowMap slices (Plan 03-06)
+  activeTab: TabId;
+  flowMapFilters: FlowMapFilters;
+  selectedPath: NetworkPath | null;
   setGraph: (graph: ResourceGraph) => void;
   setSelectedNode: (node: ResourceNode | null) => void;
   toggleFilterPanel: () => void;
@@ -42,10 +46,7 @@ interface StoreState {
   clearFilters: () => void;
   setGateMode: (gateMode: boolean) => void;
   setSearchQuery: (query: string) => void;
-  // FlowMap slices (Plan 03-06)
-  activeTab: TabId;
-  flowMapFilters: FlowMapFilters;
-  selectedPath: NetworkPath | null;
+  // FlowMap actions (Plan 03-06)
   setActiveTab: (tab: TabId) => void;
   toggleFlowMapSeverity: (sev: Severity) => void;
   setFlowMapCloud: (cloud: CloudFilter) => void;
