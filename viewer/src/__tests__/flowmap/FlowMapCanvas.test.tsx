@@ -72,18 +72,19 @@ describe('FlowMapCanvas', () => {
     expect(NETWORK_TYPES.has('aws_s3_bucket')).toBe(false)
   })
 
-  test('returns null when graph is null', () => {
-    const { container } = renderCanvas()
-    expect(container.firstChild).toBeNull()
+  test('renders FlowMapEmptyState when graph is null (D-08 empty-state handoff)', () => {
+    const { getByText } = renderCanvas()
+    // FlowMapEmptyState renders the "Beta" preview pill + CLI command copy
+    expect(getByText(/beta/i)).toBeInTheDocument()
   })
 
-  test('returns null when graph has no network nodes and empty network_paths', () => {
+  test('renders FlowMapEmptyState when graph has no network nodes and empty network_paths', () => {
     const g = emptyGraph()
     g.nodes = [makeNode('aws_instance.web', 'aws_instance')]
     g.summary.total_resources = 1
     useStore.setState({ graph: g })
-    const { container } = renderCanvas()
-    expect(container.firstChild).toBeNull()
+    const { getByText } = renderCanvas()
+    expect(getByText(/beta/i)).toBeInTheDocument()
   })
 
   test('renders non-null wrapper when a TGW node is present', () => {

@@ -22,6 +22,7 @@ import { FirewallNodeMemo } from './nodes/FirewallNode'
 import { DCSiteGroupNodeMemo } from './nodes/DCSiteGroupNode'
 import { PathEdge, pathEdgeMarkerDefs } from './edges/PathEdge'
 import { layoutFlowMap } from './lib/elkLayout'
+import { FlowMapEmptyState } from './FlowMapEmptyState'
 import { useStore } from '../../store'
 import type { NetworkPath, ResourceNode } from '../../types'
 
@@ -212,9 +213,10 @@ export function FlowMapCanvas() {
     return () => window.removeEventListener('keydown', handler)
   }, [setSelectedNode, setSelectedPath])
 
-  // Empty-state handoff — return null so App.tsx 3-column shell reveals
-  // Plan 03-08's FlowMapEmptyState in the empty slot.
-  if (isEmpty) return null
+  // Empty-state handoff (D-08): when cloud-topology-empty, render
+  // Plan 03-08's FlowMapEmptyState in-slot so the 3-column shell stays intact.
+  if (isEmpty) return <FlowMapEmptyState />
+
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', background: '#FAFBFC' }}>
