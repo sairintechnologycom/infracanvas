@@ -98,9 +98,9 @@ Plans:
   4. Each VERIFICATION.md includes a self-check section (commit hash, test counts, build status, rule inventory)
   5. Re-running `/gsd-audit-milestone v1.0` reports `nyquist: compliant_phases: [01, 02, 03]` and `status: complete` (Phase 0 remains `human_needed`)
 **Plans**: 3 plans
-  - [ ] 03.5-01-PLAN.md — Author 01-VERIFICATION.md (Phase 1 Canvas MVP retro, 32 REQ-IDs)
-  - [ ] 03.5-02-PLAN.md — Author 02-VERIFICATION.md (Phase 2 Canvas v1.0 retro, 21 REQ-IDs, UAT cross-ref)
-  - [ ] 03.5-03-PLAN.md — Author 03-VERIFICATION.md (Phase 3a FlowMap retro, 14 satisfied + 24 deferred)
+  - [x] 03.5-01-PLAN.md — Author 01-VERIFICATION.md (Phase 1 Canvas MVP retro, 32 REQ-IDs)
+  - [x] 03.5-02-PLAN.md — Author 02-VERIFICATION.md (Phase 2 Canvas v1.0 retro, 21 REQ-IDs, UAT cross-ref)
+  - [x] 03.5-03-PLAN.md — Author 03-VERIFICATION.md (Phase 3a FlowMap retro, 14 satisfied + 24 deferred)
 
 ### Phase 4: SaaS Dashboard + CostLens
 **Goal**: Teams can collaborate on infrastructure scans in a web dashboard, shared cost is allocated across workloads, and the full viewer (Canvas + FlowMap + CostLens) is embedded in Next.js — with the viewer extracted to a shared package before any dashboard work begins

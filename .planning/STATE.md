@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: "**Goal**: The CLI handles Azure alongside AWS, detects drift and shadow infrastructure, enforces custom policies, and ships multi-region cost estimation — with the HCL parser hardened against silent failures first"
 status: executing
-stopped_at: Phase 3 executed — all 8 plans complete, pending gsd-verifier
-last_updated: "2026-04-19T10:35:00.000Z"
-last_activity: 2026-04-19 -- Phase 03 FlowMap v1.0 (3a cloud-only) — all 8 plans landed, 8 SUMMARY.md files, 268 Python tests pass, TS compile clean
+stopped_at: Phase 2 UI-SPEC approved
+last_updated: "2026-04-19T13:24:30.793Z"
+last_activity: 2026-04-19 -- Phase 03.5 execution started
 progress:
   total_phases: 3
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-15)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 03 — FlowMap v1.0 (3a cloud-only) — executed, pending verification
+**Current focus:** Phase 03.5 — retroactive-verification
 
 ## Current Position
 
-Phase: 03 (flowmap-v1-0) — EXECUTED (pending gsd-verifier)
-Plan: 8 of 8
-Status: All plans landed, SUMMARY.md written for each, tests green
-Last activity: 2026-04-19 -- Phase 03 Wave 3 complete (03-03 AWS + 03-04 Azure collectors)
+Phase: 03.5 (retroactive-verification) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 03.5
+Last activity: 2026-04-19 -- Phase 03.5 execution started
 
 Progress: [██████████] 100% (8/8 plans)
 
