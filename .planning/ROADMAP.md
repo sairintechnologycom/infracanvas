@@ -97,7 +97,10 @@ Plans:
   3. `03-VERIFICATION.md` documents evidence for 20 satisfied Phase 3a requirements + explicit scope note for 24 deferred 3b/Phase 4 items (NET-010, DC Agent, ASA, path computation, asymmetry, tiering)
   4. Each VERIFICATION.md includes a self-check section (commit hash, test counts, build status, rule inventory)
   5. Re-running `/gsd-audit-milestone v1.0` reports `nyquist: compliant_phases: [01, 02, 03]` and `status: complete` (Phase 0 remains `human_needed`)
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 03.5-01-PLAN.md — Author 01-VERIFICATION.md (Phase 1 Canvas MVP retro, 32 REQ-IDs)
+  - [ ] 03.5-02-PLAN.md — Author 02-VERIFICATION.md (Phase 2 Canvas v1.0 retro, 21 REQ-IDs, UAT cross-ref)
+  - [ ] 03.5-03-PLAN.md — Author 03-VERIFICATION.md (Phase 3a FlowMap retro, 14 satisfied + 24 deferred)
 
 ### Phase 4: SaaS Dashboard + CostLens
 **Goal**: Teams can collaborate on infrastructure scans in a web dashboard, shared cost is allocated across workloads, and the full viewer (Canvas + FlowMap + CostLens) is embedded in Next.js — with the viewer extracted to a shared package before any dashboard work begins
@@ -134,6 +137,6 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5
 | 1. Canvas MVP | 0/7 | Planning complete | - |
 | 2. Canvas v1.0 | 0/8 | Planning complete | - |
 | 3. FlowMap v1.0 | 0/TBD | Not started | - |
-| 3.5. Retroactive Verification Documentation | 0/TBD | Not started | - |
+| 3.5. Retroactive Verification Documentation | 0/3 | Planning complete | - |
 | 4. SaaS Dashboard + CostLens | 0/TBD | Not started | - |
 | 5. Enterprise | 0/TBD | Not started | - |
