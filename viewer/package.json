@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "cp dist/index.html ../cli/infracanvas/export/viewer_template.html",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
