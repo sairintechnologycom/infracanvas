@@ -133,7 +133,7 @@ class TestScoreCommand:
 
     def test_score_invalid_directory(self):
         result = runner.invoke(app, ["score", "/nonexistent"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2  # WRG-01 D-04: normalized not-a-directory to exit 2
 
 
 class TestExportCommand:
