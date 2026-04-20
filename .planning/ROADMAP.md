@@ -76,10 +76,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — WRG-01 CLI exit codes + --gate-mode flag + stderr error routing across scan/score/plan/export
-- [ ] 04-02-PLAN.md — WRG-02 drift_counts 5-key contract in analyzer.py + GraphSummary default
-- [ ] 04-03-PLAN.md — WRG-03 Canvas↔FlowMap tab toggle: URL hash persistence, keyboard shortcuts, disabled state + tooltip
-- [ ] 04-04-PLAN.md — WRG-04 pytest coverage gate (≥80% line+branch on security/cost/drift), 102 parametrized rule tests, drift invariant property test, CLI contract tests
+- [x] 04-01-PLAN.md — WRG-01 CLI exit codes + --gate-mode flag + stderr error routing across scan/score/plan/export
+- [x] 04-02-PLAN.md — WRG-02 drift_counts 5-key contract in analyzer.py + GraphSummary default
+- [x] 04-03-PLAN.md — WRG-03 Canvas↔FlowMap tab toggle: URL hash persistence, keyboard shortcuts, disabled state + tooltip
+- [x] 04-04-PLAN.md — WRG-04 pytest coverage gate (≥80% line+branch on security/cost/drift), 102 parametrized rule tests, drift invariant property test, CLI contract tests
 
 ### Phase 5: Viewer Extraction
 
