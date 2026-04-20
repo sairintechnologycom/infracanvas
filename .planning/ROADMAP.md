@@ -47,7 +47,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 2. Canvas v1.0 | v1.0 | 10/10 | Shipped | 2026-04-19 |
 | 3. FlowMap v1.0 | v1.0 | 9/9 | Shipped (cloud-only) | 2026-04-19 |
 | 3.5. Retroactive Verification | v1.0 | 3/3 | Shipped | 2026-04-19 |
-| 4. E2E Wiring Hardening | v1.1 | 0/TBD | Not planned | - |
+| 4. E2E Wiring Hardening | v1.1 | 0/4 | Planned | - |
 | 5. Viewer Extraction | v1.1 | 0/TBD | Not planned | - |
 | 6. SaaS Backend Foundation | v1.1 | 0/TBD | Not planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
@@ -72,6 +72,14 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 2. Drift summary `summary.drift_counts` totals equal node count across all drift states (added/changed/deleted/unchanged/shadow)
 3. User can switch Canvas ↔ FlowMap from the viewer UI without code or URL tweaks
 4. `pytest cli/` passes with ≥80% coverage across `security/`, `cost/`, `drift/` modules
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — WRG-01 CLI exit codes + --gate-mode flag + stderr error routing across scan/score/plan/export
+- [ ] 04-02-PLAN.md — WRG-02 drift_counts 5-key contract in analyzer.py + GraphSummary default
+- [ ] 04-03-PLAN.md — WRG-03 Canvas↔FlowMap tab toggle: URL hash persistence, keyboard shortcuts, disabled state + tooltip
+- [ ] 04-04-PLAN.md — WRG-04 pytest coverage gate (≥80% line+branch on security/cost/drift), 102 parametrized rule tests, drift invariant property test, CLI contract tests
 
 ### Phase 5: Viewer Extraction
 
