@@ -49,6 +49,68 @@ class TestCostEstimator:
         cost = _estimate_resource("aws_lambda_function", {})
         assert cost.monthly_usd == 0.0
 
+    def test_lambda_reserved_concurrency(self):
+        """COST-C-1: Lambda with reserved_concurrent_executions > 0 computes cost."""
+        cost = _estimate_resource(
+            "aws_lambda_function",
+            {"reserved_concurrent_executions": 10},
+        )
+        assert cost.monthly_usd > 0.0
+        assert "reserved" in cost.basis
+
+    def test_unknown_resource_type_returns_zero(self):
+        """COST-C-2: Unknown resource type falls through to 0.0 / 'unknown' basis."""
+        cost = _estimate_resource("aws_made_up_service", {})
+        assert cost.monthly_usd == 0.0
+        assert cost.basis == "unknown"
+
+    def test_zero_cost_type_s3(self):
+        """COST-C-3: S3 bucket in ZERO_COST_TYPES returns 0.0 with usage-based basis."""
+        cost = _estimate_resource("aws_s3_bucket", {})
+        assert cost.monthly_usd == 0.0
+        assert cost.basis == "usage-based"
+
+    def test_non_billable_vpc(self):
+        """COST-C-4: VPC in NON_BILLABLE returns 0.0 with 'no charge' basis."""
+        cost = _estimate_resource("aws_vpc", {})
+        assert cost.monthly_usd == 0.0
+        assert cost.basis == "no charge"
+
+    def test_delta_changed_resource(self):
+        """COST-C-5: changed action computes after - before delta."""
+        graph = ResourceGraph(nodes=[], summary=GraphSummary())
+        changes = [
+            PlanChange(
+                resource_address="aws_instance.web",
+                resource_type="aws_instance",
+                resource_name="web",
+                action=DriftStatus.changed,
+                before={"instance_type": "t3.micro"},
+                after={"instance_type": "t3.large"},
+            )
+        ]
+        estimator = CostEstimator()
+        delta = estimator.delta(graph, changes)
+        # t3.large ($60.73) - t3.micro ($7.59) ≈ $53.14
+        assert delta > 0.0
+
+    def test_delta_unchanged_action_is_zero(self):
+        """COST-C-6: unchanged action does not change delta."""
+        graph = ResourceGraph(nodes=[], summary=GraphSummary())
+        changes = [
+            PlanChange(
+                resource_address="aws_instance.web",
+                resource_type="aws_instance",
+                resource_name="web",
+                action=DriftStatus.unchanged,
+                before={"instance_type": "t3.micro"},
+                after={"instance_type": "t3.micro"},
+            )
+        ]
+        estimator = CostEstimator()
+        delta = estimator.delta(graph, changes)
+        assert delta == 0.0
+
     def test_estimator_total_sum(self):
         nodes = [
             _node("aws_instance", "a", {"instance_type": "t3.medium"}),

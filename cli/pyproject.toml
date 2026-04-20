@@ -47,7 +47,7 @@ flowmap = [
     "azure-mgmt-network>=28,<31",
     "azure-mgmt-resource>=23,<26",
 ]
-test = ["moto>=5.1,<6", "placebo>=0.10"]
+test = ["moto>=5.1,<6", "placebo>=0.10", "pytest-cov>=5,<8"]
 
 [project.scripts]
 infracanvas = "infracanvas.main:app"
@@ -61,6 +61,25 @@ Documentation = "https://docs.infracanvas.dev"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "--cov=infracanvas.security --cov=infracanvas.cost --cov=infracanvas.drift --cov-branch --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+branch = true
+source = ["infracanvas"]
+omit = [
+    "infracanvas/__main__.py",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
 
 [tool.ruff]
 target-version = "py312"

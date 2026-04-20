@@ -1,6 +1,9 @@
 """Tests for the security rules engine (Suite C)."""
 
+import json
 from pathlib import Path
+
+import pytest
 
 from infracanvas.graph.builder import build_graph
 from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode, Severity
@@ -10,6 +13,39 @@ from infracanvas.security.loader import load_rules
 from infracanvas.security.models import RuleCondition, SecurityRule
 
 FIXTURES = Path(__file__).parent / "fixtures"
+RULE_FIXTURES = Path(__file__).parent / "fixtures" / "rules"
+
+with open(RULE_FIXTURES / "sec_fixtures.json") as _f:
+    SEC_FIX = json.load(_f)
+with open(RULE_FIXTURES / "az_fixtures.json") as _f:
+    AZ_FIX = json.load(_f)
+
+# 30 SEC-AWS rules (verified 2026-04-20 via grep on rules/aws/*.yaml)
+SEC_AWS_IDS = [
+    "SEC-001", "SEC-002", "SEC-003", "SEC-004", "SEC-005",
+    "SEC-006", "SEC-007", "SEC-008", "SEC-009", "SEC-010",
+    "SEC-011", "SEC-012", "SEC-013", "SEC-014", "SEC-015",
+    "SEC-016", "SEC-017", "SEC-018", "SEC-019", "SEC-020",
+    "SEC-021", "SEC-022", "SEC-023", "SEC-024", "SEC-025",
+    "SEC-026", "SEC-027", "SEC-028", "SEC-029", "SEC-030",
+]
+
+# 10 AZ-* rules (verified 2026-04-20 via grep on rules/azure/*.yaml)
+SEC_AZ_IDS = [
+    "AZ-001", "AZ-002", "AZ-003", "AZ-004", "AZ-005",
+    "AZ-006", "AZ-007", "AZ-008", "AZ-009", "AZ-010",
+]
+
+
+def _node_from_fixture(data: dict) -> ResourceNode:
+    return ResourceNode(**data)
+
+
+def _evaluate_single(node: ResourceNode) -> ResourceNode:
+    """Run all security rules against a one-node graph and return the node."""
+    graph = ResourceGraph(nodes=[node])
+    graph = evaluate_all(graph)
+    return graph.nodes[0]
 
 
 def _scan_fixture(name: str):
@@ -278,3 +314,49 @@ class TestOperatorCoverage:
         node = self._make_node({"cidr_block": "10.0.0.0/16"})
         finding = _evaluate_rule(rule, node)
         assert finding is None
+
+
+class TestSEC_RuleEvaluation:
+    """Parametrized positive + negative coverage for every SEC-AWS rule (D-16)."""
+
+    @pytest.mark.parametrize("rule_id", SEC_AWS_IDS)
+    def test_aws_rule_fires_on_positive(self, rule_id: str):
+        """SEC-R{rule_id}-POS: positive fixture triggers the rule."""
+        fixture = SEC_FIX[f"{rule_id}_positive"]
+        node = _evaluate_single(_node_from_fixture(fixture))
+        findings = [f for f in node.findings if f.rule_id == rule_id]
+        assert findings, f"{rule_id} did not fire on positive fixture"
+        assert findings[0].source == "security"
+        assert findings[0].framework_ids
+
+    @pytest.mark.parametrize("rule_id", SEC_AWS_IDS)
+    def test_aws_rule_silent_on_negative(self, rule_id: str):
+        """SEC-R{rule_id}-NEG: negative fixture does not trigger the rule."""
+        fixture = SEC_FIX[f"{rule_id}_negative"]
+        node = _evaluate_single(_node_from_fixture(fixture))
+        findings = [f for f in node.findings if f.rule_id == rule_id]
+        assert not findings, (
+            f"{rule_id} fired on negative fixture (false positive): "
+            f"{[f.evidence for f in findings]}"
+        )
+
+
+class TestAZ_RuleEvaluation:
+    """Parametrized positive + negative coverage for every AZ-* rule (D-16)."""
+
+    @pytest.mark.parametrize("rule_id", SEC_AZ_IDS)
+    def test_az_rule_fires_on_positive(self, rule_id: str):
+        """SEC-R{rule_id}-POS (Azure): positive fixture triggers the rule."""
+        fixture = AZ_FIX[f"{rule_id}_positive"]
+        node = _evaluate_single(_node_from_fixture(fixture))
+        findings = [f for f in node.findings if f.rule_id == rule_id]
+        assert findings, f"{rule_id} did not fire on positive fixture"
+        assert findings[0].source == "security"
+
+    @pytest.mark.parametrize("rule_id", SEC_AZ_IDS)
+    def test_az_rule_silent_on_negative(self, rule_id: str):
+        """SEC-R{rule_id}-NEG (Azure): negative fixture does not trigger the rule."""
+        fixture = AZ_FIX[f"{rule_id}_negative"]
+        node = _evaluate_single(_node_from_fixture(fixture))
+        findings = [f for f in node.findings if f.rule_id == rule_id]
+        assert not findings, f"{rule_id} fired on negative fixture"
