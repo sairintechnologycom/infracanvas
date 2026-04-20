@@ -1,0 +1,150 @@
+{
+  "AZ-001_positive": {
+    "id": "azurerm_network_security_group.open",
+    "type": "azurerm_network_security_group",
+    "name": "open",
+    "provider": "azure",
+    "attributes": {
+      "security_rule": [{"name": "allow-all", "source_address_prefix": "*", "destination_port_range": "443"}]
+    }
+  },
+  "AZ-001_negative": {
+    "id": "azurerm_network_security_group.scoped",
+    "type": "azurerm_network_security_group",
+    "name": "scoped",
+    "provider": "azure",
+    "attributes": {
+      "security_rule": [{"name": "allow-vnet", "source_address_prefix": "10.0.0.0/16", "destination_port_range": "443"}]
+    }
+  },
+  "AZ-002_positive": {
+    "id": "azurerm_storage_account.public",
+    "type": "azurerm_storage_account",
+    "name": "public",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": true, "https_traffic_only_enabled": true, "min_tls_version": "TLS1_2"}
+  },
+  "AZ-002_negative": {
+    "id": "azurerm_storage_account.private",
+    "type": "azurerm_storage_account",
+    "name": "private",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": false, "https_traffic_only_enabled": true, "min_tls_version": "TLS1_2"}
+  },
+  "AZ-003_positive": {
+    "id": "azurerm_network_security_group.ssh_open",
+    "type": "azurerm_network_security_group",
+    "name": "ssh_open",
+    "provider": "azure",
+    "attributes": {
+      "security_rule": [{"name": "allow-ssh", "source_address_prefix": "10.0.0.0/16", "destination_port_range": "22"}]
+    }
+  },
+  "AZ-003_negative": {
+    "id": "azurerm_network_security_group.no_ssh",
+    "type": "azurerm_network_security_group",
+    "name": "no_ssh",
+    "provider": "azure",
+    "attributes": {
+      "security_rule": [{"name": "allow-https", "source_address_prefix": "10.0.0.0/16", "destination_port_range": "443"}]
+    }
+  },
+  "AZ-004_positive": {
+    "id": "azurerm_linux_virtual_machine.unencrypted",
+    "type": "azurerm_linux_virtual_machine",
+    "name": "unencrypted",
+    "provider": "azure",
+    "attributes": {"size": "Standard_B1s"}
+  },
+  "AZ-004_negative": {
+    "id": "azurerm_linux_virtual_machine.encrypted",
+    "type": "azurerm_linux_virtual_machine",
+    "name": "encrypted",
+    "provider": "azure",
+    "attributes": {"size": "Standard_B1s", "os_disk": {"disk_encryption_set_id": "/subscriptions/abc/resourceGroups/rg/providers/Microsoft.Compute/diskEncryptionSets/des"}}
+  },
+  "AZ-005_positive": {
+    "id": "azurerm_linux_virtual_machine.public",
+    "type": "azurerm_linux_virtual_machine",
+    "name": "public",
+    "provider": "azure",
+    "attributes": {"size": "Standard_B1s", "os_disk": {"disk_encryption_set_id": "/sub/rg/des/d"}, "public_ip_address": "20.1.2.3"}
+  },
+  "AZ-005_negative": {
+    "id": "azurerm_linux_virtual_machine.private",
+    "type": "azurerm_linux_virtual_machine",
+    "name": "private",
+    "provider": "azure",
+    "attributes": {"size": "Standard_B1s", "os_disk": {"disk_encryption_set_id": "/sub/rg/des/d"}}
+  },
+  "AZ-006_positive": {
+    "id": "azurerm_storage_account.no_https",
+    "type": "azurerm_storage_account",
+    "name": "no_https",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": false, "https_traffic_only_enabled": false, "min_tls_version": "TLS1_2"}
+  },
+  "AZ-006_negative": {
+    "id": "azurerm_storage_account.https_only",
+    "type": "azurerm_storage_account",
+    "name": "https_only",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": false, "https_traffic_only_enabled": true, "min_tls_version": "TLS1_2"}
+  },
+  "AZ-007_positive": {
+    "id": "azurerm_storage_account.tls_low",
+    "type": "azurerm_storage_account",
+    "name": "tls_low",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": false, "https_traffic_only_enabled": true, "min_tls_version": "TLS1_0"}
+  },
+  "AZ-007_negative": {
+    "id": "azurerm_storage_account.tls_ok",
+    "type": "azurerm_storage_account",
+    "name": "tls_ok",
+    "provider": "azure",
+    "attributes": {"allow_blob_public_access": false, "https_traffic_only_enabled": true, "min_tls_version": "TLS1_2"}
+  },
+  "AZ-008_positive": {
+    "id": "azurerm_kubernetes_cluster.no_rbac",
+    "type": "azurerm_kubernetes_cluster",
+    "name": "no_rbac",
+    "provider": "azure",
+    "attributes": {"role_based_access_control_enabled": false, "kubernetes_version": "1.29"}
+  },
+  "AZ-008_negative": {
+    "id": "azurerm_kubernetes_cluster.rbac",
+    "type": "azurerm_kubernetes_cluster",
+    "name": "rbac",
+    "provider": "azure",
+    "attributes": {"role_based_access_control_enabled": true, "kubernetes_version": "1.29"}
+  },
+  "AZ-009_positive": {
+    "id": "azurerm_virtual_network.no_ddos",
+    "type": "azurerm_virtual_network",
+    "name": "no_ddos",
+    "provider": "azure",
+    "attributes": {"address_space": ["10.0.0.0/16"]}
+  },
+  "AZ-009_negative": {
+    "id": "azurerm_virtual_network.with_ddos",
+    "type": "azurerm_virtual_network",
+    "name": "with_ddos",
+    "provider": "azure",
+    "attributes": {"address_space": ["10.0.0.0/16"], "ddos_protection_plan": {"id": "/sub/rg/plans/p", "enable": true}}
+  },
+  "AZ-010_positive": {
+    "id": "azurerm_mssql_server.public",
+    "type": "azurerm_mssql_server",
+    "name": "public",
+    "provider": "azure",
+    "attributes": {"version": "12.0", "public_network_access_enabled": true}
+  },
+  "AZ-010_negative": {
+    "id": "azurerm_mssql_server.private",
+    "type": "azurerm_mssql_server",
+    "name": "private",
+    "provider": "azure",
+    "attributes": {"version": "12.0", "public_network_access_enabled": false}
+  }
+}

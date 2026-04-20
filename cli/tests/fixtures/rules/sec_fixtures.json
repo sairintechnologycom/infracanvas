@@ -1,0 +1,494 @@
+{
+  "SEC-001_positive": {
+    "id": "aws_s3_bucket.public_data",
+    "type": "aws_s3_bucket",
+    "name": "public_data",
+    "provider": "aws",
+    "attributes": {"acl": "public-read"}
+  },
+  "SEC-001_negative": {
+    "id": "aws_s3_bucket.private_data",
+    "type": "aws_s3_bucket",
+    "name": "private_data",
+    "provider": "aws",
+    "attributes": {"acl": "private"}
+  },
+  "SEC-002_positive": {
+    "id": "aws_s3_bucket.unencrypted",
+    "type": "aws_s3_bucket",
+    "name": "unencrypted",
+    "provider": "aws",
+    "attributes": {"acl": "private"}
+  },
+  "SEC-002_negative": {
+    "id": "aws_s3_bucket.encrypted",
+    "type": "aws_s3_bucket",
+    "name": "encrypted",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}}
+    }
+  },
+  "SEC-003_positive": {
+    "id": "aws_security_group.open_ssh",
+    "type": "aws_security_group",
+    "name": "open_ssh",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 22, "to_port": 22, "protocol": "tcp", "cidr_blocks": ["0.0.0.0/0"]}]
+    }
+  },
+  "SEC-003_negative": {
+    "id": "aws_security_group.restricted",
+    "type": "aws_security_group",
+    "name": "restricted",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 22, "to_port": 22, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/16"]}]
+    }
+  },
+  "SEC-004_positive": {
+    "id": "aws_security_group.open_all",
+    "type": "aws_security_group",
+    "name": "open_all",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 0, "to_port": 0, "protocol": "-1", "cidr_blocks": ["0.0.0.0/0"]}]
+    }
+  },
+  "SEC-004_negative": {
+    "id": "aws_security_group.scoped",
+    "type": "aws_security_group",
+    "name": "scoped",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 443, "to_port": 443, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/16"]}]
+    }
+  },
+  "SEC-005_positive": {
+    "id": "aws_db_instance.public_db",
+    "type": "aws_db_instance",
+    "name": "public_db",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": true, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-005_negative": {
+    "id": "aws_db_instance.private_db",
+    "type": "aws_db_instance",
+    "name": "private_db",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-006_positive": {
+    "id": "aws_db_instance.unencrypted_db",
+    "type": "aws_db_instance",
+    "name": "unencrypted_db",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-006_negative": {
+    "id": "aws_db_instance.encrypted_db",
+    "type": "aws_db_instance",
+    "name": "encrypted_db",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-007_positive": {
+    "id": "aws_iam_policy.wildcard",
+    "type": "aws_iam_policy",
+    "name": "wildcard",
+    "provider": "aws",
+    "attributes": {"policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}"}
+  },
+  "SEC-007_negative": {
+    "id": "aws_iam_policy.scoped",
+    "type": "aws_iam_policy",
+    "name": "scoped",
+    "provider": "aws",
+    "attributes": {"policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::bucket/*\"}]}"}
+  },
+  "SEC-008_positive": {
+    "id": "aws_instance.no_ebs_enc",
+    "type": "aws_instance",
+    "name": "no_ebs_enc",
+    "provider": "aws",
+    "attributes": {"instance_type": "t3.micro", "tags": {"Name": "web"}}
+  },
+  "SEC-008_negative": {
+    "id": "aws_instance.ebs_enc",
+    "type": "aws_instance",
+    "name": "ebs_enc",
+    "provider": "aws",
+    "attributes": {
+      "instance_type": "t3.micro",
+      "tags": {"Name": "web"},
+      "root_block_device": {"encrypted": true}
+    }
+  },
+  "SEC-009_positive": {
+    "id": "aws_kms_key.no_rotation",
+    "type": "aws_kms_key",
+    "name": "no_rotation",
+    "provider": "aws",
+    "attributes": {"description": "unrotated", "tags": {"Name": "k"}, "deletion_window_in_days": 30}
+  },
+  "SEC-009_negative": {
+    "id": "aws_kms_key.rotated",
+    "type": "aws_kms_key",
+    "name": "rotated",
+    "provider": "aws",
+    "attributes": {"enable_key_rotation": true, "description": "rotated", "tags": {"Name": "k"}, "deletion_window_in_days": 30}
+  },
+  "SEC-010_positive": {
+    "id": "aws_vpc.untagged",
+    "type": "aws_vpc",
+    "name": "untagged",
+    "provider": "aws",
+    "attributes": {"cidr_block": "10.0.0.0/16"}
+  },
+  "SEC-010_negative": {
+    "id": "aws_vpc.tagged",
+    "type": "aws_vpc",
+    "name": "tagged",
+    "provider": "aws",
+    "attributes": {"cidr_block": "10.0.0.0/16", "tags": {"Name": "main", "Environment": "prod"}}
+  },
+  "SEC-011_positive": {
+    "id": "aws_s3_bucket_public_access_block.bad",
+    "type": "aws_s3_bucket_public_access_block",
+    "name": "bad",
+    "provider": "aws",
+    "attributes": {"block_public_acls": false}
+  },
+  "SEC-011_negative": {
+    "id": "aws_s3_bucket_public_access_block.good",
+    "type": "aws_s3_bucket_public_access_block",
+    "name": "good",
+    "provider": "aws",
+    "attributes": {"block_public_acls": true, "block_public_policy": true, "ignore_public_acls": true, "restrict_public_buckets": true}
+  },
+  "SEC-012_positive": {
+    "id": "aws_s3_bucket.no_versioning",
+    "type": "aws_s3_bucket",
+    "name": "no_versioning",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "logging": {"target_bucket": "log-bucket"},
+      "lifecycle_rule": [{"id": "r1", "enabled": true}],
+      "versioning": {"enabled": false}
+    }
+  },
+  "SEC-012_negative": {
+    "id": "aws_s3_bucket.versioned",
+    "type": "aws_s3_bucket",
+    "name": "versioned",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "logging": {"target_bucket": "log-bucket"},
+      "lifecycle_rule": [{"id": "r1", "enabled": true}],
+      "versioning": {"enabled": true}
+    }
+  },
+  "SEC-013_positive": {
+    "id": "aws_s3_bucket.no_logging",
+    "type": "aws_s3_bucket",
+    "name": "no_logging",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "lifecycle_rule": [{"id": "r1", "enabled": true}],
+      "versioning": {"enabled": true}
+    }
+  },
+  "SEC-013_negative": {
+    "id": "aws_s3_bucket.logging_on",
+    "type": "aws_s3_bucket",
+    "name": "logging_on",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "lifecycle_rule": [{"id": "r1", "enabled": true}],
+      "versioning": {"enabled": true},
+      "logging": {"target_bucket": "log-bucket", "target_prefix": "logs/"}
+    }
+  },
+  "SEC-014_positive": {
+    "id": "aws_security_group.open_egress",
+    "type": "aws_security_group",
+    "name": "open_egress",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 443, "to_port": 443, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/16"]}],
+      "egress": [{"from_port": 0, "to_port": 0, "protocol": "-1", "cidr_blocks": ["0.0.0.0/0"]}]
+    }
+  },
+  "SEC-014_negative": {
+    "id": "aws_security_group.scoped_egress",
+    "type": "aws_security_group",
+    "name": "scoped_egress",
+    "provider": "aws",
+    "attributes": {
+      "ingress": [{"from_port": 443, "to_port": 443, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/16"]}],
+      "egress": [{"from_port": 443, "to_port": 443, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/16"]}]
+    }
+  },
+  "SEC-015_positive": {
+    "id": "aws_iam_role.wildcard_trust",
+    "type": "aws_iam_role",
+    "name": "wildcard_trust",
+    "provider": "aws",
+    "attributes": {
+      "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"sts:AssumeRole\"}]}",
+      "permissions_boundary": "arn:aws:iam::123:policy/boundary"
+    }
+  },
+  "SEC-015_negative": {
+    "id": "aws_iam_role.scoped_trust",
+    "type": "aws_iam_role",
+    "name": "scoped_trust",
+    "provider": "aws",
+    "attributes": {
+      "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}",
+      "permissions_boundary": "arn:aws:iam::123:policy/boundary"
+    }
+  },
+  "SEC-016_positive": {
+    "id": "aws_lambda_function.no_vpc",
+    "type": "aws_lambda_function",
+    "name": "no_vpc",
+    "provider": "aws",
+    "attributes": {"runtime": "python3.12", "tags": {"Name": "fn"}}
+  },
+  "SEC-016_negative": {
+    "id": "aws_lambda_function.in_vpc",
+    "type": "aws_lambda_function",
+    "name": "in_vpc",
+    "provider": "aws",
+    "attributes": {"runtime": "python3.12", "tags": {"Name": "fn"}, "vpc_config": {"subnet_ids": ["subnet-abc"], "security_group_ids": ["sg-abc"]}}
+  },
+  "SEC-017_positive": {
+    "id": "aws_lambda_function.eol_runtime",
+    "type": "aws_lambda_function",
+    "name": "eol_runtime",
+    "provider": "aws",
+    "attributes": {"runtime": "python3.8", "tags": {"Name": "fn"}, "vpc_config": {"subnet_ids": ["subnet-abc"]}}
+  },
+  "SEC-017_negative": {
+    "id": "aws_lambda_function.current_runtime",
+    "type": "aws_lambda_function",
+    "name": "current_runtime",
+    "provider": "aws",
+    "attributes": {"runtime": "python3.12", "tags": {"Name": "fn"}, "vpc_config": {"subnet_ids": ["subnet-abc"]}}
+  },
+  "SEC-018_positive": {
+    "id": "aws_db_instance.no_del_prot",
+    "type": "aws_db_instance",
+    "name": "no_del_prot",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": false, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-018_negative": {
+    "id": "aws_db_instance.del_prot",
+    "type": "aws_db_instance",
+    "name": "del_prot",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-019_positive": {
+    "id": "aws_db_instance.no_backup",
+    "type": "aws_db_instance",
+    "name": "no_backup",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 0, "monitoring_interval": 60}
+  },
+  "SEC-019_negative": {
+    "id": "aws_db_instance.backup_ok",
+    "type": "aws_db_instance",
+    "name": "backup_ok",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-020_positive": {
+    "id": "aws_db_instance.no_monitoring",
+    "type": "aws_db_instance",
+    "name": "no_monitoring",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 0}
+  },
+  "SEC-020_negative": {
+    "id": "aws_db_instance.monitored",
+    "type": "aws_db_instance",
+    "name": "monitored",
+    "provider": "aws",
+    "attributes": {"publicly_accessible": false, "storage_encrypted": true, "deletion_protection": true, "backup_retention_period": 7, "monitoring_interval": 60}
+  },
+  "SEC-021_positive": {
+    "id": "aws_eks_cluster.eol",
+    "type": "aws_eks_cluster",
+    "name": "eol",
+    "provider": "aws",
+    "attributes": {"version": "1.24", "encryption_config": [{"resources": ["secrets"]}]}
+  },
+  "SEC-021_negative": {
+    "id": "aws_eks_cluster.current",
+    "type": "aws_eks_cluster",
+    "name": "current",
+    "provider": "aws",
+    "attributes": {"version": "1.29", "encryption_config": [{"resources": ["secrets"]}]}
+  },
+  "SEC-022_positive": {
+    "id": "aws_eks_cluster.no_enc",
+    "type": "aws_eks_cluster",
+    "name": "no_enc",
+    "provider": "aws",
+    "attributes": {"version": "1.29"}
+  },
+  "SEC-022_negative": {
+    "id": "aws_eks_cluster.enc",
+    "type": "aws_eks_cluster",
+    "name": "enc",
+    "provider": "aws",
+    "attributes": {"version": "1.29", "encryption_config": [{"resources": ["secrets"], "provider": {"key_arn": "arn:aws:kms:us-east-1:123:key/abc"}}]}
+  },
+  "SEC-023_positive": {
+    "id": "aws_alb.no_redirect",
+    "type": "aws_alb",
+    "name": "no_redirect",
+    "provider": "aws",
+    "attributes": {"name": "app-lb"}
+  },
+  "SEC-023_negative": {
+    "id": "aws_alb.with_redirect",
+    "type": "aws_alb",
+    "name": "with_redirect",
+    "provider": "aws",
+    "attributes": {"name": "app-lb", "redirect_action": {"protocol": "HTTPS", "port": "443", "status_code": "HTTP_301"}}
+  },
+  "SEC-024_positive": {
+    "id": "aws_cloudfront_distribution.http_allowed",
+    "type": "aws_cloudfront_distribution",
+    "name": "http_allowed",
+    "provider": "aws",
+    "attributes": {"viewer_protocol_policy": "allow-all"}
+  },
+  "SEC-024_negative": {
+    "id": "aws_cloudfront_distribution.https_only",
+    "type": "aws_cloudfront_distribution",
+    "name": "https_only",
+    "provider": "aws",
+    "attributes": {"viewer_protocol_policy": "redirect-to-https"}
+  },
+  "SEC-025_positive": {
+    "id": "aws_sqs_queue.no_enc",
+    "type": "aws_sqs_queue",
+    "name": "no_enc",
+    "provider": "aws",
+    "attributes": {"name": "q"}
+  },
+  "SEC-025_negative": {
+    "id": "aws_sqs_queue.enc",
+    "type": "aws_sqs_queue",
+    "name": "enc",
+    "provider": "aws",
+    "attributes": {"name": "q", "kms_master_key_id": "alias/aws/sqs"}
+  },
+  "SEC-026_positive": {
+    "id": "aws_sns_topic.no_enc",
+    "type": "aws_sns_topic",
+    "name": "no_enc",
+    "provider": "aws",
+    "attributes": {"name": "t"}
+  },
+  "SEC-026_negative": {
+    "id": "aws_sns_topic.enc",
+    "type": "aws_sns_topic",
+    "name": "enc",
+    "provider": "aws",
+    "attributes": {"name": "t", "kms_master_key_id": "alias/aws/sns"}
+  },
+  "SEC-027_positive": {
+    "id": "aws_dynamodb_table.no_pitr",
+    "type": "aws_dynamodb_table",
+    "name": "no_pitr",
+    "provider": "aws",
+    "attributes": {"name": "table1", "tags": {"Name": "t", "Environment": "prod"}, "point_in_time_recovery": {"enabled": false}}
+  },
+  "SEC-027_negative": {
+    "id": "aws_dynamodb_table.pitr",
+    "type": "aws_dynamodb_table",
+    "name": "pitr",
+    "provider": "aws",
+    "attributes": {"name": "table1", "tags": {"Name": "t", "Environment": "prod"}, "point_in_time_recovery": {"enabled": true}}
+  },
+  "SEC-028_positive": {
+    "id": "aws_iam_role.no_boundary",
+    "type": "aws_iam_role",
+    "name": "no_boundary",
+    "provider": "aws",
+    "attributes": {
+      "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+    }
+  },
+  "SEC-028_negative": {
+    "id": "aws_iam_role.with_boundary",
+    "type": "aws_iam_role",
+    "name": "with_boundary",
+    "provider": "aws",
+    "attributes": {
+      "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}",
+      "permissions_boundary": "arn:aws:iam::123:policy/boundary"
+    }
+  },
+  "SEC-029_positive": {
+    "id": "aws_kms_key.no_window",
+    "type": "aws_kms_key",
+    "name": "no_window",
+    "provider": "aws",
+    "attributes": {"enable_key_rotation": true, "tags": {"Name": "k"}}
+  },
+  "SEC-029_negative": {
+    "id": "aws_kms_key.with_window",
+    "type": "aws_kms_key",
+    "name": "with_window",
+    "provider": "aws",
+    "attributes": {"enable_key_rotation": true, "tags": {"Name": "k"}, "deletion_window_in_days": 30}
+  },
+  "SEC-030_positive": {
+    "id": "aws_s3_bucket.no_lifecycle",
+    "type": "aws_s3_bucket",
+    "name": "no_lifecycle",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "logging": {"target_bucket": "log-bucket"},
+      "versioning": {"enabled": true}
+    }
+  },
+  "SEC-030_negative": {
+    "id": "aws_s3_bucket.with_lifecycle",
+    "type": "aws_s3_bucket",
+    "name": "with_lifecycle",
+    "provider": "aws",
+    "attributes": {
+      "acl": "private",
+      "server_side_encryption_configuration": {"rule": {"apply_server_side_encryption_by_default": {"sse_algorithm": "AES256"}}},
+      "tags": {"Name": "b", "Environment": "prod"},
+      "logging": {"target_bucket": "log-bucket"},
+      "versioning": {"enabled": true},
+      "lifecycle_rule": [{"id": "r1", "enabled": true, "expiration": {"days": 90}}]
+    }
+  }
+}
