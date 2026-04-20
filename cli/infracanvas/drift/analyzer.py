@@ -38,7 +38,7 @@ class DriftAnalyzer:
                 graph.nodes.append(stub)
 
         # Update drift summary counts
-        drift_counts = {"added": 0, "changed": 0, "deleted": 0}
+        drift_counts = {"added": 0, "changed": 0, "deleted": 0, "unchanged": 0, "shadow": 0}
         for node in graph.nodes:
             if node.drift in drift_counts:
                 drift_counts[node.drift] += 1
