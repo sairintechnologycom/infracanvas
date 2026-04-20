@@ -139,7 +139,15 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 
 ## Traceability
 
-_Populated by roadmapper when ROADMAP.md is written._
-
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
+| WRG-01..04 | 4 | TBD | Not planned |
+| DSH-01 | 5 | TBD | Not planned |
+| API-01..07, TMM-01..02, OBS-01..02 | 6 | TBD | Not planned |
+| DSH-02..06, HST-01..03, SHR-01..02 | 7 | TBD | Not planned |
+| WBH-01..03 | 8 | TBD | Not planned |
+| CLA-01..06, CPC-01..03 | 9 | TBD | Not planned |
+| DCA-01..09 | 10 | TBD | Not planned |
+| ASA-01..03, CKP-01..02 | 11 | TBD | Not planned |
+| PTH-01..03, ASY-01..03, NET-010, FMV-02, NFN-02 | 12 | TBD | Not planned |
+| TIR-01..02 | 13 | TBD | Not planned |
