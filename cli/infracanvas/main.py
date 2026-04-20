@@ -38,6 +38,7 @@ app = typer.Typer(
 )
 console = Console()
 _ci_console = Console(stderr=True)  # for CI mode: diagnostics go to stderr
+_err_console = Console(stderr=True)  # for error messages (WRG-01 D-03)
 
 
 def _version_callback(value: bool) -> None:
@@ -334,7 +335,7 @@ def scan(
 ) -> None:
     """Scan a Terraform directory and generate an annotated resource graph."""
     if not directory.is_dir():
-        console.print(f"[red]Error:[/red] {directory} is not a directory")
+        _err_console.print(f"[red]Error:[/red] {directory} is not a directory")
         raise typer.Exit(code=2)
 
     # Load project config
@@ -461,7 +462,7 @@ def serve(
     import threading
 
     if not directory.is_dir():
-        console.print(f"[red]Error:[/red] {directory} is not a directory")
+        _err_console.print(f"[red]Error:[/red] {directory} is not a directory")
         raise typer.Exit(code=2)
 
     try:
@@ -562,8 +563,8 @@ def score(
 ) -> None:
     """Show the security score for a Terraform directory."""
     if not directory.is_dir():
-        console.print(f"[red]Error:[/red] {directory} is not a directory")
-        raise typer.Exit(code=1)
+        _err_console.print(f"[red]Error:[/red] {directory} is not a directory")
+        raise typer.Exit(code=2)
 
     config = load_config(directory)
     graph = _run_scan(directory, ignore_rules=config.ignore_rules)
@@ -623,11 +624,11 @@ def plan(
 ) -> None:
     """Scan directory and overlay terraform plan diff on the diagram."""
     if not directory.is_dir():
-        console.print(f"[red]Error:[/red] {directory} is not a directory")
-        raise typer.Exit(code=1)
+        _err_console.print(f"[red]Error:[/red] {directory} is not a directory")
+        raise typer.Exit(code=2)
 
     if not planfile.exists():
-        console.print(f"[red]Error:[/red] Plan file {planfile} not found")
+        _err_console.print(f"[red]Error:[/red] Plan file {planfile} not found")
         raise typer.Exit(code=1)
 
     config = load_config(directory)
@@ -745,22 +746,29 @@ def export(
         str,
         typer.Option("--format", "-f", help="Export format (json, html)"),
     ] = "html",
+    gate_mode: Annotated[
+        bool,
+        typer.Option(
+            "--gate-mode/--no-gate-mode",
+            help="Enable free-tier resource gating (default: true)",
+        ),
+    ] = True,
 ) -> None:
     """Export a JSON report to HTML or re-export as formatted JSON."""
     if not report.exists():
-        console.print(f"[red]Error:[/red] {report} not found")
+        _err_console.print(f"[red]Error:[/red] {report} not found")
         raise typer.Exit(code=1)
 
     try:
         data = json.loads(report.read_text())
         graph = ResourceGraph.model_validate(data)
     except (json.JSONDecodeError, ValueError) as exc:
-        console.print(f"[red]Error:[/red] Invalid report file: {exc}")
-        raise typer.Exit(code=1)
+        _err_console.print(f"[red]Error:[/red] Invalid report file: {exc}")
+        raise typer.Exit(code=2)
 
     if format == "html":
         out_path = output or Path("infracanvas-report.html")
-        export_html(graph, out_path)
+        export_html(graph, out_path, gate_mode=gate_mode)
         console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
         webbrowser.open(out_path.resolve().as_uri())
     elif format == "json":

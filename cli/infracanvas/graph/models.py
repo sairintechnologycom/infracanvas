@@ -71,7 +71,9 @@ class GraphSummary(BaseModel):
     estimated_monthly_cost: float = 0.0
     score: int = 100
     drift: dict[str, int] = Field(
-        default_factory=lambda: {"added": 0, "changed": 0, "deleted": 0}
+        default_factory=lambda: {
+            "added": 0, "changed": 0, "deleted": 0, "unchanged": 0, "shadow": 0,
+        }
     )
 
 

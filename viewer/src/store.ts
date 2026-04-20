@@ -31,6 +31,7 @@ interface StoreState {
   filterPanelOpen: boolean;
   filters: Filters;
   gateMode: boolean;
+  hasFlowMap: boolean;
   searchQuery: string;
   // FlowMap slices (Plan 03-06)
   activeTab: TabId;
@@ -45,6 +46,7 @@ interface StoreState {
   toggleSourceFilter: (source: string) => void;
   clearFilters: () => void;
   setGateMode: (gateMode: boolean) => void;
+  setHasFlowMap: (hasFlowMap: boolean) => void;
   setSearchQuery: (query: string) => void;
   // FlowMap actions (Plan 03-06)
   setActiveTab: (tab: TabId) => void;
@@ -76,6 +78,7 @@ export const useStore = create<StoreState>((set) => ({
   filterPanelOpen: false,
   filters: { ...emptyFilters },
   gateMode: true,
+  hasFlowMap: false,
   searchQuery: '',
 
   setGraph: (graph) => set({ graph }),
@@ -125,6 +128,7 @@ export const useStore = create<StoreState>((set) => ({
   clearFilters: () => set({ filters: { ...emptyFilters } }),
 
   setGateMode: (gateMode) => set({ gateMode }),
+  setHasFlowMap: (hasFlowMap) => set({ hasFlowMap }),
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   // FlowMap slices (Plan 03-06)

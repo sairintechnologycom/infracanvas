@@ -6,7 +6,10 @@ import { useStore } from '../../store';
 
 describe('TabBar (ARIA + keyboard)', () => {
   beforeEach(() => {
-    useStore.setState({ activeTab: 'canvas' });
+    // Phase 4 WRG-03: default hasFlowMap=true here so existing behaviour tests
+    // exercise the enabled-FlowMap-tab path. A dedicated `describe` below
+    // covers the disabled branch.
+    useStore.setState({ activeTab: 'canvas', hasFlowMap: true });
   });
 
   test('renders role=tablist with two tabs', () => {
@@ -81,5 +84,63 @@ describe('TabBar (ARIA + keyboard)', () => {
     const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
     expect(canvasTab.getAttribute('aria-controls')).toBe('panel-canvas');
     expect(flowmapTab.getAttribute('aria-controls')).toBe('panel-flowmap');
+  });
+});
+
+describe('TabBar (WRG-03: FlowMap tab disabled when hasFlowMap=false)', () => {
+  beforeEach(() => {
+    useStore.setState({ activeTab: 'canvas', hasFlowMap: false });
+  });
+
+  test('TBR-D-01: FlowMap tab renders aria-disabled=true when hasFlowMap=false', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    expect(flowmapTab.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  test('TBR-D-02: clicking disabled FlowMap does not change activeTab', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    fireEvent.click(flowmapTab);
+    expect(useStore.getState().activeTab).toBe('canvas');
+  });
+
+  test('TBR-D-03: disabled FlowMap tab exposes the UI-SPEC remediation copy via title', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    expect(flowmapTab.getAttribute('title')).toBe(
+      'No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.',
+    );
+  });
+
+  test('TBR-D-04: disabled FlowMap tab wires aria-describedby to the off-screen tooltip', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    expect(flowmapTab.getAttribute('aria-describedby')).toBe('flowmap-disabled-tooltip');
+  });
+
+  test('TBR-D-05: off-screen tooltip node is present with the exact UI-SPEC copy', () => {
+    render(<TabBar />);
+    const tooltip = document.getElementById('flowmap-disabled-tooltip');
+    expect(tooltip).not.toBeNull();
+    expect(tooltip?.getAttribute('role')).toBe('tooltip');
+    expect(tooltip?.textContent).toContain(
+      'No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.',
+    );
+  });
+
+  test('TBR-D-06: disabled FlowMap tab uses tabIndex=-1', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    expect(flowmapTab.getAttribute('tabindex')).toBe('-1');
+  });
+
+  test('TBR-D-07: enabling hasFlowMap removes the disabled state', () => {
+    useStore.setState({ hasFlowMap: true });
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    expect(flowmapTab.getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(flowmapTab);
+    expect(useStore.getState().activeTab).toBe('flowmap');
   });
 });

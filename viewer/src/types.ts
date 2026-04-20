@@ -135,6 +135,11 @@ export interface ResourceGraph {
   // FDM-01/FDM-02: populated in Phase 3b; empty arrays in Phase 3a.
   network_paths: NetworkPath[];
   dc_sites: DCSite[];
+  // WRG-03 / D-13: optional marker section indicating the scan carried FlowMap
+  // payload. Presence (any non-null / non-undefined value) toggles the
+  // FlowMap tab's enabled state in the viewer. Exact shape is defined by the
+  // CLI's --with-flowmap export; the viewer only checks existence.
+  flowmap?: unknown;
 }
 
 declare global {
