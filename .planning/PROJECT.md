@@ -9,7 +9,7 @@ InfraCanvas is a hybrid cloud intelligence platform that gives engineering and l
 ## Current State
 
 **Latest milestone:** v1.0 (shipped 2026-04-19) — Canvas + FlowMap v1.0 Hybrid Cloud Intelligence MVP
-**Focus:** v1.1 in flight — E2E wiring hardening (first), then SaaS Dashboard + CostLens (Phase 4) alongside FlowMap 3b (DC Agent, path computation, asymmetric routing)
+**Focus:** v1.1 in flight — Phase 4 (E2E wiring hardening) complete 2026-04-20; next up Phase 5 Viewer Extraction, then SaaS Dashboard + CostLens alongside FlowMap 3b
 
 ## Current Milestone: v1.1 Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 
@@ -51,12 +51,12 @@ One command gives you a complete, annotated picture of your hybrid infrastructur
 
 ### Active (v1.1 — Hardening + SaaS Dashboard + FlowMap 3b)
 
-#### E2E Wiring Hardening (new — Phase 4)
+#### E2E Wiring Hardening (validated — Phase 4, 2026-04-20)
 
-- [ ] **WRG-01** CLI `export` command writes explicit `gate_mode` and raises `typer.Exit()` with deterministic exit code on success and failure
-- [ ] **WRG-02** Drift summary counts include `unchanged` and `shadow` drift statuses (not just added/changed/deleted) — summary totals match node count
-- [ ] **WRG-03** FlowMap tab is user-discoverable in the viewer UI (tab toggle wired to `activeTab` state); Canvas ↔ FlowMap switch works without code inspection
-- [ ] **WRG-04** Python pytest coverage for `cli/infracanvas/security/`, `cli/infracanvas/cost/`, `cli/infracanvas/drift/` modules — rule evaluation, cost estimation, drift analyzer with positive + negative fixtures
+- ✓ **WRG-01** CLI `export`/`scan`/`score`/`plan` use deterministic exit codes + `--gate-mode` flag + stderr routing (Phase 4, 2026-04-20)
+- ✓ **WRG-02** Drift summary `drift_counts` is 5-key census; `sum(counts.values()) == len(graph.nodes)` invariant holds (Phase 4, 2026-04-20)
+- ✓ **WRG-03** Canvas↔FlowMap tab toggle wired — URL hash persistence, Cmd/Ctrl+\\/1/2 shortcuts, disabled-with-tooltip when `hasFlowMap=false` (Phase 4, 2026-04-20)
+- ✓ **WRG-04** Per-module ≥80% coverage gate on `security/`/`cost/`/`drift/` via `conftest.py` `pytest_sessionfinish`; 80 parametrized rule tests + drift invariant + CLI contract (Phase 4, 2026-04-20)
 
 #### SaaS Dashboard + CostLens (Phase 4)
 
@@ -173,4 +173,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 — v1.1 milestone started (hardening + SaaS Dashboard + CostLens + FlowMap 3b)*
+*Last updated: 2026-04-20 — Phase 4 E2E wiring hardening complete; Phase 5 Viewer Extraction next*
