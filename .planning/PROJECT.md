@@ -9,7 +9,16 @@ InfraCanvas is a hybrid cloud intelligence platform that gives engineering and l
 ## Current State
 
 **Latest milestone:** v1.0 (shipped 2026-04-19) — Canvas + FlowMap v1.0 Hybrid Cloud Intelligence MVP
-**Focus:** Planning v1.1 — SaaS Dashboard + CostLens (Phase 4) alongside FlowMap 3b (DC Agent, path computation, asymmetric routing)
+**Focus:** v1.1 in flight — E2E wiring hardening (first), then SaaS Dashboard + CostLens (Phase 4) alongside FlowMap 3b (DC Agent, path computation, asymmetric routing)
+
+## Current Milestone: v1.1 Hardening + SaaS Dashboard + CostLens + FlowMap 3b
+
+**Goal:** Close E2E wiring gaps surfaced by v1.0 post-ship review, then deliver team SaaS dashboard, shared-cost allocation (CostLens), and DC Agent with asymmetric routing detection.
+
+**Target features:**
+- E2E wiring hardening — CLI `export` command exit code + `gate_mode`, drift summary accurate counts, FlowMap tab discoverability, backend pytest coverage for security/cost/drift modules
+- SaaS Dashboard + CostLens — FastAPI + Clerk + Neon + R2 + taskiq + Next.js 15, team roles + RLS, Stripe Billing Meters, scan history, share links, GitHub webhooks, TGW/ExpressRoute/Azure Firewall shared cost splits
+- FlowMap 3b — Go DC Agent, Cisco NETCONF/SSH/config import, NetFlow v9/IPFIX collector, Cisco ASA + Checkpoint integrations, path computation, asymmetric routing detection + root cause classifier, NET-010, TIR-01..02 Team-tier gating
 
 ## Core Value
 
@@ -40,7 +49,14 @@ One command gives you a complete, annotated picture of your hybrid infrastructur
 - ✓ 11 NET-* network security rules with positive/negative fixtures (NFN-01 partial — NET-010 reserved for 3b, v1.0)
 - ✓ FlowMap viewer — TabBar + FlowMapCanvas (4 custom node types + dual-color PathEdge) + FilterPanel + PathDetailPanel + EmptyState (FMV-01, 03, 04, 05, v1.0)
 
-### Active (v1.1 — SaaS Dashboard + FlowMap 3b)
+### Active (v1.1 — Hardening + SaaS Dashboard + FlowMap 3b)
+
+#### E2E Wiring Hardening (new — Phase 4)
+
+- [ ] **WRG-01** CLI `export` command writes explicit `gate_mode` and raises `typer.Exit()` with deterministic exit code on success and failure
+- [ ] **WRG-02** Drift summary counts include `unchanged` and `shadow` drift statuses (not just added/changed/deleted) — summary totals match node count
+- [ ] **WRG-03** FlowMap tab is user-discoverable in the viewer UI (tab toggle wired to `activeTab` state); Canvas ↔ FlowMap switch works without code inspection
+- [ ] **WRG-04** Python pytest coverage for `cli/infracanvas/security/`, `cli/infracanvas/cost/`, `cli/infracanvas/drift/` modules — rule evaluation, cost estimation, drift analyzer with positive + negative fixtures
 
 #### SaaS Dashboard + CostLens (Phase 4)
 
@@ -157,4 +173,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-19 after v1.0 milestone*
+*Last updated: 2026-04-20 — v1.1 milestone started (hardening + SaaS Dashboard + CostLens + FlowMap 3b)*
