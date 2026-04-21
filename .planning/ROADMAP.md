@@ -25,8 +25,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 - [ ] **Phase 4: E2E Wiring Hardening** — CLI export exit code + gate_mode, drift summary counts, FlowMap tab toggle, backend pytest for security/cost/drift
 - [ ] **Phase 5: Viewer Extraction** — extract viewer to shared dual-build npm package (gate for Phase 7)
+- [ ] **Phase 5.1: Parser realism + CLI UX** (INSERTED) — local `module {}` resolution, `--quiet`/`--open` flags, realistic multi-module fixture
 - [ ] **Phase 6: SaaS Backend Foundation** — FastAPI + Clerk + Neon + R2 + taskiq + Stripe Billing Meters + observability
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
+- [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
 - [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
 - [ ] **Phase 10: DC Agent Core** — Go agent, NETCONF/SSH, NetFlow collector, encrypted push, CAB security packet
@@ -49,8 +51,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 3.5. Retroactive Verification | v1.0 | 3/3 | Shipped | 2026-04-19 |
 | 4. E2E Wiring Hardening | v1.1 | 0/4 | Planned | - |
 | 5. Viewer Extraction | v1.1 | 0/3 | Planned | - |
+| 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 0/TBD | Not planned | - |
 | 6. SaaS Backend Foundation | v1.1 | 0/TBD | Not planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
+| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
@@ -99,6 +103,20 @@ Plans:
 - [x] 05-02-PLAN.md — Store factory + ViewerProvider + library barrel (createViewerStore, ViewerProvider, useViewerStore, viewer/src/index.ts; main.tsx wrap)
 - [x] 05-03-PLAN.md — End-to-end build verification + CLI template sync + React 18/19 peer-compat GHA matrix workflow
 
+### Phase 5.1: Parser realism + CLI UX (INSERTED)
+
+**Status:** INSERTED — urgent, pre-Phase 6. Surfaced during Phase 5 manual testing.
+**Goal:** Make `infracanvas scan` actually follow local `module {}` blocks, and add CLI flags for a clean "just open the HTML" user flow.
+**Requirements:** TBD (defined during `/gsd-discuss-phase 5.1`)
+**Depends on:** Phase 5
+**Success criteria:**
+1. `infracanvas scan` on a Terraform root that uses `module "x" { source = "./local" }` resolves submodule resources into the graph with prefixed IDs (e.g. `module.vpc.aws_subnet.public[0]`)
+2. A realistic multi-module fixture (root + local submodule with variables, count, data source) lives under `cli/tests/fixtures/` and is exercised by parser tests
+3. CLI supports `--quiet` (suppress findings table) and `--open` (open HTML in default browser on success) across `scan`/`plan`/`export`
+4. Registry-sourced modules (`source = "terraform-aws-modules/..."`) remain explicitly out of scope, documented as deferred
+
+**Context:** Manual testing against a realistic root module showed 0 submodule resources in the scan output; `cli/infracanvas/parser/module.py` exists but is never exercised by any existing fixture. CLI output also dumps a full Rich findings table to stdout on every scan, making "just give me the diagram" UX noisy.
+
 ### Phase 6: SaaS Backend Foundation
 
 **Goal:** Stand up team-aware FastAPI backend with auth, storage, queue, and billing.
@@ -123,11 +141,26 @@ Plans:
 4. Share link with token + optional password renders scan without auth
 5. Dashboard responsive at 1440p and 1080p
 
+### Phase 7.5: GitHub Repo Connector (INSERTED)
+
+**Status:** INSERTED — adds the "pick a repo + scan" user flow before push-driven auto-scan (Phase 8).
+**Goal:** Let authenticated users connect a GitHub repo, browse repos/branches, and trigger a scan against a specific branch + path — without needing a CLI or a pre-uploaded scan JSON.
+**Requirements:** TBD (defined during `/gsd-discuss-phase 7.5`)
+**Depends on:** Phase 6 (backend auth/storage/queue), Phase 7 (dashboard shell)
+**Success criteria:**
+1. User installs the InfraCanvas GitHub App (or OAuth) and sees their accessible repos in the dashboard
+2. User picks a repo + branch + optional subdirectory path, clicks "Scan"
+3. Backend performs a read-only shallow clone, runs `infracanvas scan`, stores result in Neon + R2 under the team
+4. The resulting scan appears in Phase 7 history/detail views
+5. GitLab, Bitbucket, and Azure DevOps are explicitly out of scope — deferred to v1.2 Enterprise
+
+**Context:** Roadmap gap identified before Phase 8 planning: Phase 8 assumes a repo is already connected and jumps to push-webhook handling, but no phase actually delivers the "connect a repo" UX. This phase closes that gap with GitHub-only for MVP; multi-provider (Azure DevOps / GitLab / Bitbucket) deferred per solo-founder scope discipline.
+
 ### Phase 8: GitHub Webhook + Auto-scan
 
 **Goal:** Auto-scan on push, alert on Critical findings.
 **Requirements:** WBH-01, WBH-02, WBH-03
-**Depends on:** Phase 6
+**Depends on:** Phase 6, Phase 7.5 (repo must be connected before push events matter)
 **Success criteria:**
 1. Push to a connected GitHub repo triggers a scan job inside 30 s
 2. Scan result lands in Neon + R2 with commit SHA tied to team

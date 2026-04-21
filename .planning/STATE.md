@@ -6,7 +6,7 @@ status: ready_to_plan
 last_updated: "2026-04-21T02:01:20.503Z"
 last_activity: 2026-04-21 -- Phase 05 execution started
 progress:
-  total_phases: 15
+  total_phases: 17
   completed_phases: 7
   total_plans: 39
   completed_plans: 36
@@ -36,6 +36,8 @@ Last activity: 2026-04-21
 
 - 2026-04-20: Milestone v1.1 opened (continuing phase numbering from v1.0's 3.5)
 - 2026-04-20: v1.0 post-ship E2E wiring review surfaced 4 fixes → added as WRG-01..04, scoped as first hardening phase of v1.1
+- 2026-04-21: Phase 5.1 inserted after Phase 5: Parser realism + CLI UX (URGENT — local `module {}` resolution gap and noisy CLI output surfaced during Phase 5 manual testing; pre-Phase 6)
+- 2026-04-21: Phase 7.5 inserted after Phase 7: GitHub Repo Connector (fills the "connect a repo + pick branch + scan" UX gap before Phase 8 webhooks — GitHub-only MVP, multi-provider deferred to v1.2)
 
 ### Decisions
 
