@@ -51,7 +51,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 3.5. Retroactive Verification | v1.0 | 3/3 | Shipped | 2026-04-19 |
 | 4. E2E Wiring Hardening | v1.1 | 0/4 | Planned | - |
 | 5. Viewer Extraction | v1.1 | 0/3 | Planned | - |
-| 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 0/TBD | Not planned | - |
+| 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 0/4 | Planned | - |
 | 6. SaaS Backend Foundation | v1.1 | 0/TBD | Not planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
@@ -114,6 +114,14 @@ Plans:
 2. A realistic multi-module fixture (root + local submodule with variables, count, data source) lives under `cli/tests/fixtures/` and is exercised by parser tests
 3. CLI supports `--quiet` (suppress findings table) and `--open` (open HTML in default browser on success) across `scan`/`plan`/`export`
 4. Registry-sourced modules (`source = "terraform-aws-modules/..."`) remain explicitly out of scope, documented as deferred
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 05.1-01-PLAN.md — envs_layout fixture (root + vpc + broken submodules + fixture README) and registry-module deferral documented in root README Known Limitations
+- [ ] 05.1-02-PLAN.md — Parser: ParsedResource.index/unresolved_count, literal count/for_each expansion (capped at 1000), submodule parse-error surfacing + _infracanvas_unresolved_module placeholder, graph builder wiring, parser tests 5.1-A/B/C/D
+- [ ] 05.1-03-PLAN.md — CLI: repurpose --quiet to one-line summary, add --json (old --quiet JSON-dump behavior), add --open (webbrowser.open, HTML-only guard), reroute parse-error warnings to stderr, migrate 4 test call sites, new CLI tests 5.1-E through 5.1-J
+- [ ] 05.1-04-PLAN.md — Viewer: ResourceNode unresolved-module tint (reuse #D97706) + ⚠ marker + ×? unresolved-count badge, Vitest tests 5.1-K/L/M/N
 
 **Context:** Manual testing against a realistic root module showed 0 submodule resources in the scan output; `cli/infracanvas/parser/module.py` exists but is never exercised by any existing fixture. CLI output also dumps a full Rich findings table to stdout on every scan, making "just give me the diagram" UX noisy.
 
