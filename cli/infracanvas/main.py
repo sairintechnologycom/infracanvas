@@ -97,11 +97,31 @@ def _run_scan(
     # resolve_modules when a submodule fails to parse, when a literal count exceeds the
     # DoS cap (T-05.1-05), or when a module source is non-local / missing — to stderr
     # (via _err_console) so that --quiet stdout remains clean.
-    # Per T-05.1-04: only `path.name` (basename) is emitted — no working-directory leak.
+    #
+    # Per T-05.1-04: we emit only basenames (path.name) and for real files ALSO the
+    # parent directory's basename (e.g. "broken/main.tf") so users can identify WHICH
+    # submodule failed when multiple submodules have the same filename. Parent.name is
+    # the user-authored module directory name (from their own Terraform `source = "..."`),
+    # not a leak of the project's absolute filesystem location.
+    #
+    # Synthetic sentinel paths from Plan 02 (e.g. "<non-local-module:vpc>",
+    # "<missing-module-dir:foo>", "<count-cap:aws_subnet.huge>") are emitted as-is —
+    # they are user-authored identifiers, not filesystem paths.
     if parsed.parse_errors:
         for path, err in parsed.parse_errors:
+            name_str = path.name
+            path_str = str(path)
+            if path_str.startswith("<") and path_str.endswith(">"):
+                # Synthetic sentinel — emit the full sentinel for context.
+                display = path_str
+            elif path.parent.name and path.parent.name not in {"", "."}:
+                # Real file — include the parent dir name so "broken/main.tf" is
+                # distinguishable from "vpc/main.tf".
+                display = f"{path.parent.name}/{name_str}"
+            else:
+                display = name_str
             _err_console.print(
-                f"[yellow]Warning:[/yellow] Could not parse {path.name}: {err}"
+                f"[yellow]Warning:[/yellow] Could not parse {display}: {err}"
             )
 
     if not allow_empty:
