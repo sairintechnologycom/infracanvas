@@ -96,3 +96,49 @@ describe('ResourceNode', () => {
     expect(screen.getByText('NEW')).toBeInTheDocument()
   })
 })
+
+describe('ResourceNode — Phase 5.1 badges', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setupStoreMock()
+  })
+
+  test('5.1-K: renders ⚠ unresolved marker when type is _infracanvas_unresolved_module', () => {
+    const props = makeNodeProps({
+      id: '_infracanvas_unresolved_module.broken',
+      type: '_infracanvas_unresolved_module',
+      name: 'broken',
+      provider: 'unresolved',
+      attributes: { source: '../../modules/broken', _parse_error: 'main.tf: invalid HCL' },
+    })
+    render(<ResourceNodeMemo {...props} />)
+    const marker = screen.getByTestId('resource-node-unresolved-marker')
+    expect(marker).toBeInTheDocument()
+    expect(marker).toHaveTextContent('⚠')
+  })
+
+  test('5.1-L: does NOT render ⚠ marker for a normal resource type', () => {
+    const props = makeNodeProps({ type: 'aws_vpc' })
+    render(<ResourceNodeMemo {...props} />)
+    expect(screen.queryByTestId('resource-node-unresolved-marker')).toBeNull()
+  })
+
+  test('5.1-M: renders ×? badge when attributes._unresolved_count is true', () => {
+    const props = makeNodeProps({
+      id: 'aws_subnet.public',
+      type: 'aws_subnet',
+      name: 'public',
+      attributes: { _unresolved_count: true },
+    })
+    render(<ResourceNodeMemo {...props} />)
+    const badge = screen.getByTestId('resource-node-unresolved-count-badge')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveTextContent('×?')
+  })
+
+  test('5.1-N: does NOT render ×? badge when _unresolved_count is absent', () => {
+    const props = makeNodeProps({ type: 'aws_subnet', attributes: {} })
+    render(<ResourceNodeMemo {...props} />)
+    expect(screen.queryByTestId('resource-node-unresolved-count-badge')).toBeNull()
+  })
+})
