@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: planning
-last_updated: "2026-04-21T00:27:16.510Z"
+last_updated: "2026-04-21T01:42:10.354Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 15
   completed_phases: 6
-  total_plans: 36
+  total_plans: 39
   completed_plans: 36
-  percent: 100
+  percent: 92
 ---
 
 # Project State
@@ -75,4 +75,4 @@ Last session: --stopped-at
 Milestone: v1.1 started
 Resume: Define REQUIREMENTS.md then spawn gsd-roadmapper to create ROADMAP.md
 
-**Planned Phase:** 4 (E2E Wiring Hardening) — 4 plans — 2026-04-20T15:12:23.844Z
+**Planned Phase:** 5 (Viewer Extraction) — 3 plans — 2026-04-21T01:42:10.338Z
