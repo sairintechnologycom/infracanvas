@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
   build: {
     target: 'esnext',
+    outDir: 'dist',
     assetsInlineLimit: 100000000,
     cssCodeSplit: false,
   },

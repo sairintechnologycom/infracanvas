@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "declaration": true,
+    "declarationDir": "dist/lib",
+    "emitDeclarationOnly": true
+  },
+  "include": ["src"],
+  "exclude": ["src/__tests__", "src/main.tsx", "src/sample-data.ts"]
+}
