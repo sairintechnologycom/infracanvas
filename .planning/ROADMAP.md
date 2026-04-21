@@ -95,9 +95,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Dual-build scaffolding (split Vite configs, tsconfig.lib.json, lib-styles.css, renamed viewer/package.json, root monorepo package.json)
-- [ ] 05-02-PLAN.md — Store factory + ViewerProvider + library barrel (createViewerStore, ViewerProvider, useViewerStore, viewer/src/index.ts; main.tsx wrap)
-- [ ] 05-03-PLAN.md — End-to-end build verification + CLI template sync + React 18/19 peer-compat GHA matrix workflow
+- [x] 05-01-PLAN.md — Dual-build scaffolding (split Vite configs, tsconfig.lib.json, lib-styles.css, renamed viewer/package.json, root monorepo package.json)
+- [x] 05-02-PLAN.md — Store factory + ViewerProvider + library barrel (createViewerStore, ViewerProvider, useViewerStore, viewer/src/index.ts; main.tsx wrap)
+- [x] 05-03-PLAN.md — End-to-end build verification + CLI template sync + React 18/19 peer-compat GHA matrix workflow
 
 ### Phase 6: SaaS Backend Foundation
 
