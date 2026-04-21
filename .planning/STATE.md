@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: planning
-last_updated: "2026-04-21T01:42:10.354Z"
-last_activity: 2026-04-20
+status: executing
+last_updated: "2026-04-21T02:01:20.503Z"
+last_activity: 2026-04-21 -- Phase 05 execution started
 progress:
   total_phases: 15
   completed_phases: 6
@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 04 — e2e-wiring-hardening
+**Current focus:** Phase 05 — viewer-extraction
 
 ## Current Position
 
 Milestone: v1.1 — started 2026-04-20
-Phase: 05
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-20
+Phase: 05 (viewer-extraction) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 05
+Last activity: 2026-04-21 -- Phase 05 execution started
 
 ## Accumulated Context
 
