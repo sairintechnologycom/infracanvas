@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { createStore } from 'zustand/vanilla';
+import { useStore as useZustandStore } from 'zustand';
+import { createContext, createElement, useContext, useState, type ReactNode } from 'react';
 import type {
   DriftStatus,
   NetworkPath,
@@ -25,7 +28,7 @@ interface FlowMapFilters {
   hasFlowLogs: boolean;
 }
 
-interface StoreState {
+export interface StoreState {
   graph: ResourceGraph | null;
   selectedNode: ResourceNode | null;
   filterPanelOpen: boolean;
@@ -72,7 +75,18 @@ const emptyFlowMapFilters: FlowMapFilters = {
   hasFlowLogs: false,
 };
 
-export const useStore = create<StoreState>((set) => ({
+// Shared state creator — used by both the singleton `useStore` (React hook)
+// and the per-instance `createViewerStore` factory (vanilla store) so the
+// two exports are guaranteed identical.
+type SetFn = (
+  partial:
+    | StoreState
+    | Partial<StoreState>
+    | ((state: StoreState) => StoreState | Partial<StoreState>),
+  replace?: false,
+) => void;
+
+const stateCreator = (set: SetFn): StoreState => ({
   graph: null,
   selectedNode: null,
   filterPanelOpen: false,
@@ -169,4 +183,45 @@ export const useStore = create<StoreState>((set) => ({
   clearFlowMapFilters: () => set({ flowMapFilters: { ...emptyFlowMapFilters } }),
 
   setSelectedPath: (path) => set({ selectedPath: path }),
-}));
+});
+
+// Singleton — unchanged API for existing components + tests.
+export const useStore = create<StoreState>(stateCreator);
+
+// Factory — independent store instance per call. Dashboard (Phase 7) uses
+// this to avoid cross-scan state bleed when switching between scan pages.
+export function createViewerStore() {
+  return createStore<StoreState>(stateCreator);
+}
+
+export type ViewerStoreApi = ReturnType<typeof createViewerStore>;
+
+const ViewerStoreContext = createContext<ViewerStoreApi | undefined>(undefined);
+
+// Wraps consumers of the library; creates a default instance if no `store`
+// prop is passed. CLI HTML entry (main.tsx) uses the default-instance mode.
+export function ViewerProvider({
+  store,
+  children,
+}: {
+  store?: ViewerStoreApi;
+  children: ReactNode;
+}) {
+  const [defaultStore] = useState(() => createViewerStore());
+  return createElement(
+    ViewerStoreContext.Provider,
+    { value: store ?? defaultStore },
+    children,
+  );
+}
+
+// Context-based selector hook — dashboard components use this instead of
+// the module singleton. Throws outside a ViewerProvider to prevent silent
+// fall-through to the singleton (which would defeat per-page isolation).
+export function useViewerStore<T>(selector: (state: StoreState) => T): T {
+  const store = useContext(ViewerStoreContext);
+  if (!store) {
+    throw new Error('useViewerStore must be used within a ViewerProvider');
+  }
+  return useZustandStore(store, selector);
+}
