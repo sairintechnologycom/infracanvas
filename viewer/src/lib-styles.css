@@ -1,0 +1,22 @@
+@import "tailwindcss" source(none);
+
+@theme {
+  --color-canvas-bg: #FAFBFC;
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #E2E8F0;
+  --color-card-hover: #F1F5F9;
+  --color-sev-critical: #ef4444;
+  --color-sev-high: #f97316;
+  --color-sev-medium: #eab308;
+  --color-sev-info: #3b82f6;
+  --color-sev-clean: #22c55e;
+  --color-flow-forward: #3B82F6;
+  --color-flow-return:  #F97316;
+  --color-flow-divergence: #EF4444;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@source "./App.tsx";
+@source "./components";
+@source "./components/flowmap";
