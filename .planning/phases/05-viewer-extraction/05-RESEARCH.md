@@ -940,22 +940,25 @@ export function useViewerStore<T>(selector: (state: StoreState) => T): T {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`ResourceNode` naming collision**
    - What we know: `ResourceNode` is both a component (`./components/ResourceNode.tsx`) and a type (`./types.ts`).
    - What's unclear: Whether the dashboard will prefer the component name or the type name in import statements.
    - Recommendation: Export the component as `ResourceNodeComponent` and the type as `ResourceNode` (types are erased at runtime, so the names don't conflict at the JS level — only in TypeScript's namespace).
+   - **RESOLVED:** Plan 05-02 Task 3 (`viewer/src/index.ts`) exports `ResourceNode as ResourceNodeComponent` from `./components/ResourceNode`, and re-exports the `ResourceNode` type from `./types` unaliased. Consumers import the type as `ResourceNode` and the component (if ever needed) as `ResourceNodeComponent`.
 
 2. **`elkjs` bundling in library mode**
    - What we know: `elkjs` is a WASM-backed layout library used by `FlowMapCanvas`. It's a peer dep in the current `package.json`.
    - What's unclear: Whether `elkjs` should be externalized in the lib build or bundled. If externalized, the Next.js dashboard must also install it.
    - Recommendation: Externalize it (add to `rollupOptions.external`). It's already a direct dep in `viewer/package.json`; the dashboard will get it via workspace hoisting.
+   - **RESOLVED:** Plan 05-01 Task 1 (`viewer/vite.config.lib.ts`) lists `elkjs` in the `rollupOptions.external` array (alongside `react`, `react-dom`, `react/jsx-runtime`, `@xyflow/react`, `zustand`, `zustand/vanilla`, `dagre`, `lucide-react`, `aws-react-icons`). Phase 7 dashboard will inherit `elkjs` via npm workspaces hoisting from `viewer/package.json` `dependencies`.
 
 3. **Font imports in `main.tsx`**
    - What we know: `main.tsx` imports `@fontsource/inter` and `@fontsource/jetbrains-mono`.
    - What's unclear: These are NOT in `src/index.ts`, so the lib build correctly excludes them. But the CLI HTML build needs them inlined.
    - Recommendation: Fonts stay in `main.tsx` only. Library consumers (dashboard) load their own fonts via Next.js `next/font` or their own CSS.
+   - **RESOLVED:** Plan 05-02 Task 2 (`viewer/src/main.tsx`) preserves all 6 `@fontsource/*` imports in the CLI HTML entry point. Plan 05-02 Task 3 (`viewer/src/index.ts`) deliberately omits any font imports from the library barrel, and Plan 05-01 Task 1 (`viewer/tsconfig.lib.json`) excludes `src/main.tsx` from declaration emission. Library consumers load their own fonts.
 
 ---
 
