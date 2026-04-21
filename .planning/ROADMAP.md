@@ -48,7 +48,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 3. FlowMap v1.0 | v1.0 | 9/9 | Shipped (cloud-only) | 2026-04-19 |
 | 3.5. Retroactive Verification | v1.0 | 3/3 | Shipped | 2026-04-19 |
 | 4. E2E Wiring Hardening | v1.1 | 0/4 | Planned | - |
-| 5. Viewer Extraction | v1.1 | 0/TBD | Not planned | - |
+| 5. Viewer Extraction | v1.1 | 0/3 | Planned | - |
 | 6. SaaS Backend Foundation | v1.1 | 0/TBD | Not planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
@@ -91,6 +91,13 @@ Plans:
 2. CLI HTML export uses the package; bundle size remains < 5 MB
 3. Next.js can import `<DiagramCanvas>` / `<FlowMapCanvas>` as components
 4. Viewer tests (79 Vitest) still pass
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Dual-build scaffolding (split Vite configs, tsconfig.lib.json, lib-styles.css, renamed viewer/package.json, root monorepo package.json)
+- [ ] 05-02-PLAN.md — Store factory + ViewerProvider + library barrel (createViewerStore, ViewerProvider, useViewerStore, viewer/src/index.ts; main.tsx wrap)
+- [ ] 05-03-PLAN.md — End-to-end build verification + CLI template sync + React 18/19 peer-compat GHA matrix workflow
 
 ### Phase 6: SaaS Backend Foundation
 
