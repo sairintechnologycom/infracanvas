@@ -1,0 +1,89 @@
+name: Viewer Peer Compatibility
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'viewer/**'
+      - 'package.json'
+      - '.github/workflows/viewer-peer-compat.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'viewer/**'
+      - 'package.json'
+      - '.github/workflows/viewer-peer-compat.yml'
+
+jobs:
+  peer-compat:
+    name: Build + test with React ${{ matrix.react-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react-version: ['18', '19']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies (default peers)
+        run: npm ci
+
+      - name: Override React version
+        working-directory: viewer
+        env:
+          REACT_VERSION: ${{ matrix.react-version }}
+        run: |
+          npm install \
+            "react@${REACT_VERSION}" \
+            "react-dom@${REACT_VERSION}" \
+            "@types/react@${REACT_VERSION}" \
+            "@types/react-dom@${REACT_VERSION}" \
+            --legacy-peer-deps
+
+      - name: Type check
+        working-directory: viewer
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: viewer
+        run: npm run build
+
+      - name: Assert 'use client' banner
+        working-directory: viewer
+        run: |
+          # Rollup normalizes the source-level `'use client'` banner into a
+          # canonical double-quoted ESM directive (`"use client";`). The
+          # assertion accepts either quote style so that a future Rollup
+          # upgrade that switches the canonical form does not break CI.
+          if ! head -1 dist/lib/index.js | grep -Eq "^['\"]use client['\"];?"; then
+            echo "FAIL: 'use client' banner missing from dist/lib/index.js"
+            head -3 dist/lib/index.js
+            exit 1
+          fi
+
+      - name: Assert no private path leakage
+        working-directory: viewer
+        run: |
+          if grep -q "/viewer/src/" dist/lib/index.js; then
+            echo "FAIL: Private /viewer/src/ path leaked into library bundle"
+            grep -n "/viewer/src/" dist/lib/index.js | head -5
+            exit 1
+          fi
+
+      - name: Assert bundle size < 5 MB
+        working-directory: viewer
+        run: |
+          size=$(wc -c < dist/index.html)
+          echo "dist/index.html: $size bytes"
+          if [ "$size" -ge 5000000 ]; then
+            echo "FAIL: Single-file HTML exceeds 5 MB"
+            exit 1
+          fi
+
+      - name: Run tests
+        working-directory: viewer
+        run: npm test -- --run

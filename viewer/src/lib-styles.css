@@ -20,3 +20,14 @@
 @source "./App.tsx";
 @source "./components";
 @source "./components/flowmap";
+
+/* Ensure theme-token utility classes are emitted even when consumer-only.
+ * The CLI single-file HTML build uses hex values inline in React styles;
+ * downstream consumers (Next.js dashboard, Phase 7) will reference these
+ * tokens as utility classes (e.g., bg-canvas-bg, text-sev-critical,
+ * border-flow-forward). Without `@source inline(...)`, Tailwind v4 JIT
+ * would strip them from `dist/lib/styles.css` because no viewer/ file
+ * references them by class name today. */
+@source inline("{bg,text,border}-{canvas-bg,card-bg,card-border,card-hover}");
+@source inline("{bg,text,border}-sev-{critical,high,medium,info,clean}");
+@source inline("{bg,text,border}-flow-{forward,return,divergence}");
