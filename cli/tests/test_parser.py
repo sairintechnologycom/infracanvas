@@ -153,3 +153,129 @@ class TestFindReferences:
             known,
         )
         assert "aws_subnet.public" in refs
+
+
+class TestEnvsLayout:
+    """Phase 5.1 tests: local module resolution, count expansion, parse-error surfacing.
+
+    Fixture created by Plan 05.1-01: cli/tests/fixtures/envs_layout/
+    """
+
+    def test_51a_envs_layout_resolves_submodule(self):
+        """5.1-A: envs_layout/prod resolves ../../modules/vpc submodule with module prefix."""
+        from infracanvas.parser.module import resolve_modules
+
+        root = FIXTURES / "envs_layout" / "envs" / "prod"
+        parsed = parse_directory(root)
+        resolve_modules(root, parsed)
+
+        # aws_vpc.this and aws_subnet.public must be present with module = "module.vpc"
+        vpcs = [r for r in parsed.resources if r.resource_type == "aws_vpc" and r.name == "this"]
+        subnets = [
+            r for r in parsed.resources
+            if r.resource_type == "aws_subnet" and r.name == "public"
+        ]
+        assert len(vpcs) == 1, f"expected 1 aws_vpc.this from module.vpc, got {len(vpcs)}"
+        assert vpcs[0].module == "module.vpc"
+        assert len(subnets) >= 1, f"expected ≥1 aws_subnet.public, got {len(subnets)}"
+        assert all(s.module == "module.vpc" for s in subnets)
+
+    def test_51b_envs_layout_broken_submodule_surfaces_error(self):
+        """5.1-B: broken submodule appears in parse_errors AND produces a placeholder."""
+        from infracanvas.parser.module import resolve_modules
+
+        root = FIXTURES / "envs_layout" / "envs" / "prod"
+        parsed = parse_directory(root)
+        resolve_modules(root, parsed)
+
+        # D-01: parse_errors must contain at least one entry mentioning "broken"
+        assert len(parsed.parse_errors) >= 1, "expected ≥1 parse_error from broken submodule"
+        assert any("broken" in str(p) for p, _ in parsed.parse_errors), (
+            f"no parse_error path mentions 'broken'; got: "
+            f"{[str(p) for p, _ in parsed.parse_errors]}"
+        )
+
+        # D-01: a placeholder ParsedResource must be synthesized
+        placeholders = [
+            r for r in parsed.resources
+            if r.resource_type == "_infracanvas_unresolved_module" and r.name == "broken"
+        ]
+        assert len(placeholders) == 1, (
+            f"expected 1 _infracanvas_unresolved_module placeholder named 'broken', "
+            f"got {len(placeholders)}"
+        )
+        # Placeholder must carry source + error evidence in attributes
+        ph = placeholders[0]
+        assert ph.attributes.get("source") == "../../modules/broken"
+        assert "_parse_error" in ph.attributes
+
+    def test_51c_count_literal_expands(self, tmp_path):
+        """5.1-C: literal count = 3 expands into three ParsedResource objects with index 0/1/2."""
+        tf = tmp_path / "main.tf"
+        tf.write_text(
+            'resource "aws_subnet" "x" {\n'
+            '  count      = 3\n'
+            '  cidr_block = "10.0.0.0/24"\n'
+            '}\n'
+        )
+        parsed = parse_directory(tmp_path)
+
+        xs = [r for r in parsed.resources if r.resource_type == "aws_subnet" and r.name == "x"]
+        assert len(xs) == 3, f"expected 3 expansions of literal count=3, got {len(xs)}"
+        indices = sorted(r.index for r in xs if r.index is not None)
+        assert indices == [0, 1, 2], f"expected indices [0,1,2], got {indices}"
+        assert all(not r.unresolved_count for r in xs)
+
+    def test_51d_count_nonliteral_collapsed(self):
+        """5.1-D: non-literal count (var.az_count) stays as single collapsed ParsedResource."""
+        from infracanvas.parser.module import resolve_modules
+
+        root = FIXTURES / "envs_layout" / "envs" / "prod"
+        parsed = parse_directory(root)
+        resolve_modules(root, parsed)
+
+        subnets = [
+            r for r in parsed.resources
+            if r.resource_type == "aws_subnet" and r.name == "public"
+        ]
+        assert len(subnets) == 1, (
+            f"expected 1 collapsed aws_subnet.public (count is var.az_count), got {len(subnets)}"
+        )
+        assert subnets[0].index is None
+        assert subnets[0].unresolved_count is True
+
+    def test_51p_count_cap_collapses_oversized_literal(self, tmp_path):
+        """5.1-P: T-05.1-05 DoS guard — count = 10_000_000 collapses to 1 unresolved node."""
+        from infracanvas.parser.hcl import COUNT_EXPANSION_CAP
+
+        tf = tmp_path / "main.tf"
+        # Use a literal well above the cap to prove the guard fires.
+        tf.write_text(
+            'resource "aws_subnet" "huge" {\n'
+            '  count      = 10000000\n'
+            '  cidr_block = "10.0.0.0/24"\n'
+            '}\n'
+        )
+        parsed = parse_directory(tmp_path)
+
+        huge = [
+            r for r in parsed.resources
+            if r.resource_type == "aws_subnet" and r.name == "huge"
+        ]
+        # Critical assertion: cap prevents OOM by collapsing to EXACTLY 1 instance.
+        assert len(huge) == 1, (
+            f"expected 1 collapsed node from oversized count, got {len(huge)} "
+            f"(cap is {COUNT_EXPANSION_CAP})"
+        )
+        assert huge[0].index is None
+        assert huge[0].unresolved_count is True
+
+        # A synthetic parse_errors entry must reference the cap event.
+        cap_notes = [
+            (p, msg) for p, msg in parsed.parse_errors
+            if "count-cap" in str(p) or "cap" in msg.lower()
+        ]
+        assert len(cap_notes) >= 1, (
+            f"expected a synthetic parse_errors note about the cap; "
+            f"got parse_errors={parsed.parse_errors}"
+        )
