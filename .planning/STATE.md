@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: executing
-last_updated: "2026-04-21T09:53:36.645Z"
+last_updated: "2026-04-21T10:10:08.692Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 17
   completed_phases: 7
   total_plans: 43
-  completed_plans: 39
-  percent: 91
+  completed_plans: 42
+  percent: 98
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 05.1 (Parser Realism + CLI UX) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-04-21
 
@@ -49,6 +49,8 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - [Phase 4]: Use Neon session-mode pooler + dedicated `infracanvas_app` role (no BYPASSRLS) to prevent RLS leakage
 - [Phase 4]: Next.js 15 (not 14); taskiq (not arq); Stripe Billing Meters only; netsampler/goflow2/v2 (not goflow)
 - [v1.1]: Wiring fixes run BEFORE SaaS work so Phase 4+ builds on a known-good CLI core
+- 05.1-02: Committed producer + consumer (hcl.py + module.py + graph/builder.py) in a single atomic commit (de149a8) to preserve the coordinated-edit contract — no intermediate tree state has a consumer reading an unemitted field
+- 05.1-02: COUNT_EXPANSION_CAP=1000 — DoS guard applied BEFORE range expansion in _expand_count/_expand_for_each; oversized literals collapse to 1 unresolved node + synthetic parse_errors note (T-05.1-05 mitigation)
 
 ### Pending Todos
 
@@ -73,7 +75,7 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-04-21T09:53:36.636Z
+Last session: 2026-04-21T10:09:59.216Z
 Milestone: v1.1 started
 Resume: Define REQUIREMENTS.md then spawn gsd-roadmapper to create ROADMAP.md
 
