@@ -135,6 +135,18 @@ output_dir: ./reports
 
 ---
 
+## Known Limitations
+
+The Terraform parser deliberately does not resolve the following in v1.1. These are tracked for v1.2:
+
+- **Registry module sources** — `module "x" { source = "terraform-aws-modules/vpc/aws" }` and any non-local source (git/HTTP/registry) are skipped silently. Only `./` and `../` relative paths are followed. Deferred to v1.2 Enterprise.
+- **Cross-module variable resolution** — `var.*`, `local.*`, and `data.*` references inside submodule attributes are preserved as interpolation strings (e.g. `${var.cidr}`) rather than being substituted with the caller-passed literal.
+- **`for_each` / `count` with non-literal expressions** — when `count = var.az_count` or similar, the resource is rendered as a single collapsed node with a `×?` badge instead of N expanded instances. Literal `count = 3` DOES expand correctly.
+- **`terraform_remote_state`** — treated as an opaque data source.
+- **`.tfvars` auto-discovery** — not supported at CLI level.
+
+---
+
 ## Requirements
 
 - Python 3.12+
