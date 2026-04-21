@@ -9,7 +9,7 @@ InfraCanvas is a hybrid cloud intelligence platform that gives engineering and l
 ## Current State
 
 **Latest milestone:** v1.0 (shipped 2026-04-19) — Canvas + FlowMap v1.0 Hybrid Cloud Intelligence MVP
-**Focus:** v1.1 in flight — Phase 4 (E2E wiring hardening) complete 2026-04-20; next up Phase 5 Viewer Extraction, then SaaS Dashboard + CostLens alongside FlowMap 3b
+**Focus:** v1.1 in flight — Phase 5 (Viewer Extraction) complete 2026-04-21; next up Phase 6 SaaS Backend Foundation (FastAPI + Clerk + Neon + R2 + taskiq), then Phase 7 SaaS Dashboard + CostLens alongside FlowMap 3b
 
 ## Current Milestone: v1.1 Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 
@@ -66,7 +66,7 @@ One command gives you a complete, annotated picture of your hybrid infrastructur
 - [ ] Share link system — UUID + token, optional password, expiry (SHR-01..02)
 - [ ] GitHub push webhook — auto-scan, history in Neon + R2, Critical-findings Slack alert via taskiq (WBH-01..03)
 - [ ] CostLens — TGW/ExpressRoute/Azure Firewall shared cost split by workload tag, cross-cloud per-path data transfer cost, idle/oversized recommendations (CLA-01..06, CPC-01..03)
-- [ ] Next.js 15 dashboard — uncached-by-default; extract viewer to shared dual-build package BEFORE any dashboard work (DSH-01..06)
+- [ ] Next.js 15 dashboard — uncached-by-default; ✓ viewer extracted to shared dual-build package (DSH-01 validated Phase 5, 2026-04-21); remaining DSH-02..06
 - [ ] Observability — logs, traces, error tracking (OBS-01..02)
 
 #### FlowMap 3b (DC Agent + Asymmetric Routing)
@@ -173,4 +173,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 — Phase 4 E2E wiring hardening complete; Phase 5 Viewer Extraction next*
+*Last updated: 2026-04-21 — Phase 5 Viewer Extraction complete; dual-build @infracanvas/viewer shipped; Phase 7 SaaS Dashboard gate unblocked; Phase 6 SaaS Backend next*

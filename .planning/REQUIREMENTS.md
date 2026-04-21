@@ -67,7 +67,7 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 
 ### Category 8 — Dashboard UI (DSH)
 
-- [ ] **DSH-01** Extract viewer to shared dual-build npm package BEFORE any dashboard work
+- [x] **DSH-01** Extract viewer to shared dual-build npm package BEFORE any dashboard work (Phase 5, 2026-04-21)
 - [ ] **DSH-02** Next.js 15 App Router scaffold on Vercel (uncached-by-default)
 - [ ] **DSH-03** Dashboard auth flow via Clerk with team context
 - [ ] **DSH-04** Scan list page + detail page embedding the shared viewer
@@ -142,7 +142,7 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
 | WRG-01..04 | 4 | TBD | Not planned |
-| DSH-01 | 5 | TBD | Not planned |
+| DSH-01 | 5 | 05-01..03 | ✓ Validated (2026-04-21) |
 | API-01..07, TMM-01..02, OBS-01..02 | 6 | TBD | Not planned |
 | DSH-02..06, HST-01..03, SHR-01..02 | 7 | TBD | Not planned |
 | WBH-01..03 | 8 | TBD | Not planned |
