@@ -26,16 +26,33 @@ def _create_nodes(
     """Create ResourceNode objects and add them to the graph."""
     nodes: list[ResourceNode] = []
     for res in parsed.resources:
-        resource_id = f"{res.resource_type}.{res.name}"
-        provider = res.resource_type.split("_")[0] if "_" in res.resource_type else "unknown"
+        # Base ID: `{type}.{name}`; append `[{index}]` for count/for_each-expanded
+        # instances (D-02).
+        base_id = f"{res.resource_type}.{res.name}"
+        if res.index is not None:
+            base_id = f"{base_id}[{res.index}]"
+        # Module prefix (already set on ParsedResource.module by resolve_modules).
+        resource_id = f"{res.module}.{base_id}" if res.module else base_id
+
+        # Provider detection — D-01 placeholder short-circuits to synthetic "unresolved".
+        if res.resource_type == "_infracanvas_unresolved_module":
+            provider = "unresolved"
+        else:
+            provider = res.resource_type.split("_")[0] if "_" in res.resource_type else "unknown"
 
         if provider == "azurerm":
             from infracanvas.parser.azure import normalize_azure_attrs
             attrs = normalize_azure_attrs(res.resource_type, res.attributes)
             region = str(attrs.get("region", ""))
         else:
-            attrs = res.attributes
+            # Shallow copy — we may mutate below and don't want to pollute the
+            # shared ParsedResource.attributes dict across expanded instances.
+            attrs = dict(res.attributes)
             region = str(attrs.get("region", ""))
+
+        # D-02 viewer marker — consumed by viewer/src/components/ResourceNode.tsx
+        if res.unresolved_count:
+            attrs["_unresolved_count"] = True
 
         group = _determine_group(attrs, module=res.module, region=region)
 

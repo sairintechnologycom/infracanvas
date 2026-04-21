@@ -10,6 +10,12 @@ import hcl2
 
 from infracanvas.parser.references import find_references
 
+# T-05.1-05 (DoS guard): cap literal count/for_each expansion. A resource with
+# count > COUNT_EXPANSION_CAP collapses to a single unresolved node instead of
+# materializing millions of ParsedResources. Chosen to comfortably fit realistic
+# Terraform usage (typical upper bound is a few hundred) while refusing OOM-scale input.
+COUNT_EXPANSION_CAP: int = 1000
+
 
 @dataclass
 class ParsedResource:
@@ -18,6 +24,8 @@ class ParsedResource:
     attributes: dict[str, Any]
     depends_on: list[str] = field(default_factory=list)
     module: str = ""
+    index: int | None = None  # D-02: set when expanded from literal count/for_each
+    unresolved_count: bool = False  # D-02: set when count/for_each is non-literal or exceeds cap
 
 
 @dataclass
@@ -115,14 +123,46 @@ def _extract_resources(parsed: dict[str, Any], result: ParsedTerraform) -> None:
                         attrs_dict = _clean_value(attrs) if isinstance(attrs, dict) else {}
                         depends_on_raw = attrs_dict.pop("depends_on", [])
                         depends_on = _normalize_depends_on(depends_on_raw)
-                        result.resources.append(
-                            ParsedResource(
-                                resource_type=resource_type,
-                                name=name,
-                                attributes=attrs_dict,
-                                depends_on=depends_on,
+
+                        # D-02: decide expansion. count takes precedence over for_each.
+                        if "count" in attrs_dict:
+                            expansions = _expand_count(attrs_dict)
+                            # T-05.1-05: if the literal triggered the cap, emit a
+                            # parse_error note so the CLI surfaces it to stderr.
+                            raw = attrs_dict["count"]
+                            if isinstance(raw, list) and len(raw) == 1:
+                                raw = raw[0]
+                            if (
+                                isinstance(raw, int)
+                                and not isinstance(raw, bool)
+                                and raw > COUNT_EXPANSION_CAP
+                            ):
+                                result.parse_errors.append(
+                                    (
+                                        Path(f"<count-cap:{resource_type}.{name}>"),
+                                        (
+                                            f"count={raw} exceeds cap "
+                                            f"{COUNT_EXPANSION_CAP}; "
+                                            "collapsed to 1 unresolved node"
+                                        ),
+                                    )
+                                )
+                        elif "for_each" in attrs_dict:
+                            expansions = _expand_for_each(attrs_dict)
+                        else:
+                            expansions = [(None, False)]
+
+                        for idx, unresolved in expansions:
+                            result.resources.append(
+                                ParsedResource(
+                                    resource_type=resource_type,
+                                    name=name,
+                                    attributes=attrs_dict,
+                                    depends_on=depends_on,
+                                    index=idx,
+                                    unresolved_count=unresolved,
+                                )
                             )
-                        )
 
 
 def _extract_variables(parsed: dict[str, Any], result: ParsedTerraform) -> None:
@@ -222,3 +262,56 @@ def _strip_interpolation(value: str) -> str:
     if value.startswith("${") and value.endswith("}"):
         return value[2:-1]
     return value
+
+
+def _expand_count(attrs_dict: dict[str, Any]) -> list[tuple[int | None, bool]]:
+    """Return a list of (index, unresolved_count) tuples describing instances to emit.
+
+    D-02: Literal integer count expands to N instances with index 0..N-1 and
+    unresolved_count=False. T-05.1-05: if the literal exceeds COUNT_EXPANSION_CAP
+    (1000), collapse to a single unresolved instance — prevents OOM from
+    `count = 10_000_000`. Non-literal count (string, dict, bool, negative, None,
+    list wrapping an interpolation) returns a single (None, True) tuple. If
+    `count` is absent, returns [(None, False)] (single unexpanded instance).
+    """
+    if "count" not in attrs_dict:
+        return [(None, False)]
+    raw = attrs_dict["count"]
+    # python-hcl2 sometimes wraps single values in a 1-element list. Unwrap once.
+    if isinstance(raw, list) and len(raw) == 1:
+        raw = raw[0]
+    if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 0:
+        # T-05.1-05 DoS guard: BEFORE range(raw), reject oversized counts.
+        if raw > COUNT_EXPANSION_CAP:
+            return [(None, True)]
+        return [(i, False) for i in range(raw)]
+    # Anything else — interpolation string, dict, negative, bool — treat as unresolved.
+    return [(None, True)]
+
+
+def _expand_for_each(attrs_dict: dict[str, Any]) -> list[tuple[int | None, bool]]:
+    """Return a list of (index, unresolved_count) tuples for for_each handling.
+
+    D-02: Literal dict/list for_each expands to one instance per key (index
+    preserved as running int for now). T-05.1-05: oversized literal collections
+    also collapse (same 1000 cap). Non-literal for_each returns a single
+    (None, True) placeholder. Absent for_each returns (None, False) single instance.
+    """
+    if "for_each" not in attrs_dict:
+        return [(None, False)]
+    raw = attrs_dict["for_each"]
+    if isinstance(raw, list) and len(raw) == 1:
+        raw = raw[0]
+    if isinstance(raw, dict) and raw:
+        if len(raw) > COUNT_EXPANSION_CAP:
+            return [(None, True)]
+        return [(i, False) for i in range(len(raw))]
+    if (
+        isinstance(raw, list)
+        and raw
+        and not any(isinstance(x, str) and x.startswith("${") for x in raw)
+    ):
+        if len(raw) > COUNT_EXPANSION_CAP:
+            return [(None, True)]
+        return [(i, False) for i in range(len(raw))]
+    return [(None, True)]

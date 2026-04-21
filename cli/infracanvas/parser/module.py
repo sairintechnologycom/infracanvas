@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from infracanvas.parser.hcl import ParsedTerraform, parse_directory
+from infracanvas.parser.hcl import ParsedResource, ParsedTerraform, parse_directory
 
 
 def resolve_modules(
@@ -37,12 +37,31 @@ def resolve_modules(
 
         # T-01-01: Only follow local relative paths
         if not (source.startswith("./") or source.startswith("../")):
+            # WARNING 5 closure: surface non-local sources as a one-line note so
+            # users see the deferral (per README.md Known Limitations). This is NOT
+            # an error — scan continues — but the CLI stderr loop will print it.
+            if source:
+                parsed.parse_errors.append(
+                    (
+                        Path(f"<non-local-module:{name}>"),
+                        (
+                            f"Skipping non-local module source '{source}' — "
+                            "see Known Limitations"
+                        ),
+                    )
+                )
             continue
 
         module_dir = (directory / source).resolve()
 
         # T-01-01: Reject if not a directory or outside project scope
         if not module_dir.is_dir():
+            parsed.parse_errors.append(
+                (
+                    Path(f"<missing-module-dir:{name}>"),
+                    f"Module '{name}' source '{source}' is not a directory; skipping",
+                )
+            )
             continue
 
         # T-01-02: Circular reference detection
@@ -50,6 +69,30 @@ def resolve_modules(
             continue
 
         sub_parsed = parse_directory(module_dir)
+
+        # D-01: merge submodule parse errors into caller's list so main.py's
+        # `if parsed.parse_errors` loop surfaces them to stderr.
+        parsed.parse_errors.extend(sub_parsed.parse_errors)
+
+        # D-01: if the submodule produced zero resources AND has parse errors,
+        # synthesize a placeholder ParsedResource. The graph builder renders this
+        # as an orange-ringed "unresolved module" node via type prefix match.
+        if not sub_parsed.resources and sub_parsed.parse_errors:
+            first_err_path, first_err_msg = sub_parsed.parse_errors[0]
+            placeholder = ParsedResource(
+                resource_type="_infracanvas_unresolved_module",
+                name=name,
+                attributes={
+                    "source": source,
+                    "_module_dir": str(module_dir),
+                    "_parse_error": f"{first_err_path.name}: {first_err_msg}",
+                },
+                module="",
+            )
+            parsed.resources.append(placeholder)
+            # Don't recurse into a broken submodule
+            continue
+
         for res in sub_parsed.resources:
             res.module = f"module.{name}"
         parsed.resources.extend(sub_parsed.resources)
