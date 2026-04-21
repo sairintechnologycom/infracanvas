@@ -24,6 +24,13 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
   const isChanged = data.drift === 'changed';
   const isDeleted = data.drift === 'deleted';
 
+  // 5.1 D-01 / D-02: unresolved parser states — reuse shadow-orange visual vocabulary.
+  const isUnresolvedModule =
+    typeof data.type === 'string' && data.type.startsWith('_infracanvas_unresolved');
+  const hasUnresolvedCount = Boolean(
+    (data.attributes as Record<string, unknown> | undefined)?.['_unresolved_count'],
+  );
+
   const provider = data.provider === 'azurerm' ? 'azurerm' : detectProvider(data.type);
 
   const typeLabel = data.type
@@ -32,7 +39,7 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
     .replaceAll('_', ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
 
-  const driftTint = isShadow
+  const driftTint = isShadow || isUnresolvedModule
     ? '#D97706'
     : isNew
     ? driftColors.added
@@ -139,6 +146,60 @@ function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
           }}
         >
           {findingCount}
+        </div>
+      )}
+
+      {/* 5.1 D-01: unresolved-module warning marker */}
+      {isUnresolvedModule && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -4,
+            left: 22,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            borderRadius: 9,
+            background: '#D97706',
+            color: '#ffffff',
+            fontSize: 10,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 3px rgba(217,119,6,0.4), 0 0 0 2px #FFFFFF',
+          }}
+          title="Unresolved module — check stderr for parse errors"
+          data-testid="resource-node-unresolved-marker"
+        >
+          ⚠
+        </div>
+      )}
+
+      {/* 5.1 D-02: ×? badge for non-literal count/for_each */}
+      {hasUnresolvedCount && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 18,
+            right: -4,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            borderRadius: 9,
+            background: '#64748B',
+            color: '#ffffff',
+            fontSize: 10,
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 3px rgba(100,116,139,0.4), 0 0 0 2px #FFFFFF',
+          }}
+          title="Non-literal count/for_each — expanded instance count unknown"
+          data-testid="resource-node-unresolved-count-badge"
+        >
+          ×?
         </div>
       )}
 
