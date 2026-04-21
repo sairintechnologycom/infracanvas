@@ -8,10 +8,13 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import App from './App';
+import { ViewerProvider } from './store';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ViewerProvider>
+      <App />
+    </ViewerProvider>
   </StrictMode>,
 );
