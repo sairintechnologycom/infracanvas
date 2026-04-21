@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: planning
-last_updated: "2026-04-21T07:54:07.163Z"
-last_activity: 2026-04-21
+status: executing
+last_updated: "2026-04-21T09:50:10.120Z"
+last_activity: 2026-04-21 -- Phase 05.1 execution started
 progress:
   total_phases: 17
   completed_phases: 7
-  total_plans: 39
+  total_plans: 43
   completed_plans: 39
-  percent: 100
+  percent: 91
 ---
 
 # Project State
@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 05 — viewer-extraction
+**Current focus:** Phase 05.1 — Parser Realism + CLI UX
 
 ## Current Position
 
 Milestone: v1.1 — started 2026-04-20
-Phase: 06
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-21
+Phase: 05.1 (Parser Realism + CLI UX) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 05.1
+Last activity: 2026-04-21 -- Phase 05.1 execution started
 
 ## Accumulated Context
 
@@ -77,4 +77,4 @@ Last session: --stopped-at
 Milestone: v1.1 started
 Resume: Define REQUIREMENTS.md then spawn gsd-roadmapper to create ROADMAP.md
 
-**Planned Phase:** 5 (Viewer Extraction) — 3 plans — 2026-04-21T01:42:10.338Z
+**Planned Phase:** 5.1 (Parser realism + CLI UX) — 4 plans — 2026-04-21T09:29:39.098Z
