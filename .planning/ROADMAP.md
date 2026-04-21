@@ -25,7 +25,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 - [ ] **Phase 4: E2E Wiring Hardening** — CLI export exit code + gate_mode, drift summary counts, FlowMap tab toggle, backend pytest for security/cost/drift
 - [ ] **Phase 5: Viewer Extraction** — extract viewer to shared dual-build npm package (gate for Phase 7)
-- [ ] **Phase 5.1: Parser realism + CLI UX** (INSERTED) — local `module {}` resolution, `--quiet`/`--open` flags, realistic multi-module fixture
+- [x] **Phase 5.1: Parser realism + CLI UX** (INSERTED) — local `module {}` resolution, `--quiet`/`--open` flags, realistic multi-module fixture (2026-04-21)
 - [ ] **Phase 6: SaaS Backend Foundation** — FastAPI + Clerk + Neon + R2 + taskiq + Stripe Billing Meters + observability
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
 - [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
@@ -51,7 +51,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 3.5. Retroactive Verification | v1.0 | 3/3 | Shipped | 2026-04-19 |
 | 4. E2E Wiring Hardening | v1.1 | 0/4 | Planned | - |
 | 5. Viewer Extraction | v1.1 | 0/3 | Planned | - |
-| 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 0/4 | Planned | - |
+| 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 4/4 | Complete | 2026-04-21 |
 | 6. SaaS Backend Foundation | v1.1 | 0/TBD | Not planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
