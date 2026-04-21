@@ -14,7 +14,7 @@ runner = CliRunner()
 
 class TestScanCommand:
     def test_scan_simple_vpc(self):
-        result = runner.invoke(app, ["scan", str(FIXTURES / "simple_vpc"), "--quiet"])
+        result = runner.invoke(app, ["scan", str(FIXTURES / "simple_vpc"), "--json"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert len(data["nodes"]) == 6
@@ -28,7 +28,7 @@ class TestScanCommand:
     def test_scan_severity_filter(self):
         result = runner.invoke(app, [
             "scan", str(FIXTURES / "simple_vpc"),
-            "--quiet", "--severity", "critical",
+            "--json", "--severity", "critical",
         ])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
@@ -79,7 +79,7 @@ class TestScanCommand:
     def test_scan_ignore_rule(self):
         result = runner.invoke(app, [
             "scan", str(FIXTURES / "simple_vpc"),
-            "--quiet", "--ignore", "SEC-001",
+            "--json", "--ignore", "SEC-001",
         ])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
@@ -109,7 +109,7 @@ class TestConfig:
         config = tmp_path / "tf" / ".infracanvas.yml"
         config.write_text("ignore_rules:\n  - SEC-001\n")
         result = runner.invoke(app, [
-            "scan", str(tmp_path / "tf"), "--quiet",
+            "scan", str(tmp_path / "tf"), "--json",
         ])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
@@ -219,3 +219,4 @@ class TestFailOnFlag:
             for s in sev_order[:threshold_idx + 1]
         )
         assert has_findings is True  # High findings present
+
