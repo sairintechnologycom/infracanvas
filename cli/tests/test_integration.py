@@ -35,8 +35,13 @@ def _run_cli(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 def _run_scan_quiet(fixture: str) -> dict:
-    """Run scan in quiet mode and return parsed JSON."""
-    result = _run_cli("scan", str(FIXTURES / fixture), "--quiet", check=False)
+    """Run scan with JSON output and return parsed JSON.
+
+    NOTE: Previously this used ``--quiet`` which emitted JSON to stdout. Phase 5.1
+    D-03 repurposed ``--quiet`` to a one-line human summary; ``--json`` now carries
+    the stdout-JSON contract. Helper name preserved for call-site stability.
+    """
+    result = _run_cli("scan", str(FIXTURES / fixture), "--json", check=False)
     return json.loads(result.stdout)
 
 
@@ -72,7 +77,7 @@ class TestIntegration:
         # With severity filter, only critical findings remain on nodes
         result = _run_cli(
             "scan", str(FIXTURES / "simple_vpc"),
-            "--quiet", "--severity", "critical",
+            "--json", "--severity", "critical",
             check=False,
         )
         filtered_data = json.loads(result.stdout)
@@ -97,10 +102,14 @@ class TestIntegration:
         assert len(graph.nodes) > 0
 
     def test_d004_cli_exits_zero(self):
-        """D-004: CLI exits 0 on clean scan."""
+        """D-004: CLI exits 0 on clean scan.
+
+        Uses --json after Phase 5.1 semantic flip — same contract (JSON to stdout,
+        exit 0 regardless of findings).
+        """
         result = _run_cli(
             "scan", str(FIXTURES / "simple_vpc"),
-            "--quiet",
+            "--json",
             check=False,
         )
         assert result.returncode == 0
