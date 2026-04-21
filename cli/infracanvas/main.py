@@ -89,13 +89,20 @@ def _run_scan(
         out.print("  Run with --verbose for details, or check that this is a valid Terraform directory.")
         raise typer.Exit(code=2)
 
-    if parsed.parse_errors:
-        for path, err in parsed.parse_errors:
-            out.print(f"[yellow]Warning:[/yellow] Could not parse {path.name}: {err}")
-
     # PRS-04: resolve local module sources recursively
     from infracanvas.parser.module import resolve_modules
     resolve_modules(directory, parsed)
+
+    # D-01 (Plan 05.1-03 Edit 6): emit parse warnings — including those appended by
+    # resolve_modules when a submodule fails to parse, when a literal count exceeds the
+    # DoS cap (T-05.1-05), or when a module source is non-local / missing — to stderr
+    # (via _err_console) so that --quiet stdout remains clean.
+    # Per T-05.1-04: only `path.name` (basename) is emitted — no working-directory leak.
+    if parsed.parse_errors:
+        for path, err in parsed.parse_errors:
+            _err_console.print(
+                f"[yellow]Warning:[/yellow] Could not parse {path.name}: {err}"
+            )
 
     if not allow_empty:
         tf_files = list(directory.glob("*.tf"))
@@ -289,7 +296,30 @@ def scan(
     ] = "html",
     quiet: Annotated[
         bool,
-        typer.Option("--quiet", "-q", help="JSON only to stdout, for CI/CD"),
+        typer.Option(
+            "--quiet", "-q",
+            help="Print a single-line summary to stdout instead of the Rich findings table.",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help=(
+                "Emit the full scan JSON to stdout (exit 0 regardless of findings). "
+                "Use --ci for findings-gated exit codes."
+            ),
+        ),
+    ] = False,
+    open_flag: Annotated[
+        bool,
+        typer.Option(
+            "--open",
+            help=(
+                "After a successful HTML scan, open the report in the default browser. "
+                "Error if combined with --format json."
+            ),
+        ),
     ] = False,
     severity: Annotated[
         Optional[str],
@@ -338,6 +368,28 @@ def scan(
         _err_console.print(f"[red]Error:[/red] {directory} is not a directory")
         raise typer.Exit(code=2)
 
+    # D-03: flag combination validation
+    if open_flag and format != "html":
+        _err_console.print(
+            "[red]Error:[/red] --open requires --format html (current: --format "
+            f"{format}). Drop --open or use --format html."
+        )
+        raise typer.Exit(code=2)
+
+    if quiet and json_out:
+        _err_console.print(
+            "[red]Error:[/red] --quiet and --json are mutually exclusive. "
+            "Use --quiet for a one-line summary or --json for full JSON output."
+        )
+        raise typer.Exit(code=2)
+
+    if quiet and ci:
+        _err_console.print(
+            "[red]Error:[/red] --quiet and --ci are mutually exclusive. "
+            "--ci emits JSON for CI gating; --quiet emits a human summary."
+        )
+        raise typer.Exit(code=2)
+
     # Load project config
     config = load_config(directory)
     effective_ignore = list(set((ignore or []) + config.ignore_rules))
@@ -351,19 +403,63 @@ def scan(
                       ignore_rules=effective_ignore, ci=ci,
                       shadow=shadow, flowmap=flowmap, policy=policy)
 
-    if ci or quiet:
-        # CI mode: only valid JSON to stdout, diagnostics to stderr
+    # --json: JSON to stdout, always exit 0 on success (replaces the old --quiet JSON-dump behavior)
+    if json_out:
         sys.stdout.write(export_graph(graph))
         sys.stdout.write("\n")
-        if ci:
-            threshold = fail_on or effective_severity or "high"
-            sev_order = ["critical", "high", "medium", "info"]
-            threshold_idx = sev_order.index(threshold)
-            has_findings = any(
-                graph.summary.findings.get(s, 0) > 0
-                for s in sev_order[: threshold_idx + 1]
-            )
-            raise typer.Exit(code=1 if has_findings else 0)
+        raise typer.Exit(code=0)
+
+    # --ci: JSON to stdout + findings-gated exit (unchanged semantics)
+    if ci:
+        sys.stdout.write(export_graph(graph))
+        sys.stdout.write("\n")
+        threshold = fail_on or effective_severity or "high"
+        sev_order = ["critical", "high", "medium", "info"]
+        threshold_idx = sev_order.index(threshold)
+        has_findings = any(
+            graph.summary.findings.get(s, 0) > 0
+            for s in sev_order[: threshold_idx + 1]
+        )
+        raise typer.Exit(code=1 if has_findings else 0)
+
+    # D-03: --quiet one-line summary path. Must print exactly ONE line to stdout and exit.
+    if quiet:
+        total_resources = graph.summary.total_resources
+        total_findings = sum(graph.summary.findings.values())
+        score = graph.summary.score
+        # Pipe-safe tick: use ✓ only when stdout is a TTY, else plain ASCII "OK".
+        tick = "✓" if sys.stdout.isatty() else "OK"
+        summary_line = (
+            f"{tick} {total_resources} resources · "
+            f"{total_findings} findings · score {score}"
+        )
+
+        # Write the HTML (if format=html) BEFORE appending "opened in browser" so the
+        # file exists when we open it.
+        opened_suffix = ""
+        if format == "html":
+            out_path = output or Path(config.output_dir) / "infracanvas-report.html"
+            try:
+                export_html(graph, out_path, gate_mode=True)
+            except FileNotFoundError as exc:
+                _err_console.print(
+                    f"[yellow]Warning:[/yellow] {exc}. Falling back to JSON."
+                )
+                out_path = output or Path(config.output_dir) / "infracanvas-report.json"
+                out_path.write_text(export_graph(graph))
+
+            if open_flag:
+                # D-03 + T-05.1-07 mitigation: webbrowser.open (stdlib) — no shell injection.
+                ok = webbrowser.open(out_path.resolve().as_uri())
+                if ok:
+                    opened_suffix = " · opened in browser"
+                else:
+                    _err_console.print(
+                        "[yellow]Warning:[/yellow] webbrowser.open returned False; "
+                        "report written but not opened."
+                    )
+
+        typer.echo(summary_line + opened_suffix)
         raise typer.Exit(code=0)
 
     _print_summary(graph)
@@ -373,10 +469,16 @@ def scan(
         try:
             export_html(graph, out_path, gate_mode=True)
             console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-            if config.open_browser and _should_open_browser():
-                webbrowser.open(out_path.resolve().as_uri())
-            else:
-                console.print(f"  Report saved: [bold]{out_path}[/bold]")
+            # --open (explicit user intent) bypasses the headless/CI guard;
+            # config.open_browser still respects _should_open_browser().
+            should_open = open_flag or (config.open_browser and _should_open_browser())
+            if should_open:
+                ok = webbrowser.open(out_path.resolve().as_uri())
+                if not ok and open_flag:
+                    _err_console.print(
+                        "[yellow]Warning:[/yellow] webbrowser.open returned False; "
+                        "report written but not opened."
+                    )
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
             console.print("  Falling back to JSON output.")
@@ -621,6 +723,30 @@ def plan(
         str,
         typer.Option("--format", "-f", help="Output format (html, json)"),
     ] = "html",
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet", "-q",
+            help="Print a one-line drift summary to stdout instead of the Rich drift table.",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help=(
+                "Emit the full plan-annotated graph JSON to stdout "
+                "(exit 0 regardless of findings)."
+            ),
+        ),
+    ] = False,
+    open_flag: Annotated[
+        bool,
+        typer.Option(
+            "--open",
+            help="Open the HTML plan report in the default browser. Requires --format html.",
+        ),
+    ] = False,
 ) -> None:
     """Scan directory and overlay terraform plan diff on the diagram."""
     if not directory.is_dir():
@@ -630,6 +756,19 @@ def plan(
     if not planfile.exists():
         _err_console.print(f"[red]Error:[/red] Plan file {planfile} not found")
         raise typer.Exit(code=1)
+
+    # D-03 parity with scan
+    if open_flag and format != "html":
+        _err_console.print(
+            "[red]Error:[/red] --open requires --format html (current: --format "
+            f"{format})."
+        )
+        raise typer.Exit(code=2)
+    if quiet and json_out:
+        _err_console.print(
+            "[red]Error:[/red] --quiet and --json are mutually exclusive."
+        )
+        raise typer.Exit(code=2)
 
     config = load_config(directory)
     graph = _run_scan(directory, ignore_rules=config.ignore_rules)
@@ -645,25 +784,57 @@ def plan(
     graph = estimator.estimate(graph)
     cost_delta = estimator.delta(graph, changes)
 
-    # Print drift summary
+    # --json: emit the plan-annotated graph JSON and exit
+    if json_out:
+        sys.stdout.write(export_graph(graph))
+        sys.stdout.write("\n")
+        raise typer.Exit(code=0)
+
+    # Print drift summary (skipped in --quiet — the one-liner below replaces it)
     drift = graph.summary.drift
-    console.print()
-    console.print(
-        f"  [green]+{drift.get('added', 0)} added[/green]  ·  "
-        f"[yellow]~{drift.get('changed', 0)} changed[/yellow]  ·  "
-        f"[red]-{drift.get('deleted', 0)} deleted[/red]  ·  "
-        f"est. cost delta: [bold]{'+'if cost_delta >= 0 else ''}"
-        f"${cost_delta:.2f}/mo[/bold]"
-    )
-    console.print()
+    if not quiet:
+        console.print()
+        console.print(
+            f"  [green]+{drift.get('added', 0)} added[/green]  ·  "
+            f"[yellow]~{drift.get('changed', 0)} changed[/yellow]  ·  "
+            f"[red]-{drift.get('deleted', 0)} deleted[/red]  ·  "
+            f"est. cost delta: [bold]{'+'if cost_delta >= 0 else ''}"
+            f"${cost_delta:.2f}/mo[/bold]"
+        )
+        console.print()
 
     if format == "html":
         out_path = output or Path("infracanvas-plan.html")  # D-16
         try:
             export_html(graph, out_path)
-            console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-            if config.open_browser:
-                webbrowser.open(out_path.resolve().as_uri())
+            opened_suffix = ""
+            # --open (explicit) bypasses headless guard; config.open_browser gated otherwise.
+            should_open = open_flag or (config.open_browser and _should_open_browser())
+            if should_open:
+                ok = webbrowser.open(out_path.resolve().as_uri())
+                if ok and open_flag:
+                    opened_suffix = " · opened in browser"
+                elif not ok and open_flag:
+                    _err_console.print(
+                        "[yellow]Warning:[/yellow] webbrowser.open returned False; "
+                        "report written but not opened."
+                    )
+
+            if quiet:
+                # D-03: adapted one-line summary shape for plan —
+                # stat triplet is drift deltas + cost delta.
+                tick = "✓" if sys.stdout.isatty() else "OK"
+                added = drift.get("added", 0)
+                changed = drift.get("changed", 0)
+                deleted = drift.get("deleted", 0)
+                sign = "+" if cost_delta >= 0 else ""
+                typer.echo(
+                    f"{tick} +{added} ~{changed} -{deleted} · "
+                    f"delta {sign}${cost_delta:.2f}/mo"
+                    f"{opened_suffix}"
+                )
+            else:
+                console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
         except FileNotFoundError as e:
             console.print(f"  [yellow]Warning:[/yellow] {e}")
             out_path = output or Path("infracanvas-plan.json")  # D-16
@@ -672,7 +843,18 @@ def plan(
     else:
         out_path = output or Path("infracanvas-plan.json")  # D-16
         out_path.write_text(export_graph(graph))
-        console.print(f"  Report saved to: [bold]{out_path}[/bold]")
+        if quiet:
+            tick = "✓" if sys.stdout.isatty() else "OK"
+            added = drift.get("added", 0)
+            changed = drift.get("changed", 0)
+            deleted = drift.get("deleted", 0)
+            sign = "+" if cost_delta >= 0 else ""
+            typer.echo(
+                f"{tick} +{added} ~{changed} -{deleted} · "
+                f"delta {sign}${cost_delta:.2f}/mo"
+            )
+        else:
+            console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
 
 def _print_scorecard(card: "ScoreCard") -> None:
@@ -753,11 +935,29 @@ def export(
             help="Enable free-tier resource gating (default: true)",
         ),
     ] = True,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet", "-q",
+            help="Print a one-line summary to stdout instead of the default Rich message.",
+        ),
+    ] = False,
+    open_flag: Annotated[
+        bool,
+        typer.Option(
+            "--open",
+            help="Open the exported HTML in the default browser. Requires --format html.",
+        ),
+    ] = False,
 ) -> None:
     """Export a JSON report to HTML or re-export as formatted JSON."""
     if not report.exists():
         _err_console.print(f"[red]Error:[/red] {report} not found")
         raise typer.Exit(code=1)
+
+    if open_flag and format != "html":
+        _err_console.print("[red]Error:[/red] --open requires --format html")
+        raise typer.Exit(code=2)
 
     try:
         data = json.loads(report.read_text())
@@ -769,9 +969,28 @@ def export(
     if format == "html":
         out_path = output or Path("infracanvas-report.html")
         export_html(graph, out_path, gate_mode=gate_mode)
-        console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
-        webbrowser.open(out_path.resolve().as_uri())
+
+        opened_suffix = ""
+        if open_flag:
+            ok = webbrowser.open(out_path.resolve().as_uri())
+            if ok:
+                opened_suffix = " · opened in browser"
+            else:
+                _err_console.print(
+                    "[yellow]Warning:[/yellow] webbrowser.open returned False; "
+                    "report written but not opened."
+                )
+
+        if quiet:
+            tick = "✓" if sys.stdout.isatty() else "OK"
+            typer.echo(
+                f"{tick} {len(graph.nodes)} resources · exported to {out_path}"
+                f"{opened_suffix}"
+            )
+        else:
+            console.print(f"  HTML report saved to: [bold]{out_path}[/bold]")
     elif format == "json":
+        # JSON-to-stdout is unchanged; --quiet is a no-op here (JSON IS the output).
         typer.echo(json.dumps(data, indent=2))
 
 
