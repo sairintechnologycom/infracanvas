@@ -1,0 +1,108 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[project]
+name = "infracanvas-backend"
+version = "0.1.0"
+description = "InfraCanvas SaaS backend: FastAPI + Clerk + Neon Postgres (RLS) + R2 + taskiq + Stripe Billing Meters"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+keywords = ["infracanvas", "fastapi", "saas", "backend"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+dependencies = [
+    "fastapi~=0.115.0",
+    "uvicorn[standard]~=0.32.0",
+    "pydantic~=2.9.0",
+    "pydantic-settings~=2.6.0",
+    "sqlalchemy[asyncio]~=2.0.36",
+    "asyncpg~=0.30.0",
+    "alembic~=1.14.0",
+    "taskiq~=0.11.0",
+    "taskiq-redis~=1.0.0",
+    "boto3~=1.35.0",
+    "stripe>=11.0,<16.0",
+    "pyjwt[crypto]~=2.9.0",
+    "svix~=1.41.0",
+    "sentry-sdk[fastapi]~=2.18.0",
+    "structlog~=24.4.0",
+    "orjson~=3.10.0",
+    "uuid_utils~=0.14.0",
+    "infracanvas @ file:../cli",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.3.0",
+    "pytest-asyncio~=0.24.0",
+    "pytest-cov~=6.0.0",
+    "pytest-httpserver~=1.1.0",
+    "respx~=0.21.0",
+    "moto[s3]~=5.0.0",
+    "testcontainers[postgresql]~=4.8.0",
+    "ruff~=0.7.0",
+    "mypy~=1.13.0",
+]
+
+[project.urls]
+Homepage = "https://infracanvas.dev"
+Repository = "https://github.com/infracanvas/infracanvas"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests that take > 1s (deselect with -m 'not slow')",
+    "rls: row-level security integration tests against Testcontainers Postgres",
+    "meters: Stripe meter event tests",
+]
+addopts = "--cov=app --cov-branch --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+    "app/__main__.py",
+    "app/main.py",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["taskiq.*", "taskiq_redis.*", "svix.*", "uuid_utils.*", "moto.*", "testcontainers.*"]
+ignore_missing_imports = true
