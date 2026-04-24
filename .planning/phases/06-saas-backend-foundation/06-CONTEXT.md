@@ -138,7 +138,7 @@ Stand up the team-aware FastAPI backend that the rest of v1.1 SaaS work (Phase 7
 - **Fly release_command** = `alembic upgrade head` (D-15). Runs before traffic cutover so every deploy is migration-safe.
 - **Clerk webhook endpoint** = `POST /v1/webhooks/clerk` (D-04). Signature-verified via Svix; upserts teams on `organization.created`; returns 200 fast so Clerk doesn't retry.
 - **Stripe webhook endpoint** = not in Phase 6 scope (subscription events belong to Phase 13 / TIR-01..02). Phase 6 only outbound-sends meter events.
-- **R2 bucket lifecycle rule** for orphaned uploads (D-11) is infrastructure config, not code — documented in the Phase 6 plan but provisioned via `wrangler` or R2 dashboard.
+- **R2 bucket lifecycle rule** for orphaned uploads (D-11) is infrastructure config, not code — documented in the Phase 6 plan but provisioned via `wrangler` or R2 dashboard. Implementation refinement (added during planning, not a decision change): the presigned PUT targets a `pending/{scan_id}.json` key; the commit handler CopyObjects to `teams/{team_id}/scans/{scan_id}.json` and deletes the `pending/` source on success. The lifecycle rule is then restricted to the `pending/` prefix with maxAge 7 days, so committed scans at `teams/{team_id}/scans/` are never lifecycle-managed. This preserves D-07 and D-11 intent while removing blast-radius on committed data.
 
 </code_context>
 
