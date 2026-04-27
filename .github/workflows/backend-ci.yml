@@ -1,0 +1,125 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "cli/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "cli/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend + cli (path-dep)
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ../cli
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff format + lint)
+        working-directory: backend
+        run: |
+          ruff format --check app tests scripts
+          ruff check app tests scripts
+
+      - name: Type-check (mypy --strict)
+        working-directory: backend
+        run: mypy --strict app
+
+      - name: Validate Fly configs (structural)
+        working-directory: backend
+        run: python -m scripts.validate_fly_toml fly.dev.toml fly.prod.toml
+
+      - name: Test (pytest with Testcontainers; coverage gate cov-fail-under=80)
+        working-directory: backend
+        env:
+          # 0 = run Testcontainers Postgres; 1 = skip (used locally if Docker unavailable)
+          GSD_SKIP_TESTCONTAINERS: "0"
+        # --cov-fail-under=80 also lives in pyproject.toml [tool.pytest.ini_options]
+        # addopts; restated here as the explicit CI gate.
+        run: pytest -x --cov=app --cov-branch --cov-fail-under=80
+
+  security-gate-bypassrls:
+    # T-06-07: BYPASSRLS must NEVER appear in production migrations as an
+    # actual role grant. Only the confined fixture
+    # backend/tests/fixtures/bypass_role.sql is permitted to grant BYPASSRLS,
+    # and only to the fixture-scoped infracanvas_test role for RLS tests.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ban BYPASSRLS grants in non-fixture migrations
+        run: |
+          set -e
+
+          # Guard 1: an actual SQL grant `ALTER ROLE <name> BYPASSRLS;` MUST NOT
+          # appear anywhere under backend/migrations or backend/app.
+          if grep -rE "ALTER ROLE [a-z_]+ BYPASSRLS" backend/migrations backend/app 2>/dev/null; then
+            echo "FAIL: BYPASSRLS granted in production code/migrations."
+            echo "Only backend/tests/fixtures/bypass_role.sql may grant BYPASSRLS."
+            exit 1
+          fi
+
+          # Guard 2: confirm migrations explicitly enforce NOBYPASSRLS on the
+          # application role. If migration 002 stops asserting this, fail.
+          if ! grep -qE "ALTER ROLE infracanvas_app NOBYPASSRLS" backend/migrations/versions/*.py; then
+            echo "FAIL: backend/migrations no longer asserts ALTER ROLE infracanvas_app NOBYPASSRLS."
+            exit 1
+          fi
+
+          # Guard 3: the confined fixture must still exist. Only this fixture
+          # is permitted to issue an actual `ALTER ROLE ... BYPASSRLS` grant.
+          if [ ! -f backend/tests/fixtures/bypass_role.sql ]; then
+            echo "FAIL: backend/tests/fixtures/bypass_role.sql missing."
+            exit 1
+          fi
+
+          # Guard 4: actual SQL grants of BYPASSRLS (ALTER ROLE / CREATE ROLE
+          # WITH BYPASSRLS) are forbidden anywhere in backend/tests/ EXCEPT
+          # the confined fixture. Plain text mentions in docstrings/comments
+          # are permitted (they document the role design).
+          GRANTS=$(grep -rlE "(ALTER ROLE [a-z_]+ +BYPASSRLS|WITH +BYPASSRLS|CREATE ROLE +[a-z_]+ +.*BYPASSRLS)" \
+                     backend/tests 2>/dev/null \
+                   | grep -v "^backend/tests/fixtures/bypass_role.sql$" || true)
+          if [ -n "$GRANTS" ]; then
+            echo "FAIL: actual BYPASSRLS grant outside the confined fixture:"
+            echo "$GRANTS"
+            exit 1
+          fi
+
+          echo "OK: no prohibited BYPASSRLS grants; NOBYPASSRLS asserted; fixture confined."
+
+  fly-config-validate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: flyctl config validate (dev)
+        working-directory: backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl config validate -c fly.dev.toml
+
+      - name: flyctl config validate (prod)
+        working-directory: backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl config validate -c fly.prod.toml
