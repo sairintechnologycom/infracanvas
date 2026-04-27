@@ -16,6 +16,7 @@ from fastapi import FastAPI
 
 from app.obs.logging import configure_logging
 from app.obs.middleware import RequestContextMiddleware
+from app.obs.sentry import init_sentry
 from app.routes import health
 from app.routes import scans as scan_routes
 from app.routes import webhooks as wh_routes
@@ -25,7 +26,8 @@ configure_logging()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """App lifespan — later plans wire Sentry init (07) and DB engine (03) here."""
+    """App lifespan — Sentry init (Plan 06-07) and DB engine (Plan 03) attach here."""
+    init_sentry(role="api")
     yield
 
 

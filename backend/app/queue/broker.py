@@ -86,16 +86,11 @@ async def _init_worker_sentry(_state: object) -> None:
     """Initialise Sentry in the worker process with ``process_role=worker``.
 
     The HTTP and worker processes are separate Python interpreters, so
-    Sentry's SDK has to be initialised in each. The ``process_role`` tag
-    distinguishes the two in the Sentry UI when triaging an incident.
+    Sentry's SDK has to be initialised in each. Plan 06-07 consolidated
+    the inline initialization call into :func:`app.obs.sentry.init_sentry`
+    so both processes share one configuration (integrations, sample rates,
+    PII flag) — discriminated only by the ``process_role`` tag.
     """
-    if settings.sentry_dsn:
-        import sentry_sdk
+    from app.obs.sentry import init_sentry
 
-        sentry_sdk.init(
-            dsn=settings.sentry_dsn,
-            environment=settings.env,
-            release=settings.git_sha,
-            traces_sample_rate=0.1,
-        )
-        sentry_sdk.set_tag("process_role", "worker")
+    init_sentry(role="worker")
