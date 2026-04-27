@@ -23,7 +23,8 @@ from infracanvas.export.html import export_html
 from infracanvas.export.json import export_graph
 from infracanvas.export.scorecard import export_scorecard
 from infracanvas.graph.builder import build_graph
-from infracanvas.graph.models import GraphSummary, ResourceGraph, Severity
+from infracanvas.graph.models import ResourceGraph, Severity
+from infracanvas.graph.summary import compute_summary
 from infracanvas.parser.hcl import parse_directory
 from infracanvas.parser.plan import PlanReader
 from infracanvas.security.engine import evaluate_all
@@ -198,32 +199,19 @@ def _run_scan(
         "terraform_version": "unknown",
     }
 
-    # Compute summary
-    finding_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "info": 0}
-    for node in graph.nodes:
-        for f in node.findings:
-            finding_counts[f.severity.value] += 1
+    # Compute summary (counts + score). Done BEFORE severity filtering so
+    # the score reflects the true finding population, not the filtered view
+    # presented to the user. Plan 06-05 D-12: shared helper used by backend
+    # indexing worker too.
+    graph.summary = compute_summary(graph)
 
-    # Filter findings by severity if requested
+    # Filter findings by severity if requested (display filter only — the
+    # score above is computed against the unfiltered graph for accuracy).
     if severity_filter:
         sev = Severity(severity_filter)
         for node in graph.nodes:
             node.findings = [f for f in node.findings if f.severity == sev]
 
-    score = 100 - (
-        finding_counts["critical"] * 20
-        + finding_counts["high"] * 10
-        + finding_counts["medium"] * 5
-        + finding_counts["info"] * 1
-    )
-    score = max(0, score)
-
-    graph.summary = GraphSummary(
-        total_resources=len(graph.nodes),
-        findings=finding_counts,
-        estimated_monthly_cost=0.0,
-        score=score,
-    )
     return graph
 
 

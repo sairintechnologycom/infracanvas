@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
+from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -71,21 +72,38 @@ async def raw_session() -> AsyncIterator[AsyncSession]:
             yield session
 
 
-async def team_scoped_session(
-    team: "Team",
-) -> AsyncIterator[AsyncSession]:
-    """FastAPI dep: opens a tx and executes
-        SET LOCAL app.current_team_id = '<team.id>'
-    as the first statement so RLS policies evaluate against it. Uses a
-    bind parameter (never f-string interpolation — RESEARCH F3 Pitfalls).
+def _resolve_team_dep():
+    """Late-bound dep: ``app.auth.deps.resolve_team_from_clerk_org``.
 
-    Plan 04 will compose this with `Depends(resolve_team_from_clerk_org)`
-    to inject the Team; for now callers pass it directly.
+    Imported lazily to avoid the circular-import chain
+    ``app.db.session`` → ``app.auth.deps`` → ``app.db.session.raw_session``.
+    Returns a callable suitable for ``Depends(...)``.
+    """
+    from app.auth.deps import resolve_team_from_clerk_org
+    return resolve_team_from_clerk_org
+
+
+async def team_scoped_session(
+    team: "Team" = Depends(_resolve_team_dep()),
+) -> AsyncIterator[AsyncSession]:
+    """FastAPI dep: opens a tx and sets ``app.current_team_id`` GUC via
+    ``set_config('app.current_team_id', :t, true)`` as the first statement
+    so RLS policies evaluate against it.
+
+    asyncpg's wire protocol cannot bind parameters to ``SET LOCAL = $1``
+    (yields ``syntax error at or near "$1"``). The ``set_config()`` builtin
+    accepts bind parameters cleanly; third arg ``true`` = is_local, which
+    is identical tx-scoped semantics to ``SET LOCAL`` (Plan 06-04 deviation
+    fix carried into Plan 06-05).
+
+    Composition: Plan 06-04's ``resolve_team_from_clerk_org`` resolves the
+    Team from the JWT — FastAPI's dep graph wires it in via the default
+    ``Depends(...)`` above. Callers in tests can also pass it directly.
     """
     async with get_sessionmaker()() as session:
         async with session.begin():
             await session.execute(
-                text("SET LOCAL app.current_team_id = :t"),
+                text("SELECT set_config('app.current_team_id', :t, true)"),
                 {"t": str(team.id)},
             )
             yield session
