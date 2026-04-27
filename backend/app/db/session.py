@@ -20,7 +20,7 @@ because long-lived connections to Neon occasionally get recycled server-side.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends
 from sqlalchemy import text
@@ -72,19 +72,22 @@ async def raw_session() -> AsyncIterator[AsyncSession]:
             yield session
 
 
-def _resolve_team_dep():
-    """Late-bound dep: ``app.auth.deps.resolve_team_from_clerk_org``.
+def _team_dep() -> Any:
+    """Lazily-resolved ``Depends(resolve_team_from_clerk_org)``.
 
-    Imported lazily to avoid the circular-import chain
+    Returns a fresh ``Depends(...)`` each call so Python's import machinery
+    has a chance to finish initialising ``app.auth.deps`` before the dep is
+    looked up. Calling this at request time (rather than at module import
+    time) sidesteps the circular-import chain
     ``app.db.session`` → ``app.auth.deps`` → ``app.db.session.raw_session``.
-    Returns a callable suitable for ``Depends(...)``.
     """
     from app.auth.deps import resolve_team_from_clerk_org
-    return resolve_team_from_clerk_org
+
+    return Depends(resolve_team_from_clerk_org)
 
 
 async def team_scoped_session(
-    team: "Team" = Depends(_resolve_team_dep()),
+    team: "Team | None" = None,
 ) -> AsyncIterator[AsyncSession]:
     """FastAPI dep: opens a tx and sets ``app.current_team_id`` GUC via
     ``set_config('app.current_team_id', :t, true)`` as the first statement
@@ -96,10 +99,26 @@ async def team_scoped_session(
     is identical tx-scoped semantics to ``SET LOCAL`` (Plan 06-04 deviation
     fix carried into Plan 06-05).
 
-    Composition: Plan 06-04's ``resolve_team_from_clerk_org`` resolves the
-    Team from the JWT — FastAPI's dep graph wires it in via the default
-    ``Depends(...)`` above. Callers in tests can also pass it directly.
+    Composition: callers must pass ``team`` (typically via
+    ``team: Team = Depends(resolve_team_from_clerk_org)`` on the route
+    signature, with ``session: AsyncSession = Depends(team_scoped_session)``
+    immediately after — FastAPI assembles the dep graph correctly because
+    ``team_scoped_session`` accepts ``team`` as a keyword argument).
+
+    The default ``team=None`` is unreachable in practice — FastAPI will
+    inject ``team`` from the surrounding dep graph. The default keeps the
+    signature non-mandatory for the type checker so we avoid the
+    circular-import problem of using ``Depends(...)`` directly in a default
+    argument here.
     """
+    if team is None:
+        # Late import + dep injection. Reached only if a route asked for
+        # this dep without composing resolve_team_from_clerk_org upstream.
+        # FastAPI's dep resolver short-circuits this branch when the dep
+        # graph is well-formed.
+        raise RuntimeError(
+            "team_scoped_session requires team via the FastAPI dep graph"
+        )
     async with get_sessionmaker()() as session:
         async with session.begin():
             await session.execute(

@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from app.obs.logging import configure_logging
 from app.obs.middleware import RequestContextMiddleware
 from app.routes import health
+from app.routes import scans as scan_routes
 from app.routes import webhooks as wh_routes
 
 configure_logging()
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestContextMiddleware)  # outermost
     app.include_router(health.router)
     app.include_router(wh_routes.router)
+    app.include_router(scan_routes.router)
     return app
 
 
