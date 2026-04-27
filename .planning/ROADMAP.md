@@ -140,14 +140,14 @@ Plans:
 **Plans:** 8 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Backend package scaffold + Wave 0 test infra (pyproject, conftest with testcontainers/moto/mock_clerk/mock_stripe/in_memory_broker, bypass_role.sql)
-- [ ] 06-02-PLAN.md — FastAPI app scaffold + pure-ASGI RequestContextMiddleware + structlog JSON config + health endpoints (API-01, OBS-01)
-- [ ] 06-03-PLAN.md — Alembic async env + initial schema (teams/scans) + RLS policies (ENABLE + FORCE + current_setting) + async SQLAlchemy session with SET LOCAL (API-03, TMM-01)
-- [ ] 06-04-PLAN.md — Clerk JWT auth (PyJWT + JWKS, RS256) + require_role + Svix-verified organization.* webhook handler + Stripe customer creation (API-02, TMM-01)
-- [ ] 06-05-PLAN.md — R2 presigned URLs + two-step scan upload/commit + ResourceGraph validate + Stripe v2 meter event with dual idempotency + GET /v1/scans/{id} (API-04, API-06, API-07, TMM-02)
-- [ ] 06-06-PLAN.md — taskiq broker (ListQueueBroker + SmartRetry + DLQLog + Sentry + RequestId middlewares) + enqueue_scan_indexing worker reusing compute_summary (API-05)
-- [ ] 06-07-PLAN.md — Sentry FastAPI + asyncpg + taskiq integration with trace sampling 0.1 + tag binding (OBS-02)
-- [ ] 06-08-PLAN.md — Fly.io topology (api + worker processes, release_command alembic upgrade head) + Dockerfile + R2 CORS/lifecycle + Axiom drain + vendor provisioning checklist + GHA CI with BYPASSRLS grep guard (API-01, API-05, OBS-01)
+- [x] 06-01-PLAN.md — Backend package scaffold + Wave 0 test infra (pyproject, conftest with testcontainers/moto/mock_clerk/mock_stripe/in_memory_broker, bypass_role.sql)
+- [x] 06-02-PLAN.md — FastAPI app scaffold + pure-ASGI RequestContextMiddleware + structlog JSON config + health endpoints (API-01, OBS-01)
+- [x] 06-03-PLAN.md — Alembic async env + initial schema (teams/scans) + RLS policies (ENABLE + FORCE + current_setting) + async SQLAlchemy session with SET LOCAL (API-03, TMM-01)
+- [x] 06-04-PLAN.md — Clerk JWT auth (PyJWT + JWKS, RS256) + require_role + Svix-verified organization.* webhook handler + Stripe customer creation (API-02, TMM-01)
+- [x] 06-05-PLAN.md — R2 presigned URLs + two-step scan upload/commit + ResourceGraph validate + Stripe v2 meter event with dual idempotency + GET /v1/scans/{id} (API-04, API-06, API-07, TMM-02)
+- [x] 06-06-PLAN.md — taskiq broker (ListQueueBroker + SmartRetry + DLQLog + Sentry + RequestId middlewares) + enqueue_scan_indexing worker reusing compute_summary (API-05)
+- [x] 06-07-PLAN.md — Sentry FastAPI + asyncpg + taskiq integration with trace sampling 0.1 + tag binding (OBS-02)
+- [x] 06-08-PLAN.md — Fly.io topology (api + worker processes, release_command alembic upgrade head) + Dockerfile + R2 CORS/lifecycle + Axiom drain + vendor provisioning checklist + GHA CI with BYPASSRLS grep guard (API-01, API-05, OBS-01)
 
 **Wave structure:**
 - Wave 0: 01
