@@ -46,3 +46,10 @@ infracanvas-score.html
 # Build
 *.tsbuildinfo
 .gstack/
+
+# Graphify outputs
+.planning/graphs/
+graphify-out/
+
+# uv lockfile (project uses pip+hatchling)
+uv.lock
