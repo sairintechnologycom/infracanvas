@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: executing
-last_updated: "2026-04-24T15:30:00.445Z"
-last_activity: 2026-04-24 -- Phase 06 execution started
+last_updated: "2026-04-27T17:50:00.000Z"
+last_activity: 2026-04-27 -- Phase 06 plan 04 complete (Clerk auth + Svix webhook handler)
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 51
-  completed_plans: 43
-  percent: 84
+  completed_plans: 47
+  percent: 92
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 06 (saas-backend-foundation) — EXECUTING
-Plan: 1 of 8
+Plan: 5 of 8 (Wave 2 complete; 04 closed the auth boundary)
 Status: Executing Phase 06
-Last activity: 2026-04-24 -- Phase 06 execution started
+Last activity: 2026-04-27 -- Phase 06 plan 04 complete: Clerk auth + Svix webhook handler + migration 003 (SECURITY DEFINER team_by_clerk_org)
 
 ## Accumulated Context
 
@@ -53,6 +53,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - 05.1-02: COUNT_EXPANSION_CAP=1000 — DoS guard applied BEFORE range expansion in _expand_count/_expand_for_each; oversized literals collapse to 1 unresolved node + synthetic parse_errors note (T-05.1-05 mitigation)
 - 05.1-03: Three orthogonal output-shape flags (--quiet / --json / --ci) on scan/plan, plus --open on scan/plan/export, resolving PATTERNS.md note 1 --quiet semantic collision without breaking existing --ci contract
 - 05.1-03: export command's unconditional webbrowser.open replaced with explicit --open opt-in — minor breaking change, documented in future release notes
+- 06-04: Replaced `INSERT ... ON CONFLICT DO NOTHING` with probe-via-`team_by_clerk_org()`-then-INSERT in the Clerk webhook handler. PG's INSERT...ON CONFLICT executor evaluates UPDATE policy WITH CHECK even with DO NOTHING — incompatible with strict per-team UPDATE policy. Probe pattern preserves Svix-replay idempotency without weakening RLS.
+- 06-04: Switched `SET LOCAL app.current_team_id = :t` → `SELECT set_config('app.current_team_id', :t, true)` in webhook handlers. asyncpg's wire protocol cannot bind parameters to SET LOCAL. set_config() is the parameter-safe equivalent. (Plan 03's session.py still uses SET LOCAL syntax; will fail when first exercised under bind params — Plan 06-05 follow-up.)
+- 06-04: Added psycopg2-binary~=2.9.0 to backend dev extras — Plan 01's conftest needs sync driver for one-shot setup DDL on the testcontainer; was missing.
 
 ### Pending Todos
 
@@ -77,8 +80,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: --stopped-at
-Milestone: v1.1 started
-Resume: Define REQUIREMENTS.md then spawn gsd-roadmapper to create ROADMAP.md
+Last session: 2026-04-27T17:50Z --stopped-at "Completed 06-04 (Clerk auth + Svix webhooks)"
+Milestone: v1.1 in flight
+Resume: Phase 06 plan 05 (scan endpoints — depends on require_role + resolve_team_from_clerk_org + team_scoped_session chain delivered by 06-04)
 
 **Planned Phase:** 6 (SaaS Backend Foundation) — 8 plans — 2026-04-24T15:17:42.747Z
+**Plan 04 closed:** 2026-04-27T17:50Z (3 commits: 7a62479, f5bc575, 7ce22c0). 11 tests pass.
