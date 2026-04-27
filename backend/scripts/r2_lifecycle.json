@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "id": "expire-abandoned-pending-uploads",
+      "enabled": true,
+      "conditions": {"prefix": "pending/"},
+      "deleteObjectsTransition": {
+        "condition": {"maxAge": {"unit": "days", "value": 7}}
+      },
+      "abortMultipartUploadsTransition": {
+        "condition": {"maxAge": {"unit": "days", "value": 1}}
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://app.infracanvas.com", "http://localhost:3000"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["Content-Type", "Content-Length", "If-Match"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

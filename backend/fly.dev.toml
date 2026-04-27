@@ -1,0 +1,62 @@
+# InfraCanvas backend — Fly.io DEV environment (CONTEXT D-12, D-14).
+# Deploy: flyctl deploy -c backend/fly.dev.toml
+#
+# Topology:
+#   - [processes] api    -> uvicorn (HTTP)
+#   - [processes] worker -> taskiq worker (background jobs)
+#   - [http_service]     -> exposes ONLY the api process publicly
+#   - [deploy] release_command -> alembic upgrade head, runs before traffic cuts over
+#
+# Pitfall references:
+#   - RESEARCH § P4: release_command MUST run alembic upgrade head against the
+#     migrator role (DATABASE_URL_MIGRATOR), not the app pooled URL.
+#   - RESEARCH § P5: worker [processes] must NOT auto_stop (taskiq pulls jobs
+#     from Redis indefinitely; auto_stop_machines on a worker drops mid-flight jobs).
+#   - RESEARCH § F11 lines 822-825: secrets set via `fly secrets set`, not [env].
+
+app = "infracanvas-api-dev"
+primary_region = "iad"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[deploy]
+  release_command = "alembic -c /app/alembic.ini upgrade head"
+  release_command_timeout = "15m"
+  strategy = "rolling"
+
+[processes]
+  api    = "uvicorn app.main:app --host 0.0.0.0 --port 8080 --no-access-log"
+  worker = "taskiq worker app.queue.broker:broker app.queue.tasks"
+
+[env]
+  ENV = "dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["api"]
+
+[[services.http_checks]]
+  interval = "10s"
+  timeout = "2s"
+  method = "GET"
+  path = "/healthz"
+
+# API Machine
+[[vm]]
+  processes = ["api"]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Worker Machine — auto_stop intentionally omitted (RESEARCH § P5).
+# min_machines_running enforced via Fly Dashboard / `fly scale count worker=1`.
+[[vm]]
+  processes = ["worker"]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
