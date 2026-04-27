@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: executing
-last_updated: "2026-04-27T17:50:00.000Z"
-last_activity: 2026-04-27 -- Phase 06 plan 04 complete (Clerk auth + Svix webhook handler)
+last_updated: "2026-04-27T12:41:29.863Z"
+last_activity: 2026-04-27
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 51
-  completed_plans: 47
-  percent: 92
+  completed_plans: 48
+  percent: 94
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 06 (saas-backend-foundation) — EXECUTING
-Plan: 5 of 8 (Wave 2 complete; 04 closed the auth boundary)
-Status: Executing Phase 06
-Last activity: 2026-04-27 -- Phase 06 plan 04 complete: Clerk auth + Svix webhook handler + migration 003 (SECURITY DEFINER team_by_clerk_org)
+Plan: 6 of 8 (Wave 2 complete; 04 closed the auth boundary)
+Status: Ready to execute
+Last activity: 2026-04-27
 
 ## Accumulated Context
 
@@ -56,6 +56,10 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - 06-04: Replaced `INSERT ... ON CONFLICT DO NOTHING` with probe-via-`team_by_clerk_org()`-then-INSERT in the Clerk webhook handler. PG's INSERT...ON CONFLICT executor evaluates UPDATE policy WITH CHECK even with DO NOTHING — incompatible with strict per-team UPDATE policy. Probe pattern preserves Svix-replay idempotency without weakening RLS.
 - 06-04: Switched `SET LOCAL app.current_team_id = :t` → `SELECT set_config('app.current_team_id', :t, true)` in webhook handlers. asyncpg's wire protocol cannot bind parameters to SET LOCAL. set_config() is the parameter-safe equivalent. (Plan 03's session.py still uses SET LOCAL syntax; will fail when first exercised under bind params — Plan 06-05 follow-up.)
 - 06-04: Added psycopg2-binary~=2.9.0 to backend dev extras — Plan 01's conftest needs sync driver for one-shot setup DDL on the testcontainer; was missing.
+- Plan 06-05: Stripe-python v15 routes V2 endpoints via StripeClient (not module-level stripe.v2.billing.meter_events.create); switched to client.v2.billing.meter_events.create(params, options).
+- Plan 06-05: respx-based Stripe mocking can't intercept v15 V2 calls (uses requests not httpx); use SDK-boundary mocking by replacing stripe_meter._client.
+- Plan 06-05: TestClient + production async pool causes 'Future attached to a different loop' on second request; tests use NullPool engine to avoid cross-loop reuse.
+- Plan 06-05: Two-step R2 layout — pending/{id}.json (PUT target, no team_id) → server-side copy to teams/{team_id}/scans/{id}.json on commit, then DELETE pending; lifecycle rule GCs abandoned pending/ after 7d (T-06-04 + T-06-05 mitigation).
 
 ### Pending Todos
 
@@ -80,7 +84,7 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-04-27T17:50Z --stopped-at "Completed 06-04 (Clerk auth + Svix webhooks)"
+Last session: 2026-04-27T12:41:09.477Z
 Milestone: v1.1 in flight
 Resume: Phase 06 plan 05 (scan endpoints — depends on require_role + resolve_team_from_clerk_org + team_scoped_session chain delivered by 06-04)
 

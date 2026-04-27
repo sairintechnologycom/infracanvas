@@ -26,15 +26,19 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 - [ ] **API-01** FastAPI application scaffold on Railway or Fly.io with health endpoint
 - [ ] **API-02** Clerk authentication middleware validating session tokens on protected routes
 - [ ] **API-03** Neon PostgreSQL via session-mode pooler with dedicated `infracanvas_app` role (no BYPASSRLS)
-- [ ] **API-04** R2 object storage client for scan artifact uploads
+- [x] **API-04
+** R2 object storage client for scan artifact uploads
 - [ ] **API-05** taskiq job queue with worker process for async jobs
-- [ ] **API-06** Scan upload endpoint — multipart form, stores JSON in R2 + metadata in Neon
-- [ ] **API-07** Scan retrieval endpoint — returns signed R2 URL + Neon metadata
+- [x] **API-06
+** Scan upload endpoint — multipart form, stores JSON in R2 + metadata in Neon
+- [x] **API-07
+** Scan retrieval endpoint — returns signed R2 URL + Neon metadata
 
 ### Category 3 — Team Management (TMM)
 
 - [ ] **TMM-01** Team roles (owner/admin/member/viewer) with RLS-enforced per-team data isolation in Neon
-- [ ] **TMM-02** Stripe Billing Meters integration — usage events posted on scan upload
+- [x] **TMM-02
+** Stripe Billing Meters integration — usage events posted on scan upload
 
 ### Category 4 — Scan History (HST)
 
