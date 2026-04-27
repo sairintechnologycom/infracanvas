@@ -1,9 +1,9 @@
 """Clerk webhook endpoint.
 
-`POST /v1/webhooks/clerk` reads the raw request body bytes (NOT
-``request.json()`` — Svix HMAC must verify the byte-exact payload before
-any deserialisation, RESEARCH § F2 critical pitfall) and forwards to
-:func:`app.auth.webhooks.verify_and_dispatch`.
+`POST /v1/webhooks/clerk` reads the raw request body bytes (NEVER
+deserializes via the parsed-JSON helper — Svix HMAC must verify the
+byte-exact payload before any deserialisation, RESEARCH § F2 critical
+pitfall) and forwards to :func:`app.auth.webhooks.verify_and_dispatch`.
 
 Bad signature → 401 ``bad_signature``. Successful dispatch → 200
 ``{"ok": true}``. Unknown event types are also 200 (handler swallows them).
