@@ -55,6 +55,7 @@ dev = [
     "respx~=0.21.0",
     "moto[s3]~=5.0.0",
     "testcontainers[postgresql]~=4.8.0",
+    "psycopg2-binary~=2.9.0",  # sync driver for testcontainer one-shot setup DDL (conftest.py)
     "ruff~=0.7.0",
     "mypy~=1.13.0",
 ]
