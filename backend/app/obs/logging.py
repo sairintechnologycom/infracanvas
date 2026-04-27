@@ -65,7 +65,9 @@ def configure_logging(*, level: int = logging.INFO) -> None:
             scrub_sensitive,
             structlog.processors.StackInfoRenderer(),
             structlog.processors.dict_tracebacks,
-            structlog.processors.JSONRenderer(serializer=orjson.dumps),
+            structlog.processors.JSONRenderer(
+                serializer=lambda obj, **_: orjson.dumps(obj).decode("utf-8")
+            ),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),

@@ -22,6 +22,28 @@ import json
 import os
 import subprocess
 import time
+
+# ---------------------------------------------------------------------------
+# Env stubs for app.settings — must run BEFORE any test module imports
+# ``app.main`` (which transitively triggers ``settings = Settings()`` at
+# module load). Plan 06-02's Settings has no defaults for required fields;
+# tests that don't override env need these stubs to construct the app.
+# Tests requiring real values can override via monkeypatch fixtures.
+# ---------------------------------------------------------------------------
+os.environ.setdefault("CLERK_ISSUER", "https://test.clerk.invalid")
+os.environ.setdefault("CLERK_JWKS_URL", "https://test.clerk.invalid/.well-known/jwks.json")
+os.environ.setdefault("CLERK_ALLOWED_ORIGINS", '["http://localhost:3000"]')
+os.environ.setdefault("CLERK_WEBHOOK_SECRET", "whsec_test_placeholder")
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://infracanvas_app:test@localhost:5432/infracanvas_test",
+)
+os.environ.setdefault("R2_ACCOUNT_ID", "test-account")
+os.environ.setdefault("R2_ACCESS_KEY_ID", "test-access-key")
+os.environ.setdefault("R2_SECRET_ACCESS_KEY", "test-secret-key")
+os.environ.setdefault("R2_BUCKET", "infracanvas-scans-test")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_placeholder")
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
