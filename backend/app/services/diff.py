@@ -116,23 +116,35 @@ def compute_diff(
     node_diffs = node_diffs[:_MAX_NODES]
 
     # Edge diff — set-based on (source, target, relationship) tuples.
+    # ResourceGraph.edges is list[dict[str, str]] in production
+    # (cli/infracanvas/graph/models.py) but unit tests may pass
+    # SimpleNamespace objects with attribute access. _edge_field handles
+    # both shapes uniformly.
     def edge_key(e: object) -> tuple[str, str, str]:
-        # Duck-typed — accepts ResourceEdge or any object with .source /
-        # .target / .relationship attributes (lets unit tests pass
-        # SimpleNamespace stand-ins without constructing full Pydantic
-        # models).
-        return (e.source, e.target, e.relationship)  # type: ignore[attr-defined]
+        return (
+            _edge_field(e, "source"),
+            _edge_field(e, "target"),
+            _edge_field(e, "relationship"),
+        )
 
     edges_a = {edge_key(e): e for e in graph_a.edges}
     edges_b = {edge_key(e): e for e in graph_b.edges}
 
     edges_added = [
-        {"source": e.source, "target": e.target, "relationship": e.relationship}
+        {
+            "source": _edge_field(e, "source"),
+            "target": _edge_field(e, "target"),
+            "relationship": _edge_field(e, "relationship"),
+        }
         for e in edges_b.values()
         if edge_key(e) not in edges_a
     ]
     edges_removed = [
-        {"source": e.source, "target": e.target, "relationship": e.relationship}
+        {
+            "source": _edge_field(e, "source"),
+            "target": _edge_field(e, "target"),
+            "relationship": _edge_field(e, "relationship"),
+        }
         for e in edges_a.values()
         if edge_key(e) not in edges_b
     ]
@@ -145,6 +157,18 @@ def compute_diff(
         edges_removed=edges_removed,
         summary=counts,
     )
+
+
+def _edge_field(edge: object, field: str) -> str:
+    """Read ``source`` / ``target`` / ``relationship`` from an edge.
+
+    Production graphs (``ResourceGraph.edges`` is ``list[dict[str, str]]``)
+    use dict access; unit tests may use SimpleNamespace attribute access.
+    Returns "" for a missing field — keeps tuple keys hashable.
+    """
+    if isinstance(edge, dict):
+        return str(edge.get(field, ""))
+    return str(getattr(edge, field, ""))
 
 
 def _diff_attrs(attrs_a: dict, attrs_b: dict) -> list[str]:
