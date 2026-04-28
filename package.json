@@ -1,5 +1,5 @@
 {
   "name": "infracanvas-monorepo",
   "private": true,
-  "workspaces": ["viewer"]
+  "workspaces": ["viewer", "dashboard"]
 }

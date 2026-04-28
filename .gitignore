@@ -53,3 +53,8 @@ graphify-out/
 
 # uv lockfile (project uses pip+hatchling)
 uv.lock
+
+# dashboard
+dashboard/.next/
+dashboard/node_modules/
+dashboard/.env.local
