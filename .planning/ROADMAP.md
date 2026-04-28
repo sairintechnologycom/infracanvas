@@ -170,11 +170,11 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md — Scan metadata columns migration (branch/commit_sha/source + bcrypt dep)
-- [ ] 07-02-PLAN.md — Backend GET /v1/scans list endpoint with filters + cursor pagination
+- [x] 07-02-PLAN.md — Backend GET /v1/scans list endpoint with filters + cursor pagination
 - [ ] 07-03-PLAN.md — Backend GET /v1/scans/{a}/compare/{b} diff endpoint
-- [ ] 07-04-PLAN.md — Backend share-link endpoints + migration 006 + bcrypt service
+- [x] 07-04-PLAN.md — Backend share-link endpoints + migration 006 + bcrypt service
 
-- [ ] 07-05-PLAN.md — Dashboard scaffold (Next.js 15 workspace, Clerk middleware, app shell, backendFetch, types)
+- [x] 07-05-PLAN.md — Dashboard scaffold (Next.js 15 workspace, Clerk middleware, app shell, backendFetch, types)
 - [ ] 07-06-PLAN.md — Scans list page (history filters, cursor pagination, Sparkline, SeverityBadge, Vitest suite)
 - [ ] 07-07-PLAN.md — Scan detail page (MetadataHeader, ScanViewerClient, R2 retry, ShareButton stub)
 
