@@ -34,16 +34,18 @@ as an eventual-consistency window. A Phase 7 reconciler can retry.
 """
 from __future__ import annotations
 
+import base64
+import json
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import stripe
 import structlog
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import ValidationError
-from sqlalchemy import select, text
+from sqlalchemy import and_, or_, select, text
 
 from infracanvas.graph.models import ResourceGraph  # cross-package via file:../cli
 
@@ -57,6 +59,8 @@ from app.schemas.scan import (
     ScanCreateReq,
     ScanCreateResp,
     ScanGetResp,
+    ScanListItemResp,
+    ScanListResp,
 )
 from app.storage import r2
 from app.util.ids import new_uuid7
@@ -326,3 +330,137 @@ async def get_scan(
                 commit_sha=row.commit_sha,
                 source=row.source,
             )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/scans — paginated scan-list endpoint (Plan 07-02).
+# ---------------------------------------------------------------------------
+
+_DEFAULT_LIMIT = 20
+_MAX_LIMIT = 100
+
+
+def _encode_cursor(created_at: datetime, scan_id: UUID) -> str:
+    """Encode a (created_at, id) tuple as a base64url-JSON cursor string.
+
+    Cursor decoding is intentionally tolerant — a tampered or malformed
+    cursor decodes to ``None`` and is silently ignored, returning the
+    first page. Cross-team scans remain invisible because RLS still
+    applies regardless of cursor contents (T-07-02-04 disposition).
+    """
+    payload = {"t": created_at.isoformat(), "i": str(scan_id)}
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, UUID] | None:
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(cursor.encode()))
+        return datetime.fromisoformat(payload["t"]), UUID(payload["i"])
+    except Exception:  # noqa: BLE001 — tampered cursors fall back to page 1
+        return None
+
+
+@router.get("", response_model=ScanListResp)
+async def list_scans(
+    search: str | None = Query(default=None, max_length=255),
+    environment: str | None = Query(default=None, max_length=32),
+    scan_status: str | None = Query(default=None, alias="status"),
+    created_after: str | None = Query(default=None),
+    created_before: str | None = Query(default=None),
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=_DEFAULT_LIMIT, ge=1, le=_MAX_LIMIT),
+    principal: ClerkPrincipal = Depends(  # noqa: B008
+        require_role("owner", "admin", "member", "basic_member")
+    ),
+    team: Team = Depends(resolve_team_from_clerk_org),
+) -> ScanListResp:
+    """Paginated team-scoped scan list with optional filters.
+
+    Cursor is (created_at DESC, id DESC) — stable, no offset drift.
+    RLS enforces team isolation: cross-team rows are invisible at the DB
+    layer. List rows do NOT include presigned URLs (only detail does); a
+    list of N scans returns only metadata to keep payloads bounded.
+
+    Per D-19, this endpoint does NOT fire Stripe Billing Meter events —
+    metering occurs only on scan upload (Phase 6 D-08).
+    """
+    _ = principal  # auth dependency only
+
+    sm = get_sessionmaker()
+    async with sm() as session:
+        async with session.begin():
+            await session.execute(
+                text("SELECT set_config('app.current_team_id', :t, true)"),
+                {"t": str(team.id)},
+            )
+
+            q = select(Scan).order_by(Scan.created_at.desc(), Scan.id.desc())
+
+            # --- cursor pagination ---
+            if cursor:
+                decoded = _decode_cursor(cursor)
+                if decoded:
+                    cur_ts, cur_id = decoded
+                    q = q.where(
+                        or_(
+                            Scan.created_at < cur_ts,
+                            and_(Scan.created_at == cur_ts, Scan.id < cur_id),
+                        )
+                    )
+
+            # --- filters ---
+            if search:
+                pattern = f"%{search}%"
+                q = q.where(
+                    or_(
+                        Scan.branch.ilike(pattern),
+                        Scan.commit_sha.ilike(pattern),
+                        Scan.source.ilike(pattern),
+                    )
+                )
+
+            # environment maps to source for v1 (per D-06 — placeholder field).
+            if environment:
+                q = q.where(Scan.source == environment)
+
+            if scan_status:
+                q = q.where(Scan.status == scan_status)
+
+            if created_after:
+                try:
+                    dt_after = datetime.fromisoformat(created_after).replace(
+                        tzinfo=timezone.utc
+                    )
+                    q = q.where(Scan.created_at >= dt_after)
+                except ValueError as e:
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        "invalid_created_after",
+                    ) from e
+
+            if created_before:
+                try:
+                    dt_before = datetime.fromisoformat(created_before).replace(
+                        tzinfo=timezone.utc
+                    )
+                    q = q.where(Scan.created_at <= dt_before)
+                except ValueError as e:
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        "invalid_created_before",
+                    ) from e
+
+            rows = (await session.execute(q.limit(limit + 1))).scalars().all()
+
+    # Build next_cursor from the (limit+1)th row if present.
+    has_more = len(rows) > limit
+    items = rows[:limit]
+    next_cursor: str | None = None
+    if has_more and items:
+        last = items[-1]
+        next_cursor = _encode_cursor(last.created_at, last.id)
+
+    return ScanListResp(
+        items=[ScanListItemResp.model_validate(row) for row in items],
+        next_cursor=next_cursor,
+    )
