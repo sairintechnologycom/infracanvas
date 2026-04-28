@@ -160,7 +160,7 @@ Plans:
 **Goal:** User-facing dashboard for browsing, comparing, and sharing scans.
 **Requirements:** DSH-02, DSH-03, DSH-04, DSH-05, DSH-06, HST-01, HST-02, HST-03, SHR-01, SHR-02
 **Depends on:** Phase 5 (viewer package), Phase 6 (backend)
-**Plans:** 10 plans (07-01..07-10) — 4 backend + 6 frontend (scaffold/list/detail/compare/share/responsive)
+**Plans:** 11 plans (07-01..07-11) — 4 backend + 7 frontend (scaffold/list/detail/compare/share/home+settings/responsive)
 **Success criteria:**
 1. User logs in via Clerk, sees their team's scans
 2. Clicking a scan renders the embedded viewer from the shared package
@@ -180,7 +180,8 @@ Plans:
 
 - [ ] 07-08-PLAN.md — Compare page (CompareLayout, DiffSummary, DiffNodeList, CompareViewerPair, ScanPickerModal)
 - [ ] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
-- [ ] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-05, DSH-06)
+- [ ] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-06)
+- [ ] 07-11-PLAN.md — Home dashboard + Settings sub-routes (members/billing/integrations) (DSH-05, D-04)
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 
