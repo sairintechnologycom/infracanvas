@@ -189,6 +189,9 @@ async def commit_scan(
                 sha256=body.sha256,
                 size_bytes=size,
                 status=ScanStatus.ready,
+                branch=body.branch,
+                commit_sha=body.commit_sha,
+                source=body.source,
             )
             session.add(scan)
             # Surface UNIQUE-violation / RLS-WITH-CHECK failures BEFORE
@@ -270,6 +273,9 @@ async def commit_scan(
                 size_bytes=row.size_bytes,
                 created_at=row.created_at,
                 summary_json=row.summary_json,
+                branch=row.branch,
+                commit_sha=row.commit_sha,
+                source=row.source,
             )
 
 
@@ -316,4 +322,7 @@ async def get_scan(
                 size_bytes=row.size_bytes,
                 created_at=row.created_at,
                 summary_json=row.summary_json,
+                branch=row.branch,
+                commit_sha=row.commit_sha,
+                source=row.source,
             )
