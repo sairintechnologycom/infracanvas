@@ -13,7 +13,7 @@ breaking existing clients.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -102,3 +102,50 @@ class ScanListResp(BaseModel):
 
     items: list[ScanListItemResp]
     next_cursor: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Compare endpoint schemas (Plan 07-03 — D-11)
+# ---------------------------------------------------------------------------
+
+
+class NodeDiff(BaseModel):
+    """One row in a ResourceDiffResp.nodes list — the per-node diff result.
+
+    ``kind`` is the discriminator:
+
+    * ``added`` — node present in graph_b but not graph_a; ``before`` is None.
+    * ``removed`` — node present in graph_a but not graph_b; ``after`` is None.
+    * ``changed`` — present in both, at least one attribute differs;
+      ``changed_fields`` lists the attribute keys that differ.
+    * ``unchanged`` — present in both, all attributes equal; ``changed_fields``
+      is empty.
+    """
+
+    id: str
+    kind: Literal["added", "removed", "changed", "unchanged"]
+    before: dict | None = None
+    after: dict | None = None
+    changed_fields: list[str] = []
+
+
+class ResourceDiffResp(BaseModel):
+    """Response body for ``GET /v1/scans/{a}/compare/{b}`` (Plan 07-03).
+
+    Designed for reuse by:
+
+    * the dashboard's compare page (Phase 7),
+    * the future CLI ``infracanvas diff`` command,
+    * v1.2 PR-bot status checks.
+
+    ``nodes`` is capped at 5000 entries upstream by ``compute_diff`` to keep
+    response sizes bounded — each scan is ≤25 MB per D-11, so most diffs
+    fit comfortably under the cap.
+    """
+
+    scan_a_id: UUID
+    scan_b_id: UUID
+    nodes: list[NodeDiff]
+    edges_added: list[dict]
+    edges_removed: list[dict]
+    summary: dict  # keys: added, removed, changed, unchanged — counts
