@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: planning
-last_updated: "2026-04-28T07:05:37.609Z"
+last_updated: "2026-04-28T07:23:20.438Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 17
@@ -84,7 +84,7 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-04-28T07:05:37.592Z
+Last session: 2026-04-28T07:23:20.422Z
 Milestone: v1.1 in flight
 Resume: Phase 06 plan 05 (scan endpoints — depends on require_role + resolve_team_from_clerk_org + team_scoped_session chain delivered by 06-04)
 
