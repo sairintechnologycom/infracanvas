@@ -56,6 +56,9 @@ class ScanCommitReq(BaseModel):
     model_config = _STRICT
 
     sha256: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    branch: str | None = Field(default=None, max_length=255)
+    commit_sha: str | None = Field(default=None, max_length=40)
+    source: str | None = Field(default=None, max_length=32)
 
 
 class ScanGetResp(BaseModel):
@@ -68,3 +71,34 @@ class ScanGetResp(BaseModel):
     size_bytes: int | None
     created_at: datetime
     summary_json: dict[str, Any] | None = None
+    branch: str | None = None
+    commit_sha: str | None = None
+    source: str | None = None
+
+
+class ScanListItemResp(BaseModel):
+    """Single row in ``GET /v1/scans`` (Plan 07-02).
+
+    Mirrors ``ScanGetResp`` minus ``presigned_get_url`` — list rows do
+    not include presigned URLs (only detail does), to keep list payloads
+    bounded and avoid signing N URLs per page request.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    team_id: UUID
+    status: ScanStatus
+    size_bytes: int | None
+    created_at: datetime
+    summary_json: dict[str, Any] | None = None
+    branch: str | None = None
+    commit_sha: str | None = None
+    source: str | None = None
+
+
+class ScanListResp(BaseModel):
+    """Cursor-paginated response for ``GET /v1/scans`` (Plan 07-02)."""
+
+    items: list[ScanListItemResp]
+    next_cursor: str | None = None

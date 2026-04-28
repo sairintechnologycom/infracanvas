@@ -63,6 +63,9 @@ class Scan(Base):
         default=ScanStatus.pending,
     )
     summary_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    source: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
