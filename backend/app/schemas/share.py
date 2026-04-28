@@ -7,11 +7,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# Note: strict=True rejects ISO-string → datetime coercion that JSON payloads
+# rely on. We use ``extra="forbid"`` to lock the schema shape while letting
+# Pydantic coerce ISO strings into datetime for ``expires_at``.
 _STRICT = ConfigDict(strict=True, extra="forbid")
+_LAX_STRICT = ConfigDict(extra="forbid")
 
 
 class ShareCreateReq(BaseModel):
-    model_config = _STRICT
+    model_config = _LAX_STRICT
     password: str | None = Field(default=None, max_length=128)
     expires_at: datetime | None = None
 
@@ -40,7 +44,7 @@ class ShareLandingResp(BaseModel):
 
 
 class ShareVerifyReq(BaseModel):
-    model_config = _STRICT
+    model_config = _LAX_STRICT
     password: str = Field(max_length=128)
 
 

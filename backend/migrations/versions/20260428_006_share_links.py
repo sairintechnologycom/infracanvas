@@ -99,6 +99,11 @@ def upgrade() -> None:
     # Mirrors team_by_clerk_org() from migration 003 lines 75-91 exactly.
     # Looks up by token_lookup_hash (SHA-256) — fast indexed lookup.
     # bcrypt verification of token_hash happens in Python after this returns the row.
+    #
+    # NOTE: We deliberately do NOT filter ``revoked_at IS NULL`` here. The
+    # route layer must distinguish "revoked → 410 Gone" from "never existed
+    # → 404", per acceptance criterion SHR-007 + threat T-07-04-06. The
+    # row is returned and the route inspects revoked_at / expires_at.
     op.execute(
         """
         CREATE OR REPLACE FUNCTION share_link_by_token(p_lookup_hash text)
@@ -110,7 +115,6 @@ def upgrade() -> None:
         AS $$
           SELECT * FROM share_links
           WHERE token_lookup_hash = p_lookup_hash
-            AND revoked_at IS NULL
           LIMIT 1;
         $$;
         """
