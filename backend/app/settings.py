@@ -7,8 +7,11 @@ at startup.
 
 from __future__ import annotations
 
+import json
+from typing import Annotated
+
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -22,7 +25,9 @@ class Settings(BaseSettings):
     env: str = "dev"
     clerk_issuer: str
     clerk_jwks_url: str
-    clerk_allowed_origins: list[str]
+    # ``NoDecode`` opts out of pydantic-settings' eager JSON decoding for complex
+    # env values, so the validator below sees the raw string and can split CSV.
+    clerk_allowed_origins: Annotated[list[str], NoDecode]
     clerk_webhook_secret: str
     database_url: str
     database_url_migrator: str | None = None
@@ -39,9 +44,12 @@ class Settings(BaseSettings):
     @field_validator("clerk_allowed_origins", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
-        """Accept ``CLERK_ALLOWED_ORIGINS`` as comma-separated string from env."""
+        """Accept ``CLERK_ALLOWED_ORIGINS`` as CSV or JSON-array from env."""
         if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
+            stripped = v.strip()
+            if stripped.startswith("["):
+                return json.loads(stripped)
+            return [s.strip() for s in stripped.split(",") if s.strip()]
         return v
 
 
