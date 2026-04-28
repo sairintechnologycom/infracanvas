@@ -69,3 +69,53 @@ class Scan(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class ShareLink(Base):
+    """Share-link row.
+
+    Security model (D-13..D-16):
+    - ``token_hash``: bcrypt hash of the raw URL-safe token (cost 12). Verified in
+      Python with ``bcrypt.checkpw`` after the row is fetched.
+    - ``token_lookup_hash``: SHA-256 hex of the raw token. Deterministic, indexed,
+      enables O(1) lookup without iterating all rows for bcrypt verification.
+    - ``password_hash``: bcrypt hash of the optional viewer password (nullable —
+      ``None`` means no password). When set, scan metadata is withheld until
+      ``/unlock`` succeeds (D-15).
+    - RLS ``share_links_team_isolation`` policy enforces team scope on all
+      authenticated paths. The unauthenticated public path uses the
+      ``share_link_by_token()`` SECURITY DEFINER function (migration 006).
+    """
+
+    __tablename__ = "share_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    scan_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("scans.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    token_lookup_hash: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True
+    )
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
