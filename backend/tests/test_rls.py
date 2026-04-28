@@ -38,7 +38,10 @@ async def two_teams(seed_session: AsyncSession) -> tuple[Team, Team]:
         name="Team B",
     )
     seed_session.add_all([team_a, team_b])
-    # seed a scan row under team A
+    # Flush teams first so the FK target rows exist before the scan INSERT.
+    # Without this, asyncpg sees the scan INSERT before the teams INSERT and
+    # raises ForeignKeyViolationError.
+    await seed_session.flush()
     scan_a = Scan(
         id=new_uuid7(),
         team_id=team_a.id,
@@ -47,7 +50,10 @@ async def two_teams(seed_session: AsyncSession) -> tuple[Team, Team]:
         status=ScanStatus.ready,
     )
     seed_session.add(scan_a)
-    await seed_session.flush()
+    # Commit (not just flush) so a *separate* connection — the app_session
+    # engine running as the NOBYPASSRLS infracanvas_app role — can see the
+    # seed rows. flush() only writes to the open transaction.
+    await seed_session.commit()
     return team_a, team_b
 
 
@@ -58,7 +64,8 @@ async def test_rls_cross_team_scans_blocked(
     _team_a, team_b = two_teams
     async with app_session.begin():
         await app_session.execute(
-            text("SET LOCAL app.current_team_id = :t"), {"t": str(team_b.id)}
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(team_b.id)},
         )
         result = await app_session.execute(text("SELECT count(*) FROM scans"))
         count = result.scalar_one()
@@ -74,7 +81,8 @@ async def test_rls_same_team_scans_visible(
     team_a, _team_b = two_teams
     async with app_session.begin():
         await app_session.execute(
-            text("SET LOCAL app.current_team_id = :t"), {"t": str(team_a.id)}
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(team_a.id)},
         )
         result = await app_session.execute(text("SELECT count(*) FROM scans"))
         assert result.scalar_one() == 1
@@ -87,7 +95,8 @@ async def test_rls_cross_team_teams_blocked(
     _team_a, team_b = two_teams
     async with app_session.begin():
         await app_session.execute(
-            text("SET LOCAL app.current_team_id = :t"), {"t": str(team_b.id)}
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(team_b.id)},
         )
         result = await app_session.execute(text("SELECT id FROM teams"))
         rows = result.fetchall()
@@ -111,9 +120,14 @@ async def test_rls_insert_with_wrong_team_id_blocked(
     team_a, team_b = two_teams
     async with app_session.begin():
         await app_session.execute(
-            text("SET LOCAL app.current_team_id = :t"), {"t": str(team_b.id)}
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(team_b.id)},
         )
-        with pytest.raises(sqlalchemy.exc.IntegrityError):
+        # RLS WITH CHECK violation surfaces as InsufficientPrivilegeError
+        # (SQLSTATE 42501), which SQLAlchemy maps to ProgrammingError — NOT
+        # IntegrityError. We accept either DBAPIError subclass to stay
+        # tolerant of future driver wrapping changes.
+        with pytest.raises((sqlalchemy.exc.ProgrammingError, sqlalchemy.exc.IntegrityError)):
             await app_session.execute(
                 insert(Scan).values(
                     id=new_uuid7(),

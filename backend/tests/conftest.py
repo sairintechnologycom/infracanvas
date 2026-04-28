@@ -245,13 +245,18 @@ def _async_url_for(pg: Any, user: str, password: str) -> str:
 
 
 async def with_team_ctx(session: Any, team_id: Any) -> None:
-    """Helper: apply ``SET LOCAL app.current_team_id = :t`` inside the
-    caller's open transaction (D-02 pattern). Callers must be inside a
-    ``session.begin()`` block."""
+    """Helper: apply ``app.current_team_id`` inside the caller's open
+    transaction (D-02 pattern). Callers must be inside a
+    ``session.begin()`` block.
+
+    Uses ``set_config(name, value, is_local=true)`` rather than
+    ``SET LOCAL = :t`` because asyncpg's wire protocol cannot bind
+    parameters to ``SET LOCAL``. Mirrors app/db/session.py.
+    """
     from sqlalchemy import text
 
     await session.execute(
-        text("SET LOCAL app.current_team_id = :t"),
+        text("SELECT set_config('app.current_team_id', :t, true)"),
         {"t": str(team_id)},
     )
 

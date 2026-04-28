@@ -9,10 +9,15 @@ from __future__ import annotations
 
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
 pytestmark = pytest.mark.rls  # shares Testcontainers dep chain
+
+# Absolute path to the backend dir (parent of tests/) so alembic finds alembic.ini
+# regardless of where pytest was invoked from.
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 def _run_alembic(container_url: str, cmd: list[str]) -> subprocess.CompletedProcess[str]:
@@ -23,7 +28,7 @@ def _run_alembic(container_url: str, cmd: list[str]) -> subprocess.CompletedProc
     }
     return subprocess.run(
         ["alembic", *cmd],
-        cwd="backend",
+        cwd=str(_BACKEND_DIR),
         env=env,
         check=True,
         capture_output=True,
