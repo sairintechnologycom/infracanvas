@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import type { ResourceNode } from '../types'
+import { driftColors } from '../lib/colors'
 
 // Mock @xyflow/react handles which require a flow context
 vi.mock('@xyflow/react', async (importOriginal) => {
@@ -90,10 +91,16 @@ describe('ResourceNode', () => {
     expect(screen.getByText('Virtual Network')).toBeInTheDocument()
   })
 
-  test('applies NEW badge for added drift', () => {
+  test('applies added-drift visual indicator (green ring around icon)', () => {
+    // Design uses a colored ring on the icon container instead of a text
+    // badge — assert the ring color matches driftColors.added.
     const props = makeNodeProps({ drift: 'added' })
-    render(<ResourceNodeMemo {...props} />)
-    expect(screen.getByText('NEW')).toBeInTheDocument()
+    const { container } = render(<ResourceNodeMemo {...props} />)
+    const ringed = container.querySelector(
+      `[style*="${driftColors.added}"]`,
+    ) as HTMLElement | null
+    expect(ringed).not.toBeNull()
+    expect(ringed!.getAttribute('style')).toContain('box-shadow')
   })
 })
 

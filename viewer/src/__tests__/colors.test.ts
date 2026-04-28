@@ -70,7 +70,7 @@ describe('driftColors', () => {
 describe('ZONE_COLORS', () => {
   it('includes category zone type', () => {
     expect(ZONE_COLORS.category).toBeDefined();
-    expect(ZONE_COLORS.category.pillText).toBe('#475569');
+    expect(ZONE_COLORS.category.pillText).toBe('#64748B');
   });
 
   test('ZONE_COLORS includes cloud and region zone types for light theme', () => {
@@ -79,8 +79,9 @@ describe('ZONE_COLORS', () => {
     expect(ZONE_COLORS.cloud.borderStyle).toBe('dashed');
   });
 
-  test('light-theme regional background is white-ish (not dark)', () => {
-    // Light theme invariant — background should be semi-transparent near-white
-    expect(ZONE_COLORS.regional.background.toLowerCase()).toContain('255');
+  test('light-theme regional zone background is transparent (border-only style)', () => {
+    // Light theme invariant — zones use transparent backgrounds with colored
+    // borders/pills as the visual cue, not filled rectangles.
+    expect(ZONE_COLORS.regional.background).toBe('transparent');
   });
 });

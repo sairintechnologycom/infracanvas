@@ -1,23 +1,29 @@
 import { describe, test, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
+import type { EdgeProps } from '@xyflow/react'
 import { PathEdge } from '../../components/flowmap/edges/PathEdge'
 
-function wrap(direction: 'forward' | 'return' | 'both') {
-  return (
-    <ReactFlowProvider>
-      <div style={{ width: 400, height: 200 }}>
-        <ReactFlow
-          nodes={[
-            { id: 'a', position: { x: 0, y: 0 }, data: {} },
-            { id: 'b', position: { x: 200, y: 0 }, data: {} },
-          ]}
-          edges={[{ id: 'e1', source: 'a', target: 'b', type: 'path', data: { direction } }]}
-          edgeTypes={{ path: PathEdge }}
-          proOptions={{ hideAttribution: true }}
-        />
-      </div>
-    </ReactFlowProvider>
+// We bypass <ReactFlow> here on purpose — jsdom can't measure nodes, so
+// ReactFlow never computes source/target coordinates and edges never mount.
+// Rendering PathEdge directly inside an <svg> with synthetic EdgeProps
+// exercises the dual-lane <BaseEdge> contract that the component owns.
+function renderEdge(direction: 'forward' | 'return' | 'both') {
+  const props = {
+    id: 'e1',
+    source: 'a',
+    target: 'b',
+    sourceX: 0,
+    sourceY: 0,
+    targetX: 200,
+    targetY: 0,
+    sourcePosition: 'right',
+    targetPosition: 'left',
+    data: { direction },
+  } as unknown as EdgeProps
+  return render(
+    <svg>
+      <PathEdge {...props} />
+    </svg>,
   )
 }
 
@@ -26,20 +32,20 @@ describe('PathEdge', () => {
     expect(typeof PathEdge).toBe('function')
   })
 
-  test('direction=both renders at least two <path> elements', () => {
-    const { container } = render(wrap('both'))
+  test('direction=both renders two <path> elements (forward + return lanes)', () => {
+    const { container } = renderEdge('both')
     const paths = container.querySelectorAll('path')
     expect(paths.length).toBeGreaterThanOrEqual(2)
   })
 
-  test('direction=forward renders at least one <path> element', () => {
-    const { container } = render(wrap('forward'))
+  test('direction=forward renders one <path> element (forward lane only)', () => {
+    const { container } = renderEdge('forward')
     const paths = container.querySelectorAll('path')
     expect(paths.length).toBeGreaterThanOrEqual(1)
   })
 
-  test('direction=return renders at least one <path> element', () => {
-    const { container } = render(wrap('return'))
+  test('direction=return renders one <path> element (return lane only)', () => {
+    const { container } = renderEdge('return')
     const paths = container.querySelectorAll('path')
     expect(paths.length).toBeGreaterThanOrEqual(1)
   })
