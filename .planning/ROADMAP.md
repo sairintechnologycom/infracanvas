@@ -160,7 +160,7 @@ Plans:
 **Goal:** User-facing dashboard for browsing, comparing, and sharing scans.
 **Requirements:** DSH-02, DSH-03, DSH-04, DSH-05, DSH-06, HST-01, HST-02, HST-03, SHR-01, SHR-02
 **Depends on:** Phase 5 (viewer package), Phase 6 (backend)
-**Plans:** 7 plans (07-01..07-07) — 4 backend + 3 frontend scaffold/list/detail
+**Plans:** 10 plans (07-01..07-10) — 4 backend + 6 frontend (scaffold/list/detail/compare/share/responsive)
 **Success criteria:**
 1. User logs in via Clerk, sees their team's scans
 2. Clicking a scan renders the embedded viewer from the shared package
@@ -177,6 +177,10 @@ Plans:
 - [ ] 07-05-PLAN.md — Dashboard scaffold (Next.js 15 workspace, Clerk middleware, app shell, backendFetch, types)
 - [ ] 07-06-PLAN.md — Scans list page (history filters, cursor pagination, Sparkline, SeverityBadge, Vitest suite)
 - [ ] 07-07-PLAN.md — Scan detail page (MetadataHeader, ScanViewerClient, R2 retry, ShareButton stub)
+
+- [ ] 07-08-PLAN.md — Compare page (CompareLayout, DiffSummary, DiffNodeList, CompareViewerPair, ScanPickerModal)
+- [ ] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
+- [ ] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-05, DSH-06)
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 
