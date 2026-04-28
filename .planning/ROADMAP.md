@@ -160,12 +160,28 @@ Plans:
 **Goal:** User-facing dashboard for browsing, comparing, and sharing scans.
 **Requirements:** DSH-02, DSH-03, DSH-04, DSH-05, DSH-06, HST-01, HST-02, HST-03, SHR-01, SHR-02
 **Depends on:** Phase 5 (viewer package), Phase 6 (backend)
+**Plans:** 11 plans (07-01..07-11) — 4 backend + 7 frontend (scaffold/list/detail/compare/share/home+settings/responsive)
 **Success criteria:**
 1. User logs in via Clerk, sees their team's scans
 2. Clicking a scan renders the embedded viewer from the shared package
 3. Compare-two-scans view shows resource diff (added/removed/changed)
 4. Share link with token + optional password renders scan without auth
 5. Dashboard responsive at 1440p and 1080p
+
+Plans:
+- [x] 07-01-PLAN.md — Scan metadata columns migration (branch/commit_sha/source + bcrypt dep)
+- [ ] 07-02-PLAN.md — Backend GET /v1/scans list endpoint with filters + cursor pagination
+- [ ] 07-03-PLAN.md — Backend GET /v1/scans/{a}/compare/{b} diff endpoint
+- [ ] 07-04-PLAN.md — Backend share-link endpoints + migration 006 + bcrypt service
+
+- [ ] 07-05-PLAN.md — Dashboard scaffold (Next.js 15 workspace, Clerk middleware, app shell, backendFetch, types)
+- [ ] 07-06-PLAN.md — Scans list page (history filters, cursor pagination, Sparkline, SeverityBadge, Vitest suite)
+- [ ] 07-07-PLAN.md — Scan detail page (MetadataHeader, ScanViewerClient, R2 retry, ShareButton stub)
+
+- [ ] 07-08-PLAN.md — Compare page (CompareLayout, DiffSummary, DiffNodeList, CompareViewerPair, ScanPickerModal)
+- [ ] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
+- [ ] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-06)
+- [ ] 07-11-PLAN.md — Home dashboard + Settings sub-routes (members/billing/integrations) (DSH-05, D-04)
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 
