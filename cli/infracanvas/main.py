@@ -442,8 +442,9 @@ def scan(
             f"{total_findings} findings · score {score}"
         )
 
-        # Write the HTML (if format=html) BEFORE appending "opened in browser" so the
-        # file exists when we open it.
+        # Write the report BEFORE appending "opened in browser" so the file
+        # exists when we open it. Honours --output for both --format html and
+        # --format json (regression: json branch previously wrote nothing).
         opened_suffix = ""
         if format == "html":
             out_path = output or Path(config.output_dir) / "infracanvas-report.html"
@@ -455,17 +456,20 @@ def scan(
                 )
                 out_path = output or Path(config.output_dir) / "infracanvas-report.json"
                 out_path.write_text(export_graph(graph))
-
-            if open_flag:
-                # D-03 + T-05.1-07 mitigation: webbrowser.open (stdlib) — no shell injection.
-                ok = webbrowser.open(out_path.resolve().as_uri())
-                if ok:
-                    opened_suffix = " · opened in browser"
-                else:
-                    _err_console.print(
-                        "[yellow]Warning:[/yellow] webbrowser.open returned False; "
-                        "report written but not opened."
-                    )
+            else:
+                if open_flag:
+                    # D-03 + T-05.1-07 mitigation: webbrowser.open (stdlib) — no shell injection.
+                    ok = webbrowser.open(out_path.resolve().as_uri())
+                    if ok:
+                        opened_suffix = " · opened in browser"
+                    else:
+                        _err_console.print(
+                            "[yellow]Warning:[/yellow] webbrowser.open returned False; "
+                            "report written but not opened."
+                        )
+        else:
+            out_path = output or Path(config.output_dir) / "infracanvas-report.json"
+            out_path.write_text(export_graph(graph))
 
         typer.echo(summary_line + opened_suffix)
         raise typer.Exit(code=0)

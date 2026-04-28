@@ -334,6 +334,24 @@ class TestPhase51CLI:
         assert result.exit_code == 2
         assert "mutually exclusive" in result.stderr
 
+    def test_quiet_format_json_writes_output_file(self, tmp_path):
+        """--quiet --format json --output X must still write the JSON file.
+
+        Regression: the quiet branch only handled format=html; combining --quiet
+        with --format json silently dropped the requested --output path.
+        """
+        out = tmp_path / "scan.json"
+        result = self.split_runner.invoke(app, [
+            "scan", str(FIXTURES / "simple_vpc"),
+            "--quiet", "--format", "json", "--output", str(out),
+        ])
+        assert result.exit_code == 0, result.stderr
+        assert out.exists(), f"expected {out} to be written"
+        data = json.loads(out.read_text())
+        assert len(data["nodes"]) > 0
+        # Quiet mode still emits exactly one summary line on stdout.
+        assert "resources" in result.stdout
+
     def test_51j_scan_json_exits_zero_regardless_of_findings(self):
         """5.1-J: --json exits 0 even when findings exist (unlike --ci).
         Replaces old --quiet semantics."""
