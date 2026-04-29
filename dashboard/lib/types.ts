@@ -46,15 +46,38 @@ export interface ScanGetResp {
 
 // ── Compare API response types ────────────────────────────────────────────────
 
+/**
+ * Single per-node diff row in a ResourceDiff.nodes list.
+ *
+ * Mirrors backend `NodeDiff` in `backend/app/schemas/scan.py` (Plan 07-03 — D-11).
+ *
+ *  - kind='added'     → present in scan B but not A; before is null
+ *  - kind='removed'   → present in scan A but not B; after is null
+ *  - kind='changed'   → present in both, at least one attribute differs;
+ *                       changed_fields lists the attribute keys that differ
+ *  - kind='unchanged' → present in both, all attributes equal
+ */
+export interface NodeDiff {
+  id: string
+  kind: 'added' | 'removed' | 'changed' | 'unchanged'
+  before: Record<string, unknown> | null
+  after: Record<string, unknown> | null
+  changed_fields: string[]
+}
+
+/**
+ * Mirrors backend `ResourceDiffResp` (Plan 07-03 — D-11).
+ *
+ * Returned by GET /v1/scans/{a}/compare/{b}. `nodes` is capped at 5000 entries
+ * upstream by `compute_diff` to keep response sizes bounded.
+ */
 export interface ResourceDiff {
-  added: Array<{ id: string; type: string; attributes: Record<string, unknown> }>
-  removed: Array<{ id: string; type: string; attributes: Record<string, unknown> }>
-  changed: Array<{
-    id: string
-    type: string
-    attribute_deltas: Array<{ key: string; before: unknown; after: unknown }>
-  }>
-  findings_delta: { critical: number; high: number; medium: number; info: number }
+  scan_a_id: string
+  scan_b_id: string
+  nodes: NodeDiff[]
+  edges_added: Array<{ source: string; target: string; relationship: string }>
+  edges_removed: Array<{ source: string; target: string; relationship: string }>
+  summary: { added: number; removed: number; changed: number; unchanged: number }
 }
 
 // ── Share-link API response types ─────────────────────────────────────────────

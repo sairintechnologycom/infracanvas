@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowLeft, GitCompare } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { ScanGetResp } from '@/lib/types'
 import { ShareButton } from './ShareButton'
+import { CompareButton } from './CompareButton'
 
 interface Props {
   scan: ScanGetResp
@@ -120,13 +121,7 @@ export function MetadataHeader({ scan }: Props) {
 
       {/* Right: action buttons */}
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-        <Link
-          href={`/compare?from=${scan.id}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-300 rounded-md text-slate-600 hover:bg-slate-100 whitespace-nowrap"
-        >
-          <GitCompare size={14} />
-          Compare
-        </Link>
+        <CompareButton scanId={scan.id} branch={scan.branch} />
         <ShareButton scanId={scan.id} />
       </div>
     </div>
