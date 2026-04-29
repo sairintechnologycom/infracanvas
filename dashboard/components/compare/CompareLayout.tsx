@@ -73,7 +73,7 @@ export function CompareLayout({ diff, scanAId, scanBId }: Props) {
         </button>
       </div>
 
-      {/* Body — stacks at <xl, two-pane at xl+ */}
+      {/* Body — stacks at <xl, two-pane at xl+ (DSH-05/06: stacks vertically at <xl — xl:flex-row ensures side-by-side at 1280px+) */}
       <div className="flex flex-1 min-h-0 gap-4 p-4 flex-col xl:flex-row">
         {/* Left: diff list */}
         <div className="xl:w-[380px] flex-shrink-0 flex flex-col gap-3 min-h-0">

@@ -100,7 +100,7 @@ export function ScansTable({ data, currentParams }: Props) {
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 overflow-x-auto">
       <div
         className="bg-white border border-slate-200 rounded-lg overflow-hidden"
         data-testid="scans-table"
@@ -108,14 +108,20 @@ export function ScansTable({ data, currentParams }: Props) {
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              {COLUMNS.map(col => (
-                <th
-                  key={col}
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  {col}
-                </th>
-              ))}
+              {COLUMNS.map(col => {
+                const isSource = col === 'Source'
+                return (
+                  <th
+                    key={col}
+                    className={[
+                      'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500',
+                      isSource ? 'hidden lg:table-cell' : '',
+                    ].join(' ').trim()}
+                  >
+                    {col}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -129,7 +135,7 @@ export function ScansTable({ data, currentParams }: Props) {
                 <td className="px-4 py-3 font-mono text-sm tabular-nums text-slate-900 whitespace-nowrap">
                   {formatDate(scan.created_at)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden lg:table-cell px-4 py-3">
                   <SourceCell source={scan.source} />
                 </td>
                 <td className="px-4 py-3 font-mono text-sm text-slate-600">
