@@ -1,8 +1,12 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { ViewerProvider, DiagramCanvas } from '@infracanvas/viewer'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ViewerProvider,
+  DiagramCanvas,
+  createViewerStore,
+} from '@infracanvas/viewer'
 import '@infracanvas/viewer/styles.css'
-import type { ResourceGraph } from '@infracanvas/viewer'
+import type { ResourceGraph, ViewerStoreApi } from '@infracanvas/viewer'
 import { fetchScanJson } from '@/lib/r2'
 
 interface Props {
@@ -16,6 +20,7 @@ interface Props {
 }
 
 export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
+  const store: ViewerStoreApi = useMemo(() => createViewerStore(), [])
   const [graph, setGraph] = useState<ResourceGraph | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -41,6 +46,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
     })
       .then((data) => {
         if (!cancelled) {
+          store.getState().setGraph(data)
           setGraph(data)
           setLoading(false)
         }
@@ -55,7 +61,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
     return () => {
       cancelled = true
     }
-  }, [initialPresignedUrl, getFreshPresignedUrl])
+  }, [initialPresignedUrl, getFreshPresignedUrl, store])
 
   if (loading) {
     return (
@@ -82,7 +88,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
 
   return (
     <div className="h-full w-full" data-testid="scan-viewer-client">
-      <ViewerProvider scan={graph}>
+      <ViewerProvider store={store}>
         <DiagramCanvas />
       </ViewerProvider>
     </div>
