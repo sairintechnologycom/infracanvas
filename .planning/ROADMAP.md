@@ -175,8 +175,8 @@ Plans:
 - [x] 07-04-PLAN.md — Backend share-link endpoints + migration 006 + bcrypt service
 
 - [x] 07-05-PLAN.md — Dashboard scaffold (Next.js 15 workspace, Clerk middleware, app shell, backendFetch, types)
-- [ ] 07-06-PLAN.md — Scans list page (history filters, cursor pagination, Sparkline, SeverityBadge, Vitest suite)
-- [ ] 07-07-PLAN.md — Scan detail page (MetadataHeader, ScanViewerClient, R2 retry, ShareButton stub)
+- [x] 07-06-PLAN.md — Scans list page (history filters, cursor pagination, Sparkline, SeverityBadge, Vitest suite)
+- [x] 07-07-PLAN.md — Scan detail page (MetadataHeader, ScanViewerClient, R2 retry, ShareButton stub)
 
 - [ ] 07-08-PLAN.md — Compare page (CompareLayout, DiffSummary, DiffNodeList, CompareViewerPair, ScanPickerModal)
 - [ ] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
