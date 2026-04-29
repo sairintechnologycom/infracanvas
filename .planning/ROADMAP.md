@@ -180,7 +180,7 @@ Plans:
 
 - [x] 07-08-PLAN.md — Compare page (CompareLayout, DiffSummary, DiffNodeList, CompareViewerPair, ScanPickerModal)
 - [x] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
-- [ ] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-06)
+- [x] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-06)
 - [x] 07-11-PLAN.md — Home dashboard + Settings sub-routes (members/billing/integrations) (DSH-05, D-04)
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
