@@ -1,14 +1,22 @@
 {
-  "extends": "next/tsconfig",
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "moduleResolution": "bundler",
     "jsx": "preserve",
     "incremental": true,
+    "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./*"]
     }
