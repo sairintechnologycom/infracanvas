@@ -34,6 +34,7 @@ as an eventual-consistency window. A Phase 7 reconciler can retry.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 from datetime import datetime, timedelta, timezone
@@ -55,6 +56,8 @@ from app.billing.stripe_meter import record_scan_meter_event
 from app.db.models import Scan, ScanStatus, Team
 from app.db.session import get_sessionmaker
 from app.schemas.scan import (
+    NodeDiff,
+    ResourceDiffResp,
     ScanCommitReq,
     ScanCreateReq,
     ScanCreateResp,
@@ -62,6 +65,7 @@ from app.schemas.scan import (
     ScanListItemResp,
     ScanListResp,
 )
+from app.services.diff import compute_diff
 from app.storage import r2
 from app.util.ids import new_uuid7
 
@@ -464,3 +468,107 @@ async def list_scans(
         items=[ScanListItemResp.model_validate(row) for row in items],
         next_cursor=next_cursor,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/scans/{a}/compare/{b} — server-side scan diff (Plan 07-03, D-11).
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{scan_a_id}/compare/{scan_b_id}", response_model=ResourceDiffResp)
+async def compare_scans(
+    scan_a_id: UUID,
+    scan_b_id: UUID,
+    principal: ClerkPrincipal = Depends(  # noqa: B008
+        require_role("owner", "admin", "member", "basic_member")
+    ),
+    team: Team = Depends(resolve_team_from_clerk_org),
+) -> ResourceDiffResp:
+    """Diff two scans from the same team and return a ResourceDiffResp.
+
+    Both scans must belong to the caller's team — RLS makes cross-team
+    rows invisible inside the team-scoped session, so a missing row
+    surfaces as 404 ``scan_not_found`` (D-18: don't leak cross-team
+    scan-id existence).
+
+    R2 blobs for both scans are fetched concurrently via
+    :func:`asyncio.gather` so the wall-clock for the GET is bounded by
+    the slower of the two object reads, not their sum (each scan ≤25 MB
+    per D-11; two concurrent reads peak at ~50 MB which is acceptable).
+
+    Diff is computed by :func:`app.services.diff.compute_diff` — a pure
+    function reused by the future CLI ``infracanvas diff`` and the v1.2
+    PR-bot.
+    """
+    _ = principal  # auth dependency only
+
+    sm = get_sessionmaker()
+    async with sm() as session:
+        async with session.begin():
+            await session.execute(
+                text("SELECT set_config('app.current_team_id', :t, true)"),
+                {"t": str(team.id)},
+            )
+            row_a = (
+                await session.execute(select(Scan).where(Scan.id == scan_a_id))
+            ).scalar_one_or_none()
+            # Avoid two SELECTs when scan_a == scan_b — same row, fewer
+            # round-trips, and still correct (compare-with-self is a
+            # documented use case returning all-unchanged).
+            if scan_b_id == scan_a_id:
+                row_b = row_a
+            else:
+                row_b = (
+                    await session.execute(select(Scan).where(Scan.id == scan_b_id))
+                ).scalar_one_or_none()
+            if row_a is None or row_b is None:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND, "scan_not_found"
+                )
+            # Capture R2 keys before the session closes so the post-session
+            # block doesn't lazy-load anything off detached ORM rows.
+            key_a = row_a.r2_key
+            key_b = row_b.r2_key
+
+    # Concurrent R2 fetch — never sequential for two large blobs.
+    try:
+        if key_a == key_b:
+            # Same object — fetch once, reuse. compute_diff handles
+            # identical-graphs-as-input correctly (all-unchanged).
+            blob_a = await run_in_threadpool(r2.get_bytes, key_a)
+            blob_b = blob_a
+        else:
+            blob_a, blob_b = await asyncio.gather(
+                run_in_threadpool(r2.get_bytes, key_a),
+                run_in_threadpool(r2.get_bytes, key_b),
+            )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code", "")
+        if code in ("404", "NoSuchKey", "NotFound"):
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, "object_not_found"
+            ) from exc
+        raise
+
+    try:
+        graph_a = ResourceGraph.model_validate_json(blob_a)
+        graph_b = (
+            graph_a if blob_b is blob_a else ResourceGraph.model_validate_json(blob_b)
+        )
+    except ValidationError as exc:
+        # The scan upload pipeline (Phase 6) Pydantic-validates before
+        # committing the row, so reaching here means the R2 object was
+        # tampered with after commit — a 500 is appropriate.
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "scan_blob_invalid"
+        ) from exc
+
+    return compute_diff(
+        graph_a, graph_b, scan_a_id=scan_a_id, scan_b_id=scan_b_id
+    )
+
+
+# Re-export NodeDiff so OpenAPI schema generation picks it up via
+# ResourceDiffResp.nodes; the `_ = NodeDiff` keeps Ruff F401 silent
+# when the symbol is imported solely for the schema graph.
+_ = NodeDiff
