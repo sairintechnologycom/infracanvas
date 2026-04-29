@@ -74,13 +74,14 @@ describe('ScansTable Source column visibility', () => {
     // by rendering with one stub item.
     const stubItem = {
       id: '00000000-0000-0000-0000-000000000001',
+      team_id: '00000000-0000-0000-0000-000000000010',
+      status: 'ready' as const,
       created_at: '2026-04-29T00:00:00.000Z',
+      size_bytes: 0,
+      summary_json: null,
       branch: 'main',
       commit_sha: 'abc1234',
       source: 'cli' as const,
-      summary_json: null,
-      status: 'committed',
-      r2_key: 'test',
     }
     const { container } = render(
       <ScansTable
