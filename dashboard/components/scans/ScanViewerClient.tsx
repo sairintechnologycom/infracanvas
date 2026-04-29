@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { ViewerProvider, DiagramCanvas } from '@infracanvas/viewer'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { ViewerProvider, DiagramCanvas, createViewerStore } from '@infracanvas/viewer'
 import '@infracanvas/viewer/styles.css'
 import type { ResourceGraph } from '@infracanvas/viewer'
 import { fetchScanJson } from '@/lib/r2'
@@ -19,6 +19,11 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
   const [graph, setGraph] = useState<ResourceGraph | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const store = useMemo(() => createViewerStore(), [scanId])
+
+  useEffect(() => {
+    if (graph) store.getState().setGraph(graph)
+  }, [graph, store])
 
   const getFreshPresignedUrl = useCallback(async (): Promise<string> => {
     // Re-fetch scan metadata to get a new presigned URL (D-12 retry flow).
@@ -82,7 +87,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
 
   return (
     <div className="h-full w-full" data-testid="scan-viewer-client">
-      <ViewerProvider scan={graph}>
+      <ViewerProvider store={store}>
         <DiagramCanvas />
       </ViewerProvider>
     </div>

@@ -35,6 +35,14 @@ vi.mock('@/components/scans/ShareButton', () => ({
   ),
 }))
 
+// Mock CompareButton — its child (ScanPickerModal) uses useRouter from
+// next/navigation, which has no provider in a bare jsdom render.
+vi.mock('@/components/scans/CompareButton', () => ({
+  CompareButton: ({ scanId }: { scanId: string }) => (
+    <button data-testid="compare-button">{scanId}</button>
+  ),
+}))
+
 const makeScanResp = (overrides: Partial<ScanGetResp> = {}): ScanGetResp => ({
   id: 'scan-001',
   team_id: 'team-001',
