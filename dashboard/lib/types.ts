@@ -81,6 +81,7 @@ export interface ResourceDiff {
 }
 
 // ── Share-link API response types ─────────────────────────────────────────────
+// Mirrors backend/app/schemas/share.py — keep in sync.
 
 export interface ShareLink {
   id: string
@@ -90,19 +91,43 @@ export interface ShareLink {
   created_at: string
 }
 
-export interface ShareLinkCreateResp {
+/** Request body for POST /v1/scans/{scan_id}/share-links. */
+export interface ShareCreateReq {
+  password?: string | null
+  expires_at?: string | null   // ISO datetime; null = never
+}
+
+/** 201 response from POST /v1/scans/{scan_id}/share-links. */
+export interface ShareCreateResp {
   id: string
-  token: string  // raw token — returned ONCE, never stored raw on frontend
-  url: string
+  token: string                // raw token — returned ONCE, never stored raw (D-08)
+  share_url: string            // canonical URL — frontend may rebuild via NEXT_PUBLIC_DASHBOARD_URL
   expires_at: string | null
 }
 
+/**
+ * Response from GET /v1/share-links/{token} (public, no auth).
+ *
+ * D-09 / D-15 zero-metadata gate: when has_password === true, scan_id,
+ * presigned_get_url, branch, commit_sha, created_at, summary_json are ALL
+ * absent. The dashboard PasswordGate must not display any pre-auth metadata.
+ */
 export interface ShareLandingResp {
-  password_required: true
+  has_password: boolean
+  scan_id?: string
+  presigned_get_url?: string
+  branch?: string | null
+  commit_sha?: string | null
+  created_at?: string
+  summary_json?: ScanListItem['summary_json']
 }
 
-export interface ShareLandingUnlockedResp {
-  password_required: false
-  team_name: string
-  scan: ScanGetResp
+/** 200 response from POST /v1/share-links/{token}/unlock. */
+export interface ShareVerifyResp {
+  scan_id: string
+  presigned_get_url: string
+  branch?: string | null
+  commit_sha?: string | null
+  created_at?: string
+  summary_json?: ScanListItem['summary_json']
 }
