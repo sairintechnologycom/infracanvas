@@ -1,0 +1,148 @@
+import React from 'react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import '@testing-library/jest-dom'
+
+// Mock next/link → plain anchor
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string
+    children: React.ReactNode
+    className?: string
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}))
+
+// Mock next/navigation pathname (Settings layout uses usePathname for active tab)
+const mockPathname = vi.fn(() => '/settings/members')
+vi.mock('next/navigation', () => ({
+  usePathname: () => mockPathname(),
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
+// Mock Clerk OrganizationProfile — lightweight stand-in
+vi.mock('@clerk/nextjs', () => ({
+  OrganizationProfile: () => <div data-testid="org-profile">Clerk OrganizationProfile</div>,
+}))
+
+// Mock lucide-react icons → spans
+vi.mock('lucide-react', () => ({
+  MessageSquare: () => <span data-testid="icon-slack" />,
+  Github: () => <span data-testid="icon-github" />,
+}))
+
+describe('settings/members page', () => {
+  it('renders Clerk OrganizationProfile', async () => {
+    const { default: MembersPage } = await import(
+      '@/app/(dashboard)/settings/members/page'
+    )
+    render(<MembersPage />)
+    expect(screen.getByTestId('org-profile')).toBeInTheDocument()
+  })
+})
+
+describe('settings/billing page', () => {
+  it('renders Open billing portal CTA', async () => {
+    const { default: BillingPage } = await import(
+      '@/app/(dashboard)/settings/billing/page'
+    )
+    render(<BillingPage />)
+    const btn = screen.getByTestId('billing-portal-btn')
+    expect(btn).toHaveTextContent(/open billing portal/i)
+  })
+
+  it('clicking Open billing portal does not crash (stub)', async () => {
+    const { default: BillingPage } = await import(
+      '@/app/(dashboard)/settings/billing/page'
+    )
+    // Suppress alert / log noise
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<BillingPage />)
+    const btn = screen.getByTestId('billing-portal-btn')
+    expect(() => fireEvent.click(btn)).not.toThrow()
+    alertSpy.mockRestore()
+  })
+
+  it('renders heading "Billing & invoices"', async () => {
+    const { default: BillingPage } = await import(
+      '@/app/(dashboard)/settings/billing/page'
+    )
+    render(<BillingPage />)
+    expect(screen.getByText(/billing & invoices/i)).toBeInTheDocument()
+  })
+})
+
+describe('settings/integrations page', () => {
+  it('renders Slack and GitHub cards with disabled GitHub button', async () => {
+    const { default: IntegrationsPage } = await import(
+      '@/app/(dashboard)/settings/integrations/page'
+    )
+    render(<IntegrationsPage />)
+    expect(screen.getByRole('heading', { name: /slack/i })).toBeInTheDocument()
+    const githubBtn = screen.getByTestId('github-connect-btn')
+    expect(githubBtn).toBeDisabled()
+    expect(githubBtn).toHaveTextContent(/connect github/i)
+  })
+
+  it('renders Slack webhook input and Save button', async () => {
+    const { default: IntegrationsPage } = await import(
+      '@/app/(dashboard)/settings/integrations/page'
+    )
+    render(<IntegrationsPage />)
+    const input = screen.getByPlaceholderText(/hooks\.slack\.com/i)
+    expect(input).toBeInTheDocument()
+    expect(screen.getByText(/save webhook url/i)).toBeInTheDocument()
+  })
+})
+
+describe('settings layout', () => {
+  it('renders three tab links to Members / Billing / Integrations', async () => {
+    const { default: SettingsLayout } = await import(
+      '@/app/(dashboard)/settings/layout'
+    )
+    render(
+      <SettingsLayout>
+        <div data-testid="layout-children">child</div>
+      </SettingsLayout>,
+    )
+    const members = screen.getByRole('link', { name: /members/i })
+    const billing = screen.getByRole('link', { name: /billing/i })
+    const integrations = screen.getByRole('link', { name: /integrations/i })
+    expect(members).toHaveAttribute('href', '/settings/members')
+    expect(billing).toHaveAttribute('href', '/settings/billing')
+    expect(integrations).toHaveAttribute('href', '/settings/integrations')
+  })
+
+  it('marks the Members tab active when pathname starts with /settings/members', async () => {
+    mockPathname.mockReturnValue('/settings/members')
+    const { default: SettingsLayout } = await import(
+      '@/app/(dashboard)/settings/layout'
+    )
+    render(
+      <SettingsLayout>
+        <div />
+      </SettingsLayout>,
+    )
+    const members = screen.getByRole('link', { name: /members/i })
+    expect(members.className).toContain('border-amber-400')
+  })
+
+  it('renders children below the tab strip', async () => {
+    const { default: SettingsLayout } = await import(
+      '@/app/(dashboard)/settings/layout'
+    )
+    render(
+      <SettingsLayout>
+        <div data-testid="layout-children">child content</div>
+      </SettingsLayout>,
+    )
+    expect(screen.getByTestId('layout-children')).toBeInTheDocument()
+  })
+})
