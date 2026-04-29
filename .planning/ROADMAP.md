@@ -28,6 +28,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 5.1: Parser realism + CLI UX** (INSERTED) — local `module {}` resolution, `--quiet`/`--open` flags, realistic multi-module fixture (2026-04-21)
 - [ ] **Phase 6: SaaS Backend Foundation** — FastAPI + Clerk + Neon + R2 + taskiq + Stripe Billing Meters + observability
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
+- [ ] **Phase 7.1: Phase 7 UI Contract Remediation** (INSERTED) — close UI-SPEC gaps from Phase 7 audit (shadcn init, compare diff list, share toasts/revoke, polish drift)
 - [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
 - [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
@@ -54,6 +55,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 4/4 | Complete | 2026-04-21 |
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
+| 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/TBD | Not planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
@@ -182,6 +184,23 @@ Plans:
 - [x] 07-09-PLAN.md — Share subsystem frontend (ShareModal, PasswordGate zero-metadata, ShareViewer, public landing)
 - [x] 07-10-PLAN.md — Responsive breakpoints + Lighthouse perf budget config (DSH-06)
 - [x] 07-11-PLAN.md — Home dashboard + Settings sub-routes (members/billing/integrations) (DSH-05, D-04)
+
+### Phase 7.1: Phase 7 UI Contract Remediation (INSERTED)
+
+**Status:** INSERTED — closes UI-SPEC gaps surfaced by the Phase 7 UI audit (`07-UI-REVIEW.md`, score 16/24).
+**Goal:** Bring the Phase 7 dashboard in line with the approved `07-UI-SPEC.md` design contract — install the design system, replace the rejected compare visualization, complete the share-link management surface, and close the polish drift on color/typography/spacing/copy.
+**Requirements:** TBD (defined during `/gsd-discuss-phase 7.1`)
+**Depends on:** Phase 7 (dashboard shell shipped)
+**Plans:** 0 plans (run `/gsd-plan-phase 7.1` to break down)
+**Success criteria:**
+1. shadcn/ui initialized in `dashboard/` with the 17 declared blocks; 4 hand-rolled/Radix-direct components migrated to shadcn primitives (`ScanPickerModal`, `ShareModal`, `SettingsLayout`, `ScanFilters`)
+2. Compare page replaces dual-canvas viewer pair with the spec'd 4-section diff card layout (Added/Removed/Changed/Findings) + `<Sheet/>` drill-down + attribute-level expanders on Changed rows
+3. `<Toaster/>` mounted at app root; share-link copied/revoked/failed toasts firing on the three success/failure paths
+4. Active share-links list rendered per UI-SPEC format with `[Revoke]` opening an `<AlertDialog/>` destructive-confirm flow (backed by existing `DELETE /v1/scans/{id}/share-links/{share_id}` endpoint)
+5. Top-bar action slot pattern implemented; `[Compare] [Share]` move from `MetadataHeader` to top bar on `/scans/{id}` route
+6. Polish drift closed: amber accent constrained to spec'd reserved-for list, off-scale `text-xl`/`text-lg` headings normalized to the 4-size scale, home page gutters fixed to `px-8 py-12 gap-12`, focus rings normalized to `ring-slate-400`, breadcrumb + relative-date copy aligned to spec, custom-range filter + sparkline hover tooltip implemented
+
+**Context:** Phase 7 shipped functional but the implementation diverged from `07-UI-SPEC.md` on three blockers (shadcn never initialized, compare ships the explicitly-rejected dual canvas, share-management surface incomplete) and several warnings (color/typography/spacing/copy drift). The audit (`07-UI-REVIEW.md`, 2026-04-29) scored 16/24 (B). Inserting this phase before 7.5 keeps the GitHub-connector work building on a contract-aligned dashboard rather than amplifying the divergence. No new features — pure remediation pass.
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: ready_to_plan
-last_updated: "2026-04-28T12:06:58.743Z"
-last_activity: 2026-04-28 -- Phase 07 execution started
+status: planning
+last_updated: "2026-04-29T10:32:10.040Z"
+last_activity: 2026-04-29
 progress:
-  total_phases: 17
+  total_phases: 18
   completed_phases: 10
   total_plans: 62
-  completed_plans: 51
-  percent: 59
+  completed_plans: 62
+  percent: 100
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 ## Current Position
 
 Milestone: v1.1 — started 2026-04-20
-Phase: 07.5
+Phase: 07.1
 Plan: Not started
 Status: Ready to plan
 Last activity: 2026-04-29
@@ -38,6 +38,7 @@ Last activity: 2026-04-29
 - 2026-04-20: v1.0 post-ship E2E wiring review surfaced 4 fixes → added as WRG-01..04, scoped as first hardening phase of v1.1
 - 2026-04-21: Phase 5.1 inserted after Phase 5: Parser realism + CLI UX (URGENT — local `module {}` resolution gap and noisy CLI output surfaced during Phase 5 manual testing; pre-Phase 6)
 - 2026-04-21: Phase 7.5 inserted after Phase 7: GitHub Repo Connector (fills the "connect a repo + pick branch + scan" UX gap before Phase 8 webhooks — GitHub-only MVP, multi-provider deferred to v1.2)
+- Phase 7.1 inserted after Phase 7: Phase 7 UI Contract Remediation — close UI-SPEC gaps from 07-UI-REVIEW.md (shadcn init, compare diff list, share toasts/revoke, polish drift) (URGENT)
 
 ### Decisions
 
