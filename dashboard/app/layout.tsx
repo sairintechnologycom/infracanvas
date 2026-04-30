@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono, Geist } from 'next/font/google'
+import { JetBrains_Mono, Geist } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 import { cn } from "@/lib/utils";
