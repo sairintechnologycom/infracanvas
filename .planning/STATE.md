@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: executing
-last_updated: "2026-04-30T09:07:00.000Z"
-last_activity: 2026-04-30 -- Phase 7.1 Plan 01 Task 1 complete; stopped at Task 2 checkpoint:human-action
+last_updated: "2026-04-30T15:18:00.000Z"
+last_activity: "2026-04-30 -- Phase 7.1 Plan 01 complete (shadcn/ui + 17 primitives + globals.css merged); Wave 0 unblocks 02-09"
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 71
-  completed_plans: 62
-  percent: 87
+  completed_plans: 63
+  percent: 89
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 07.1
-Plan: 01 (partial — stopped at Task 2 checkpoint:human-action)
-Status: Awaiting human action — run `npx shadcn@latest init -t next` in dashboard/
-Last activity: 2026-04-30 -- Phase 7.1 Plan 01 Task 1 complete; stopped at Task 2 checkpoint:human-action
+Plan: 01 complete; ready for 02 (Toaster mount + ShareModal/ScanPickerModal Dialog migration — Wave 1)
+Status: Phase 7.1 Plan 01 done — shadcn/ui Wave 0 landed (17 primitives + cn() helper + merged globals.css). Plans 02-09 unblocked.
+Last activity: 2026-04-30 -- Phase 7.1 Plan 01 complete (commits 0610970 + a40d2fe + d7614b5 + b4ae95b)
 
 ## Accumulated Context
 
@@ -61,6 +61,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 06-05: respx-based Stripe mocking can't intercept v15 V2 calls (uses requests not httpx); use SDK-boundary mocking by replacing stripe_meter._client.
 - Plan 06-05: TestClient + production async pool causes 'Future attached to a different loop' on second request; tests use NullPool engine to avoid cross-loop reuse.
 - Plan 06-05: Two-step R2 layout — pending/{id}.json (PUT target, no team_id) → server-side copy to teams/{team_id}/scans/{id}.json on commit, then DELETE pending; lifecycle rule GCs abandoned pending/ after 7d (T-06-04 + T-06-05 mitigation).
+- Plan 07.1-01: shadcn/ui v4 emits both `@import "tw-animate-css"` AND `@import "shadcn/tailwind.css"` — kept both (legitimate package exports, latter ships data-* custom variants + accordion keyframes from `node_modules/shadcn/dist/tailwind.css`).
+- Plan 07.1-01: shadcn init's `add` step overwrites the entire `lib/utils.ts` to land `cn()`; pre-existing helpers (`isUUID()` for T-07-08-01 mitigation) must be re-merged manually after init. Documented for future shadcn version bumps.
+- Plan 07.1-01: dashboard/app/layout.tsx unused-import for `Inter` (post Geist migration) blocks `next build` typecheck — out of plan 01 scope, deferred via .planning/phases/07.1-phase-7-ui-contract-remediation/deferred-items.md to a layout-owning plan or the phase verifier cleanup pass.
 
 ### Pending Todos
 
@@ -85,9 +88,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-04-28T07:23:20.422Z
+Last session: 2026-04-30T15:18:00.000Z
 Milestone: v1.1 in flight
-Resume: Phase 06 plan 05 (scan endpoints — depends on require_role + resolve_team_from_clerk_org + team_scoped_session chain delivered by 06-04)
+Resume: Phase 07.1 Plan 02 (Toaster mount + ShareModal/ScanPickerModal Dialog migration — Wave 1; depends on shadcn primitives delivered by 07.1-01)
 
-**Planned Phase:** 6 (SaaS Backend Foundation) — 8 plans — 2026-04-24T15:17:42.747Z
-**Plan 04 closed:** 2026-04-27T17:50Z (3 commits: 7a62479, f5bc575, 7ce22c0). 11 tests pass.
+**Planned Phase:** 7.1 (Phase 7 UI Contract Remediation) — 9 plans — 2026-04-30
+**Plan 07.1-01 closed:** 2026-04-30T15:18Z (4 commits: 0610970 test scaffold, a40d2fe shadcn init+primitives, d7614b5 globals.css merge, b4ae95b verification). Smoke test 5/5; full vitest suite 97/97. Build typecheck blocked by deferred app/layout.tsx unused-import (out-of-scope).

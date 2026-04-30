@@ -194,7 +194,7 @@ Plans:
 **Plans:** 9 plans
 
 Plans:
-- [ ] 07.1-01-PLAN.md — RMD-01 Wave 0: shadcn init + 17 blocks + globals.css preserve (1 human checkpoint)
+- [x] 07.1-01-PLAN.md — RMD-01 Wave 0: shadcn init + 17 blocks + globals.css preserve (1 human checkpoint) — completed 2026-04-30 (commits 0610970, a40d2fe, d7614b5, b4ae95b)
 - [ ] 07.1-02-PLAN.md — RMD-01, RMD-03 Toaster mount + ShareModal/ScanPickerModal Dialog migration
 - [ ] 07.1-03-PLAN.md — RMD-01, RMD-06 ScanFilters Select+Calendar + SettingsLayout Tabs migration
 - [ ] 07.1-04-PLAN.md — RMD-04 Backend GET /v1/scans/{id}/share-links endpoint + dashboard proxy
