@@ -40,7 +40,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
         </p>
         <Link
           href="/scans"
-          className="text-sm text-amber-600 hover:underline"
+          className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
         >
           Back to scans
         </Link>
@@ -65,7 +65,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
           </p>
           <Link
             href="/scans"
-            className="text-sm text-amber-600 hover:underline"
+            className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
           >
             Back to scans
           </Link>
@@ -81,7 +81,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
         <p className="text-sm text-slate-500 text-center max-w-md">
           The compare service returned an error{status ? ` (${status})` : ''}. Try again in a moment.
         </p>
-        <Link href="/scans" className="text-sm text-amber-600 hover:underline">
+        <Link href="/scans" className="text-sm text-slate-900 hover:text-slate-700 hover:underline">
           Back to scans
         </Link>
       </div>

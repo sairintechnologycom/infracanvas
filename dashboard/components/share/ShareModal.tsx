@@ -151,7 +151,7 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
                   ))}
                 </select>
                 {expiryChoice === 'never' && (
-                  <p className="text-xs text-amber-600 mt-1">
+                  <p className="text-xs text-slate-700 mt-1">
                     ⚠ Anyone with this link can view this scan forever, even
                     after team members leave.
                   </p>

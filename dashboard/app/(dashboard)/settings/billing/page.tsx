@@ -27,7 +27,7 @@ export default function BillingPage() {
         type="button"
         onClick={handleOpenPortal}
         data-testid="billing-portal-btn"
-        className="mt-4 inline-flex items-center bg-amber-400 hover:bg-amber-500 text-slate-900 font-medium px-4 py-2 rounded-md transition-colors"
+        className="mt-4 inline-flex items-center bg-amber-400 hover:bg-amber-300 text-slate-900 font-medium px-4 py-2 rounded-md transition-colors"
       >
         Open billing portal
       </button>
