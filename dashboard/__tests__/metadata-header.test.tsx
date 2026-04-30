@@ -2,7 +2,14 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { ScanGetResp } from '@/lib/types'
+
+const METADATA_HEADER_SOURCE = readFileSync(
+  join(__dirname, '..', 'components', 'scans', 'MetadataHeader.tsx'),
+  'utf8',
+)
 
 // next/link renders an <a> in jsdom
 vi.mock('next/link', () => ({
@@ -119,6 +126,73 @@ describe('MetadataHeader', () => {
     const scan = makeScanResp({ branch: null, commit_sha: null, summary_json: null })
     expect(() => render(<MetadataHeader scan={scan} />)).not.toThrow()
     expect(screen.getByTestId('metadata-header')).toBeInTheDocument()
+  })
+})
+
+describe('MetadataHeader — actions migrated to top bar (RMD-05)', () => {
+  it('does NOT render <CompareButton/> in MetadataHeader', () => {
+    expect(METADATA_HEADER_SOURCE).not.toMatch(/<CompareButton\b/)
+  })
+
+  it('does NOT render <ShareButton/> in MetadataHeader', () => {
+    expect(METADATA_HEADER_SOURCE).not.toMatch(/<ShareButton\b/)
+  })
+
+  it('still renders the 52px metadata strip (regression guard)', () => {
+    expect(METADATA_HEADER_SOURCE).toMatch(/h-\[52px\]/)
+  })
+})
+
+describe('ScanDetailActions client wrapper (RMD-05)', () => {
+  it('mounts and calls useTopBarActions().set(...) with Compare + Share, clears on unmount', async () => {
+    // Mock the next/navigation hooks the inner CompareButton/ShareButton trees use
+    vi.doMock('next/navigation', () => ({
+      useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+      usePathname: () => '/scans/0a1b2c3d-4e5f-6789-abcd-ef0123456789',
+    }))
+
+    const { TopBarActionsProvider, TopBarActionsSlot, useTopBarActions } = await import(
+      '@/components/layout/TopBarActions'
+    )
+    const { ScanDetailActions } = await import(
+      '@/app/(dashboard)/scans/[id]/ScanDetailActions'
+    )
+
+    function ProbeSlot() {
+      // Consumer that mirrors what the TopBar would render
+      return <TopBarActionsSlot />
+    }
+
+    function CapturedActions() {
+      const { actions } = useTopBarActions()
+      return <div data-testid="captured">{actions ? 'has-actions' : 'empty'}</div>
+    }
+
+    const { rerender } = render(
+      <TopBarActionsProvider>
+        <ProbeSlot />
+        <CapturedActions />
+        <ScanDetailActions scanId="scan-001" branch="main" />
+      </TopBarActionsProvider>,
+    )
+
+    // After mount, slot should hold injected JSX
+    await screen.findByTestId('captured')
+    expect(screen.getByTestId('captured')).toHaveTextContent('has-actions')
+
+    // The injected node tree should include the Compare and Share buttons
+    expect(screen.getByTestId('compare-button')).toBeInTheDocument()
+    expect(screen.getByTestId('share-button')).toBeInTheDocument()
+
+    // Unmount the wrapper -> slot should clear
+    rerender(
+      <TopBarActionsProvider>
+        <ProbeSlot />
+        <CapturedActions />
+      </TopBarActionsProvider>,
+    )
+    // After re-render without the wrapper, the slot is empty (a fresh provider).
+    expect(screen.getByTestId('captured')).toHaveTextContent('empty')
   })
 })
 
