@@ -2,6 +2,13 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const SETTINGS_LAYOUT_SOURCE = readFileSync(
+  join(__dirname, '..', 'app', '(dashboard)', 'settings', 'layout.tsx'),
+  'utf8',
+)
 
 // Mock next/link → plain anchor
 vi.mock('next/link', () => ({
@@ -125,13 +132,16 @@ describe('settings layout', () => {
     const { default: SettingsLayout } = await import(
       '@/app/(dashboard)/settings/layout'
     )
-    render(
+    const { container } = render(
       <SettingsLayout>
         <div />
       </SettingsLayout>,
     )
-    const members = screen.getByRole('link', { name: /members/i })
-    expect(members.className).toContain('border-amber-400')
+    // Under shadcn Tabs the active TabsTrigger gets data-state="active"
+    // (Radix Tabs primitive). The asChild Link inside it is the descendant.
+    const activeTrigger = container.querySelector('[data-state="active"]')
+    expect(activeTrigger).not.toBeNull()
+    expect(activeTrigger?.textContent).toMatch(/members/i)
   })
 
   it('renders children below the tab strip', async () => {
@@ -144,5 +154,43 @@ describe('settings layout', () => {
       </SettingsLayout>,
     )
     expect(screen.getByTestId('layout-children')).toBeInTheDocument()
+  })
+})
+
+describe('SettingsLayout — shadcn Tabs migration (RMD-01)', () => {
+  it('imports Tabs from @/components/ui/tabs', () => {
+    expect(SETTINGS_LAYOUT_SOURCE).toMatch(
+      /from\s+['"]@\/components\/ui\/tabs['"]/,
+    )
+  })
+
+  it('uses <Tabs> wrapper element', () => {
+    expect(SETTINGS_LAYOUT_SOURCE).toMatch(/<Tabs\b/)
+  })
+
+  it('declares TabsTrigger value="members" / "billing" / "integrations"', () => {
+    expect(SETTINGS_LAYOUT_SOURCE).toMatch(/value=["']members["']/)
+    expect(SETTINGS_LAYOUT_SOURCE).toMatch(/value=["']billing["']/)
+    expect(SETTINGS_LAYOUT_SOURCE).toMatch(/value=["']integrations["']/)
+  })
+
+  it('does not introduce off-scale headings (no text-xl / text-lg)', () => {
+    expect(SETTINGS_LAYOUT_SOURCE).not.toMatch(/text-(xl|lg)/)
+  })
+
+  it('renders a tablist with 3 role=tab children at runtime', async () => {
+    mockPathname.mockReturnValue('/settings/members')
+    const { default: SettingsLayout } = await import(
+      '@/app/(dashboard)/settings/layout'
+    )
+    const { container } = render(
+      <SettingsLayout>
+        <div />
+      </SettingsLayout>,
+    )
+    const tablist = container.querySelector('[role="tablist"]')
+    expect(tablist).not.toBeNull()
+    const tabs = container.querySelectorAll('[role="tab"]')
+    expect(tabs.length).toBe(3)
   })
 })
