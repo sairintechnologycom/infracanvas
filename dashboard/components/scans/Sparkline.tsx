@@ -23,8 +23,8 @@ export function Sparkline({ scores, className = '' }: Props) {
   const maxIdx = scores.indexOf(max)
   return (
     <svg
-      width={W}
-      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
       className={`overflow-visible ${className}`}
       aria-hidden="true"
     >

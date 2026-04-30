@@ -55,7 +55,7 @@ export function ScoreCard({ scan }: Props) {
 
   return (
     <section
-      className="bg-white border border-slate-200 rounded-lg p-6 flex items-center gap-8"
+      className="bg-white border border-slate-200 rounded-lg p-6 flex flex-wrap items-center gap-x-10 gap-y-4"
       data-testid="score-card"
     >
       {/* Col 1: grade + score */}

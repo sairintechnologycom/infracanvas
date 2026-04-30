@@ -1,3 +1,4 @@
+'use client'
 import { MessageSquare, Github } from 'lucide-react'
 
 /**

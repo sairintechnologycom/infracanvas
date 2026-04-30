@@ -3,7 +3,6 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Search, X } from 'lucide-react'
-import { backendFetch } from '@/lib/backend'
 import type { ScanListItem, ScanListResp } from '@/lib/types'
 
 interface Props {
@@ -42,7 +41,11 @@ export function ScanPickerModal({ currentScanId, currentBranch, isOpen, onClose 
     setSelectedId(null)
     setQuery('')
 
-    backendFetch<ScanListResp>('/v1/scans?limit=25&sort=created_at&order=desc')
+    fetch('/api/scans-list?limit=25&sort=created_at&order=desc')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status))
+        return (await res.json()) as ScanListResp
+      })
       .then((data) => {
         if (cancelled) return
         const filtered = data.items.filter((s) => s.id !== currentScanId)

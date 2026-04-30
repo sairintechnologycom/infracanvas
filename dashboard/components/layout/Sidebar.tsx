@@ -10,8 +10,26 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
+const DEV_BYPASS = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === '1'
+
 interface SidebarProps {
   mobileOpen?: boolean
+}
+
+function DevOrgSwitcher() {
+  return (
+    <div className="text-xs text-slate-500 border border-slate-200 rounded px-2 py-1.5 bg-white">
+      Dev Org (no auth)
+    </div>
+  )
+}
+
+function DevUserButton() {
+  return (
+    <div className="h-8 w-8 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-semibold">
+      D
+    </div>
+  )
 }
 
 export function Sidebar({ mobileOpen = false }: SidebarProps) {
@@ -28,14 +46,18 @@ export function Sidebar({ mobileOpen = false }: SidebarProps) {
           InfraCanvas
         </span>
         <div className="sidebar-org-switcher xl:block hidden">
-          <OrganizationSwitcher
-            appearance={{
-              elements: {
-                rootBox: 'w-full',
-                organizationSwitcherTrigger: 'w-full text-sm',
-              },
-            }}
-          />
+          {DEV_BYPASS ? (
+            <DevOrgSwitcher />
+          ) : (
+            <OrganizationSwitcher
+              appearance={{
+                elements: {
+                  rootBox: 'w-full',
+                  organizationSwitcherTrigger: 'w-full text-sm',
+                },
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -65,11 +87,15 @@ export function Sidebar({ mobileOpen = false }: SidebarProps) {
 
       {/* Bottom: user menu */}
       <div className="px-4 pb-4">
-        <UserButton
-          appearance={{
-            elements: { userButtonBox: 'text-sm' },
-          }}
-        />
+        {DEV_BYPASS ? (
+          <DevUserButton />
+        ) : (
+          <UserButton
+            appearance={{
+              elements: { userButtonBox: 'text-sm' },
+            }}
+          />
+        )}
       </div>
     </aside>
   )
