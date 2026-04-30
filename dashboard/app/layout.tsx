@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono, Geist } from 'next/font/google'
 import './globals.css'
+import { cn } from "@/lib/utils";
 
-const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-sans' })
+const geist = Geist({subsets:['latin'],variable:'--font-sans'})
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   display: 'swap',
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={cn(jetbrainsMono.variable, "font-sans", geist.variable)}>
       <body className="bg-white text-slate-900 antialiased font-sans">
         {children}
       </body>
