@@ -5,8 +5,10 @@ import '@testing-library/jest-dom'
 import { ShareLinksList } from '@/components/share/ShareLinksList'
 
 const mockFetch = vi.fn()
-const toastSuccess = vi.fn()
-const toastError = vi.fn()
+const { toastSuccess, toastError } = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+}))
 vi.mock('sonner', () => ({
   toast: { success: toastSuccess, error: toastError },
 }))
