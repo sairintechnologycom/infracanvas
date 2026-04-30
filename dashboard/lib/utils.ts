@@ -1,3 +1,14 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+/**
+ * Tailwind className helper used by every shadcn primitive.
+ * Merges conditional class lists (clsx) and resolves Tailwind conflicts (twMerge).
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
 /**
  * UUID v1-v5 regex matcher (RFC 4122).
  *
