@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono, Geist } from 'next/font/google'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={cn(jetbrainsMono.variable, "font-sans", geist.variable)}>
       <body className="bg-white text-slate-900 antialiased font-sans">
         {children}
+        <Toaster richColors position="bottom-right" />
       </body>
     </html>
   )

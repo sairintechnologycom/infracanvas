@@ -1,6 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Copy, Check, X } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { ShareCreateResp } from '@/lib/types'
 
 interface Props {
@@ -33,6 +40,11 @@ function expiryToIsoOrNull(choice: ExpiryChoice): string | null {
  * mandates we never persist it. The visible URL uses
  * NEXT_PUBLIC_DASHBOARD_URL when set, falling back to the backend's
  * canonical share_url.
+ *
+ * Migrated to shadcn `<Dialog/>` in plan 07.1-02 (RMD-01) — focus trap,
+ * Escape-to-close, and overlay are all provided by the primitive.
+ * Copy success / failure now surface as `toast.success` / `toast.error`
+ * via sonner (RMD-03) — no more silent catch.
  */
 export function ShareModal({ scanId, isOpen, onClose }: Props) {
   const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>('7')
@@ -54,18 +66,6 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
     }
   }, [isOpen])
 
-  // Esc-to-close — keeps shipping without a full Radix Dialog.
-  useEffect(() => {
-    if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
   async function handleGenerate() {
     setGenerating(true)
     setError(null)
@@ -82,6 +82,9 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
       })
       if (!res.ok) {
         setError('Could not generate share link. Please try again.')
+        toast.error("Couldn't generate share link. Try again.", {
+          duration: Infinity,
+        })
         return
       }
       const data = (await res.json()) as ShareCreateResp
@@ -92,6 +95,9 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
       setGeneratedUrl(url)
     } catch {
       setError('Could not generate share link. Please try again.')
+      toast.error("Couldn't generate share link. Try again.", {
+        duration: Infinity,
+      })
     } finally {
       setGenerating(false)
     }
@@ -103,40 +109,21 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
       await navigator.clipboard.writeText(generatedUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+      toast.success('Link copied to clipboard')
     } catch {
-      // Clipboard access denied — fallback: select the input value.
-      // No toast component shipped yet; copy state silently fails.
+      // Clipboard access denied — surface to the user instead of swallowing.
+      toast.error("Couldn't copy. Copy manually instead.")
     }
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="share-modal-title"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white border border-slate-200 rounded-lg shadow-lg w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2
-            id="share-modal-title"
-            className="text-base font-semibold text-slate-900"
-          >
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold text-slate-900">
             Share this scan
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close share dialog"
-            className="text-slate-400 hover:text-slate-700"
-          >
-            <X size={16} />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
         {!generatedUrl && (
           <>
@@ -244,12 +231,12 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
         </p>
         {/*
           TODO: GET /v1/scans/{id}/share-links not yet implemented in backend —
-          ShareList deferred to a follow-on plan.
+          ShareList deferred to Plan 07.1-06.
         */}
         <p className="text-xs text-slate-500 mt-1">
           No share links yet for this scan.
         </p>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
