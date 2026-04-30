@@ -1,6 +1,7 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
+import { TopBarActionsSlot } from './TopBarActions'
 
 interface TopBarProps {
   onMenuToggle?: () => void
@@ -9,7 +10,7 @@ interface TopBarProps {
 export function TopBar({ onMenuToggle }: TopBarProps) {
   const pathname = usePathname()
   // Simple breadcrumb: capitalize each path segment
-  const segments = pathname.split('/').filter(Boolean)
+  const segments = (pathname ?? '').split('/').filter(Boolean)
   return (
     <header
       data-testid="topbar"
@@ -37,8 +38,10 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
           )
         })}
       </nav>
-      <div className="md:flex-row flex-col gap-1" />
-      {/* Page-level actions injected by child pages via a slot pattern in later plans */}
+      {/* Page-level actions injected by child pages via TopBarActions slot pattern (RMD-05) */}
+      <div className="ml-auto flex items-center gap-2" data-testid="topbar-actions">
+        <TopBarActionsSlot />
+      </div>
     </header>
   )
 }
