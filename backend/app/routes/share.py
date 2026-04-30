@@ -27,7 +27,7 @@ from uuid import UUID
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy import select, text
+from sqlalchemy import or_, select, text
 
 from app.auth.clerk import ClerkPrincipal, require_role
 from app.auth.deps import resolve_team_from_clerk_org
@@ -37,6 +37,8 @@ from app.schemas.share import (
     ShareCreateReq,
     ShareCreateResp,
     ShareLandingResp,
+    ShareLinkListItem,
+    ShareLinkListResp,
     ShareVerifyReq,
     ShareVerifyResp,
 )
@@ -146,6 +148,83 @@ async def create_share_link(
         token=raw_token,  # shown once — client must copy immediately
         share_url=_share_url(raw_token),
         expires_at=body.expires_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/scans/{scan_id}/share-links — auth required, lists active links
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/scans/{scan_id}/share-links",
+    response_model=ShareLinkListResp,
+    status_code=status.HTTP_200_OK,
+)
+async def list_share_links(
+    scan_id: UUID,
+    principal: ClerkPrincipal = Depends(  # noqa: B008
+        require_role("owner", "admin", "member", "basic_member")
+    ),
+    team: Team = Depends(resolve_team_from_clerk_org),  # noqa: B008
+) -> ShareLinkListResp:
+    """List active (non-revoked, non-expired) share-links for a scan.
+
+    Team-scoped via RLS: caller's team is set as ``app.current_team_id`` GUC,
+    and the WHERE clause re-asserts ``team_id == team.id`` defence-in-depth.
+    Cross-team access surfaces as 404 (no existence oracle, T-07.1-07).
+    Revoked + expired rows are filtered out (T-07.1-08, T-07.1-09).
+    """
+    _ = principal  # auth gate only — user_id not needed for the list query
+    now = datetime.now(timezone.utc)
+
+    sm = get_sessionmaker()
+    async with sm() as session:
+        async with session.begin():
+            await session.execute(
+                text("SELECT set_config('app.current_team_id', :t, true)"),
+                {"t": str(team.id)},
+            )
+
+            # 1. Verify the scan belongs to caller's team (same gate as DELETE).
+            scan_row = (
+                await session.execute(
+                    select(Scan).where(
+                        Scan.id == scan_id,
+                        Scan.team_id == team.id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if scan_row is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "scan_not_found")
+
+            # 2. Fetch active share-links: not revoked, not expired.
+            link_rows = (
+                await session.execute(
+                    select(ShareLink)
+                    .where(
+                        ShareLink.scan_id == scan_id,
+                        ShareLink.team_id == team.id,
+                        ShareLink.revoked_at.is_(None),
+                        or_(
+                            ShareLink.expires_at.is_(None),
+                            ShareLink.expires_at > now,
+                        ),
+                    )
+                    .order_by(ShareLink.created_at.desc())
+                )
+            ).scalars().all()
+
+    return ShareLinkListResp(
+        links=[
+            ShareLinkListItem(
+                id=str(row.id),
+                expires_at=row.expires_at,
+                created_by=row.created_by,
+                has_password=row.password_hash is not None,
+                created_at=row.created_at,
+            )
+            for row in link_rows
+        ]
     )
 
 

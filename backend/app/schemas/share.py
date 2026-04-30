@@ -55,3 +55,28 @@ class ShareVerifyResp(BaseModel):
     commit_sha: str | None = None
     created_at: datetime | None = None
     summary_json: dict[str, Any] | None = None
+
+
+class ShareLinkListItem(BaseModel):
+    """Single item in GET /v1/scans/{scan_id}/share-links response.
+
+    Mirrors dashboard/lib/types.ts ShareLink interface (lines 86-92) — keep in sync.
+    """
+
+    id: str
+    expires_at: datetime | None = None
+    created_by: str
+    has_password: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShareLinkListResp(BaseModel):
+    """Response for GET /v1/scans/{scan_id}/share-links.
+
+    Active (non-revoked, non-expired) share-links scoped by team RLS, ordered by
+    created_at DESC.
+    """
+
+    links: list[ShareLinkListItem]
