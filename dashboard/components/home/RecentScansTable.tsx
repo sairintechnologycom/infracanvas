@@ -9,21 +9,34 @@ interface Props {
   scans: ScanListItem[]
 }
 
-function formatRelativeOrAbsolute(iso: string): string {
-  const d = new Date(iso)
-  const now = Date.now()
-  const ageMs = now - d.getTime()
-  const day = 24 * 60 * 60 * 1000
-  if (ageMs < 7 * day && ageMs >= 0) {
-    const days = Math.floor(ageMs / day)
-    if (days === 0) {
-      const hours = Math.floor(ageMs / (60 * 60 * 1000))
-      if (hours === 0) return 'just now'
-      return `${hours}h ago`
-    }
-    return `${days}d ago`
-  }
-  return d.toISOString().slice(0, 10)
+/**
+ * Voice-rules relative-date formatter (UI-SPEC §"Voice rules"):
+ *   - < 1 hour:                 'Just now'
+ *   - exactly 1 hour ago:       '1 hour ago' (singular)
+ *   - 2..23 hours ago:          'X hours ago' (full word, plural)
+ *   - 1 calendar day ago:       'Yesterday'
+ *   - older:                    'Apr 22' (Intl.DateTimeFormat en-US, short month + day)
+ */
+export function formatRelativeDate(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso)
+  const diffMs = now.getTime() - then.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours < 1) return 'Just now'
+  if (diffHours < 24) return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`
+
+  // calendar-day diff (compare midnights so 'Yesterday' is robust to time-of-day)
+  const startOfNow = new Date(now)
+  startOfNow.setHours(0, 0, 0, 0)
+  const startOfThen = new Date(then)
+  startOfThen.setHours(0, 0, 0, 0)
+  const diffDays = Math.round(
+    (startOfNow.getTime() - startOfThen.getTime()) / (1000 * 60 * 60 * 24),
+  )
+
+  if (diffDays === 1) return 'Yesterday'
+  // older: 'Apr 22' format
+  return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const COLUMNS = ['Date', 'Branch', 'Score', 'Crit', 'High'] as const
@@ -79,7 +92,7 @@ export function RecentScansTable({ scans }: Props) {
                   className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 cursor-pointer"
                 >
                   <td className="px-4 py-3 font-mono text-sm tabular-nums text-slate-900 whitespace-nowrap">
-                    {formatRelativeOrAbsolute(scan.created_at)}
+                    {formatRelativeDate(scan.created_at)}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-700">
                     {scan.branch ?? '—'}
