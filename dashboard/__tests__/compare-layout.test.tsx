@@ -1,7 +1,9 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { NodeDiff, ResourceDiff } from '@/lib/types'
 
 // next/link → <a> in jsdom
@@ -28,6 +30,33 @@ vi.mock('lucide-react', () => ({
   ArrowRight: () => <span data-testid="icon-arrow-right" />,
   GitCompare: () => <span data-testid="icon-git-compare" />,
   Share2: () => <span data-testid="icon-share2" />,
+  XIcon: () => <span data-testid="icon-x" />,
+  X: () => <span data-testid="icon-x" />,
+  ChevronDown: () => <span data-testid="icon-chevron-down" />,
+  ChevronRight: () => <span data-testid="icon-chevron-right" />,
+}))
+
+// next/navigation — CompareLayout uses useRouter for the Swap button.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: vi.fn(),
+    push: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => '/scans/compare',
+  useSearchParams: () => new URLSearchParams(''),
+}))
+
+// @infracanvas/viewer — DrillDownSheet may render placeholder canvas.
+vi.mock('@infracanvas/viewer', () => ({
+  ViewerProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DiagramCanvas: () => <div data-testid="viewer-canvas" />,
+  createViewerStore: () => ({
+    getState: () => ({ setGraph: vi.fn() }),
+  }),
 }))
 
 const fixtureSummary = { added: 3, removed: 5, changed: 7, unchanged: 12 }
@@ -62,6 +91,130 @@ const fixtureNodes: NodeDiff[] = [
     changed_fields: [],
   },
 ]
+
+// ── New 4-section CompareLayout contract (RMD-02 / Plan 07.1-05) ──────────────
+// Source-text assertion: read CompareLayout.tsx as a string so we can assert
+// that the orphan CompareViewerPair import is gone.
+const COMPARE_LAYOUT_SOURCE_PATH = join(
+  __dirname,
+  '..',
+  'components',
+  'compare',
+  'CompareLayout.tsx',
+)
+
+const newFixtureDiff: ResourceDiff = {
+  scan_a_id: 'a',
+  scan_b_id: 'b',
+  edges_added: [],
+  edges_removed: [],
+  nodes: [
+    {
+      id: 'aws_s3.added_one',
+      kind: 'added',
+      changed_fields: [],
+      before: null,
+      after: { name: 'foo' },
+    },
+    {
+      id: 'aws_s3.removed_one',
+      kind: 'removed',
+      changed_fields: [],
+      before: { name: 'bar' },
+      after: null,
+    },
+    {
+      id: 'aws_iam.changed_one',
+      kind: 'changed',
+      changed_fields: ['name', 'tags'],
+      before: { name: 'old', tags: { env: 'dev' } },
+      after: { name: 'new', tags: { env: 'prod' } },
+    },
+    {
+      id: 'aws_iam.huge_change',
+      kind: 'changed',
+      changed_fields: Array.from({ length: 13 }, (_, i) => `field_${i}`),
+      before: Object.fromEntries(
+        Array.from({ length: 13 }, (_, i) => [`field_${i}`, 'before']),
+      ),
+      after: Object.fromEntries(
+        Array.from({ length: 13 }, (_, i) => [`field_${i}`, 'after']),
+      ),
+    },
+  ],
+  summary: { added: 1, removed: 1, changed: 2, unchanged: 0 },
+}
+
+describe('CompareLayout — 4-section diff (RMD-02)', () => {
+  it('renders four section headings: Added, Removed, Changed, Findings', async () => {
+    // Re-import dynamically so the vi.unmock call below is honoured.
+    vi.doUnmock('@/components/compare/CompareLayout')
+    vi.resetModules()
+    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
+    expect(screen.getByText('Added')).toBeInTheDocument()
+    expect(screen.getByText('Removed')).toBeInTheDocument()
+    expect(screen.getByText('Changed')).toBeInTheDocument()
+    expect(screen.getByText('Findings')).toBeInTheDocument()
+  })
+
+  it('shows section counts derived from diff summary', async () => {
+    vi.doUnmock('@/components/compare/CompareLayout')
+    vi.resetModules()
+    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
+    // Added=1, Removed=1, Changed=2 → at least one '1' and one '2' present.
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('expands a Changed row to show attribute table on click', async () => {
+    vi.doUnmock('@/components/compare/CompareLayout')
+    vi.resetModules()
+    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
+    const row = screen.getByText('aws_iam.changed_one')
+    fireEvent.click(row)
+    expect(screen.getByText('name')).toBeInTheDocument()
+    expect(screen.getByText('tags')).toBeInTheDocument()
+  })
+
+  it('caps changed attributes at 10 rows and shows +N more', async () => {
+    vi.doUnmock('@/components/compare/CompareLayout')
+    vi.resetModules()
+    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
+    const row = screen.getByText('aws_iam.huge_change')
+    fireEvent.click(row)
+    expect(screen.getByText(/\+3 more attributes/)).toBeInTheDocument()
+  })
+
+  it('opens drill-down Sheet when row "Open" affordance clicked', async () => {
+    vi.doUnmock('@/components/compare/CompareLayout')
+    vi.resetModules()
+    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
+    const openButtons = screen.getAllByRole('button', { name: /open .* in viewer/i })
+    fireEvent.click(openButtons[0])
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('CompareViewerPair file is deleted from the codebase', () => {
+    const path = join(
+      __dirname,
+      '..',
+      'components',
+      'compare',
+      'CompareViewerPair.tsx',
+    )
+    expect(existsSync(path)).toBe(false)
+  })
+
+  it('CompareLayout.tsx no longer imports CompareViewerPair', () => {
+    const source = readFileSync(COMPARE_LAYOUT_SOURCE_PATH, 'utf8')
+    expect(source).not.toMatch(/CompareViewerPair/)
+  })
+})
 
 describe('isUUID validator', () => {
   it('rejects undefined', async () => {
