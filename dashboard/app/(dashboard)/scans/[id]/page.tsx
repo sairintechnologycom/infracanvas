@@ -3,6 +3,7 @@ import { backendFetch } from '@/lib/backend'
 import type { ScanGetResp } from '@/lib/types'
 import { MetadataHeader } from '@/components/scans/MetadataHeader'
 import { ScanViewerClient } from '@/components/scans/ScanViewerClient'
+import { ScanDetailActions } from './ScanDetailActions'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -24,6 +25,8 @@ export default async function ScanDetailPage({ params }: PageProps) {
   return (
     // Outer div fills remaining viewport after sidebar+topbar; no overflow on this container
     <div className="flex flex-col h-full">
+      {/* Mounts on the client; injects [Compare] [Share] into the top-bar slot (RMD-05) */}
+      <ScanDetailActions scanId={scan.id} branch={scan.branch} />
       <MetadataHeader scan={scan} />
       {/* ScanViewerClient fills remaining height; viewer manages its own pan/zoom */}
       <div className="flex-1 min-h-0">

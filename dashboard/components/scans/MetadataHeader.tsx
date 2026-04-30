@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import type { ScanGetResp } from '@/lib/types'
-import { ShareButton } from './ShareButton'
-import { CompareButton } from './CompareButton'
 
 interface Props {
   scan: ScanGetResp
@@ -118,12 +116,8 @@ export function MetadataHeader({ scan }: Props) {
           </span>
         )}
       </div>
-
-      {/* Right: action buttons */}
-      <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-        <CompareButton scanId={scan.id} branch={scan.branch} />
-        <ShareButton scanId={scan.id} />
-      </div>
+      {/* Action buttons (Compare, Share) live in the top-bar slot per RMD-05 —
+          mounted by <ScanDetailActions/> on /scans/[id]. */}
     </div>
   )
 }
