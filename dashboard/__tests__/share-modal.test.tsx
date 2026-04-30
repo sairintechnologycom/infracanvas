@@ -66,17 +66,31 @@ function mockClipboard(impl: { writeText: (s: string) => Promise<void> }) {
 }
 
 function mockGenerateOk() {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    status: 201,
-    json: () =>
-      Promise.resolve({
-        id: 'link-1',
-        token: 'tok-abc-123',
-        share_url: 'https://app.example.com/share/tok-abc-123',
-        expires_at: null,
-      }),
-  } as unknown as Response)
+  // URL-aware mock: ShareLinksList fires GET on mount/refresh; ShareModal
+  // fires POST on Generate. Both share /api/scan-share so we route by method.
+  global.fetch = vi.fn().mockImplementation(((url: RequestInfo, init?: RequestInit) => {
+    const method = (init?.method ?? 'GET').toUpperCase()
+    const urlStr = String(url)
+    if (method === 'GET' && urlStr.includes('/api/scan-share')) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ links: [] }),
+      } as unknown as Response)
+    }
+    // Default: POST share generation
+    return Promise.resolve({
+      ok: true,
+      status: 201,
+      json: () =>
+        Promise.resolve({
+          id: 'link-1',
+          token: 'tok-abc-123',
+          share_url: 'https://app.example.com/share/tok-abc-123',
+          expires_at: null,
+        }),
+    } as unknown as Response)
+  }) as typeof fetch)
 }
 
 describe('ShareModal', () => {
@@ -181,5 +195,34 @@ describe('ShareModal — shadcn Dialog migration + copy toast (RMD-01, RMD-03)',
     fireEvent.click(copyBtn)
 
     await waitFor(() => expect(toastError).toHaveBeenCalled())
+  })
+})
+
+describe('ShareModal — Active share-links list mount (RMD-04)', () => {
+  it('mounts ShareLinksList passing the scanId — fetches /api/scan-share?scan_id=...', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ links: [] }),
+    })
+    global.fetch = fetchSpy as unknown as typeof fetch
+
+    const { ShareModal } = await import('@/components/share/ShareModal')
+    render(<ShareModal scanId="scan-xyz" isOpen={true} onClose={() => {}} />)
+
+    await waitFor(() => {
+      const listFetchCall = fetchSpy.mock.calls.find((c) =>
+        String(c[0]).includes('/api/scan-share?scan_id=scan-xyz'),
+      )
+      expect(listFetchCall).toBeDefined()
+    })
+  })
+
+  it('source no longer contains the Phase 7 placeholder copy or TODO', () => {
+    expect(SOURCE).not.toMatch(/No share links yet for this scan\./)
+    expect(SOURCE).not.toMatch(/TODO[^\n]*share-links/)
+  })
+
+  it('source imports ShareLinksList', () => {
+    expect(SOURCE).toMatch(/ShareLinksList/)
   })
 })
