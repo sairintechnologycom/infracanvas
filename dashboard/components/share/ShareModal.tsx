@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ShareLinksList } from './ShareLinksList'
 import type { ShareCreateResp } from '@/lib/types'
 
 interface Props {
@@ -226,16 +227,17 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
           </div>
         )}
 
-        <p className="text-xs font-semibold text-slate-700 mt-6">
-          Active share links
-        </p>
-        {/*
-          TODO: GET /v1/scans/{id}/share-links not yet implemented in backend —
-          ShareList deferred to Plan 07.1-06.
-        */}
-        <p className="text-xs text-slate-500 mt-1">
-          No share links yet for this scan.
-        </p>
+        <div className="mt-6">
+          <p className="text-xs font-semibold text-slate-700">
+            Active share links
+          </p>
+          <div className="mt-2">
+            <ShareLinksList
+              scanId={scanId}
+              refreshKey={generatedUrl ? 1 : 0}
+            />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )
