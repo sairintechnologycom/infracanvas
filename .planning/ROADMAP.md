@@ -55,7 +55,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 5.1. Parser realism + CLI UX (INSERTED) | v1.1 | 4/4 | Complete | 2026-04-21 |
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
-| 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/TBD | Not planned | - |
+| 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
@@ -189,9 +189,20 @@ Plans:
 
 **Status:** INSERTED — closes UI-SPEC gaps surfaced by the Phase 7 UI audit (`07-UI-REVIEW.md`, score 16/24).
 **Goal:** Bring the Phase 7 dashboard in line with the approved `07-UI-SPEC.md` design contract — install the design system, replace the rejected compare visualization, complete the share-link management surface, and close the polish drift on color/typography/spacing/copy.
-**Requirements:** TBD (defined during `/gsd-discuss-phase 7.1`)
+**Requirements:** RMD-01, RMD-02, RMD-03, RMD-04, RMD-05, RMD-06
 **Depends on:** Phase 7 (dashboard shell shipped)
-**Plans:** 0 plans (run `/gsd-plan-phase 7.1` to break down)
+**Plans:** 9 plans
+
+Plans:
+- [ ] 07.1-01-PLAN.md — RMD-01 Wave 0: shadcn init + 17 blocks + globals.css preserve (1 human checkpoint)
+- [ ] 07.1-02-PLAN.md — RMD-01, RMD-03 Toaster mount + ShareModal/ScanPickerModal Dialog migration
+- [ ] 07.1-03-PLAN.md — RMD-01, RMD-06 ScanFilters Select+Calendar + SettingsLayout Tabs migration
+- [ ] 07.1-04-PLAN.md — RMD-04 Backend GET /v1/scans/{id}/share-links endpoint + dashboard proxy
+- [ ] 07.1-05-PLAN.md — RMD-02 Compare 4-section card rewrite + Sheet drill-down + delete CompareViewerPair
+- [ ] 07.1-06-PLAN.md — RMD-03, RMD-04 Active share-links list + AlertDialog revoke flow + toasts
+- [ ] 07.1-07-PLAN.md — RMD-05, RMD-06 Top-bar action slot + ScanDetailActions + breadcrumb fix
+- [ ] 07.1-08-PLAN.md — RMD-06 Polish drift sweep (typography/color/focus-ring grep gates)
+- [ ] 07.1-09-PLAN.md — RMD-06 Sparkline hover tooltip + relative-date copy ("2 hours ago"/"Yesterday"/"Apr 26")
 **Success criteria:**
 1. shadcn/ui initialized in `dashboard/` with the 17 declared blocks; 4 hand-rolled/Radix-direct components migrated to shadcn primitives (`ScanPickerModal`, `ShareModal`, `SettingsLayout`, `ScanFilters`)
 2. Compare page replaces dual-canvas viewer pair with the spec'd 4-section diff card layout (Added/Removed/Changed/Findings) + `<Sheet/>` drill-down + attribute-level expanders on Changed rows
