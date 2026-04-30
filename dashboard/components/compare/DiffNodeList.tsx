@@ -35,9 +35,12 @@ const KIND_BADGE_STYLES: Record<NodeDiff['kind'], string> = {
  * Rows of kind='unchanged' are filtered out — the compare view is for changes.
  *
  * Each row exposes `data-testid="diff-node-row"` and `data-kind="{kind}"` for
- * E2E + a11y selectors. Clicking a row invokes `onSelect(node.id)` if provided
- * — the parent CompareLayout uses this to drive the focused-node highlight in
- * CompareViewerPair.
+ * E2E + a11y selectors. Clicking a row invokes `onSelect(node.id)` if provided.
+ *
+ * NOTE: This component is no longer rendered by CompareLayout (which now uses
+ * the 4-section diff card layout per Plan 07.1-05). It is kept temporarily
+ * because legacy tests still exercise it. Will be deleted in a follow-up
+ * plan once the test file is split.
  */
 export function DiffNodeList({ nodes, onSelect }: Props) {
   const visible = nodes.filter((n) => n.kind !== 'unchanged')

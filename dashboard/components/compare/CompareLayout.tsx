@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { ArrowRight, ArrowLeftRight } from 'lucide-react'
 import type { ResourceDiff } from '@/lib/types'
 import { DiffSummary } from './DiffSummary'
-import { DiffNodeList } from './DiffNodeList'
-import { CompareViewerPair } from './CompareViewerPair'
+import { DiffSection } from './DiffSection'
+import { ChangedDiffSection } from './ChangedDiffSection'
+import { FindingsDeltaSection } from './FindingsDeltaSection'
+import { DrillDownSheet } from './DrillDownSheet'
 
 interface Props {
   diff: ResourceDiff
@@ -15,20 +17,25 @@ interface Props {
 }
 
 /**
- * Two-pane compare layout, mounted by `/scans/compare` RSC.
+ * 4-section diff card layout for `/scans/compare`.
+ *
+ * Replaces the Phase 7 dual-canvas viewer-pair, which D-10 explicitly rejects
+ * ("compare layout ships the side-by-side dual canvas D-10 explicitly rejects;
+ * no attribute-level expanders" — UI-REVIEW Pillar 2 BLOCKER #2).
  *
  * Layout:
  *   ┌────────────────────────────────────────────────────────┐
- *   │ ← Scans / Compare   a1b2c3d → 9f8e7d   +3 −5 ~7   Swap │  52px sticky
- *   ├────────────────────────────┬───────────────────────────┤
- *   │ Resource changes (380px)   │ Viewer pair               │
- *   │  • DiffNodeList            │  ┌────────┬────────┐      │
- *   │                            │  │ Scan A │ Scan B │      │
- *   │                            │  └────────┴────────┘      │
- *   └────────────────────────────┴───────────────────────────┘
+ *   │ ← Scans / Compare   a1b2c3d → 9f8e7d   +N −N ~N   Swap │  52px sticky
+ *   ├────────────────────────────────────────────────────────┤
+ *   │   [Card] Added    (count)                              │
+ *   │   [Card] Removed  (count)                              │
+ *   │   [Card] Changed  (count) — rows expand to attr table  │
+ *   │   [Card] Findings (count)                              │
+ *   └────────────────────────────────────────────────────────┘
  *
- * On <1280px (xl breakpoint) the panes stack vertically (D-19 — desktop only,
- * 1080p+, no mobile fallback).
+ * Each row exposes an "Open ->" affordance that opens a right-side <Sheet/>
+ * drawer scoped to that resource. The drawer state is owned here so all four
+ * sections share a single drill target.
  *
  * Swap button reverses `a` and `b` in the URL via `router.replace` (NOT push)
  * so the browser back button still goes to the previous page rather than the
@@ -36,7 +43,7 @@ interface Props {
  */
 export function CompareLayout({ diff, scanAId, scanBId }: Props) {
   const router = useRouter()
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [drillResourceId, setDrillResourceId] = useState<string | null>(null)
 
   const handleSwap = useCallback(() => {
     const url = new URL(window.location.href)
@@ -45,9 +52,13 @@ export function CompareLayout({ diff, scanAId, scanBId }: Props) {
     router.replace(`${url.pathname}?${url.searchParams.toString()}`)
   }, [router, scanAId, scanBId])
 
+  const added = diff.nodes.filter((n) => n.kind === 'added')
+  const removed = diff.nodes.filter((n) => n.kind === 'removed')
+  const changed = diff.nodes.filter((n) => n.kind === 'changed')
+
   return (
     <div data-testid="compare-layout" className="flex flex-col h-full">
-      {/* Sticky summary header */}
+      {/* Sticky summary header — preserved from prior layout */}
       <div className="h-[52px] bg-slate-50 border-b border-slate-200 px-6 flex items-center gap-4 sticky top-0 z-10 flex-shrink-0">
         <span className="text-sm text-slate-500 whitespace-nowrap">
           ←{' '}
@@ -73,22 +84,34 @@ export function CompareLayout({ diff, scanAId, scanBId }: Props) {
         </button>
       </div>
 
-      {/* Body — stacks at <xl, two-pane at xl+ (DSH-05/06: stacks vertically at <xl — xl:flex-row ensures side-by-side at 1280px+) */}
-      <div className="flex flex-1 min-h-0 gap-4 p-4 flex-col xl:flex-row">
-        {/* Left: diff list */}
-        <div className="xl:w-[380px] flex-shrink-0 flex flex-col gap-3 min-h-0">
-          <h2 className="text-base font-semibold text-slate-900">Resource changes</h2>
-          <DiffNodeList nodes={diff.nodes} onSelect={setSelectedNodeId} />
-        </div>
-        {/* Right: viewer pair */}
-        <div className="flex-1 min-w-0 min-h-0">
-          <CompareViewerPair
-            scanAId={scanAId}
-            scanBId={scanBId}
-            focusNodeId={selectedNodeId}
+      {/* 4-section vertical stack of diff cards */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-7xl mx-auto w-full px-8 py-6 space-y-6">
+          <DiffSection
+            title="Added"
+            rows={added}
+            dotClass="bg-green-500"
+            onRowDrillDown={setDrillResourceId}
           />
+          <DiffSection
+            title="Removed"
+            rows={removed}
+            dotClass="bg-red-500"
+            onRowDrillDown={setDrillResourceId}
+          />
+          <ChangedDiffSection
+            rows={changed}
+            onRowDrillDown={setDrillResourceId}
+          />
+          <FindingsDeltaSection diff={diff} />
         </div>
       </div>
+
+      <DrillDownSheet
+        resourceId={drillResourceId}
+        scanBId={scanBId}
+        onClose={() => setDrillResourceId(null)}
+      />
     </div>
   )
 }

@@ -148,9 +148,9 @@ const newFixtureDiff: ResourceDiff = {
 describe('CompareLayout — 4-section diff (RMD-02)', () => {
   it('renders four section headings: Added, Removed, Changed, Findings', async () => {
     // Re-import dynamically so the vi.unmock call below is honoured.
-    vi.doUnmock('@/components/compare/CompareLayout')
-    vi.resetModules()
-    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    const { CompareLayout } = await vi.importActual<
+      typeof import('@/components/compare/CompareLayout')
+    >('@/components/compare/CompareLayout')
     render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
     expect(screen.getByText('Added')).toBeInTheDocument()
     expect(screen.getByText('Removed')).toBeInTheDocument()
@@ -159,9 +159,9 @@ describe('CompareLayout — 4-section diff (RMD-02)', () => {
   })
 
   it('shows section counts derived from diff summary', async () => {
-    vi.doUnmock('@/components/compare/CompareLayout')
-    vi.resetModules()
-    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    const { CompareLayout } = await vi.importActual<
+      typeof import('@/components/compare/CompareLayout')
+    >('@/components/compare/CompareLayout')
     render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
     // Added=1, Removed=1, Changed=2 → at least one '1' and one '2' present.
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2)
@@ -169,9 +169,9 @@ describe('CompareLayout — 4-section diff (RMD-02)', () => {
   })
 
   it('expands a Changed row to show attribute table on click', async () => {
-    vi.doUnmock('@/components/compare/CompareLayout')
-    vi.resetModules()
-    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    const { CompareLayout } = await vi.importActual<
+      typeof import('@/components/compare/CompareLayout')
+    >('@/components/compare/CompareLayout')
     render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
     const row = screen.getByText('aws_iam.changed_one')
     fireEvent.click(row)
@@ -180,9 +180,9 @@ describe('CompareLayout — 4-section diff (RMD-02)', () => {
   })
 
   it('caps changed attributes at 10 rows and shows +N more', async () => {
-    vi.doUnmock('@/components/compare/CompareLayout')
-    vi.resetModules()
-    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    const { CompareLayout } = await vi.importActual<
+      typeof import('@/components/compare/CompareLayout')
+    >('@/components/compare/CompareLayout')
     render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
     const row = screen.getByText('aws_iam.huge_change')
     fireEvent.click(row)
@@ -190,9 +190,9 @@ describe('CompareLayout — 4-section diff (RMD-02)', () => {
   })
 
   it('opens drill-down Sheet when row "Open" affordance clicked', async () => {
-    vi.doUnmock('@/components/compare/CompareLayout')
-    vi.resetModules()
-    const { CompareLayout } = await import('@/components/compare/CompareLayout')
+    const { CompareLayout } = await vi.importActual<
+      typeof import('@/components/compare/CompareLayout')
+    >('@/components/compare/CompareLayout')
     render(<CompareLayout diff={newFixtureDiff} scanAId="a" scanBId="b" />)
     const openButtons = screen.getAllByRole('button', { name: /open .* in viewer/i })
     fireEvent.click(openButtons[0])
@@ -362,9 +362,10 @@ vi.mock('@/lib/backend', () => ({
   backendFetch: vi.fn(),
 }))
 
-// CompareLayout & CompareViewerPair are heavy client components that depend on
-// browser APIs (window, useRouter, ViewerProvider). Stub them out to keep RSC
-// tests focused on validation + 404 paths.
+// CompareLayout is a heavy client component that depends on browser APIs
+// (window, useRouter, Sheet portals). Stub it for the RSC tests below so they
+// stay focused on validation + 404 paths. The new 4-section CompareLayout
+// suite above uses vi.importActual to bypass this stub.
 vi.mock('@/components/compare/CompareLayout', () => ({
   CompareLayout: ({ scanAId, scanBId }: { scanAId: string; scanBId: string }) => (
     <div data-testid="compare-layout-stub">
