@@ -43,10 +43,18 @@ describe('ScanFilters — shadcn Select + Custom range (RMD-01, RMD-06)', () => 
     expect(SOURCE).toMatch(/numberOfMonths=\{?2\}?/)
   })
 
-  it('renders combobox-role triggers (shadcn SelectTrigger semantics)', async () => {
-    const { ScanFilters } = await import('@/components/scans/ScanFilters')
-    render(<ScanFilters />)
-    // shadcn SelectTrigger renders as role="combobox" via Radix
-    expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1)
-  })
+  it(
+    'renders combobox-role triggers (shadcn SelectTrigger semantics)',
+    async () => {
+      const { ScanFilters } = await import('@/components/scans/ScanFilters')
+      const { container } = render(<ScanFilters />)
+      // shadcn SelectTrigger renders as role="combobox" via Radix Select.Trigger.
+      // Query the DOM tree directly (avoid `getAllByRole` accessibility-tree
+      // walk which is slow + flaky under jsdom for radix-ui select primitives).
+      const comboboxes = container.querySelectorAll('[role="combobox"]')
+      expect(comboboxes.length).toBeGreaterThanOrEqual(1)
+    },
+    // 3× Radix Select render under jsdom + worker contention can exceed 5s.
+    15000,
+  )
 })

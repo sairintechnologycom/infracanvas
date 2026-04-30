@@ -85,22 +85,29 @@ describe('ScansTable', () => {
 
 describe('ScanFilters debounce', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
     mockReplace.mockClear()
   })
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('branch input waits 300ms before calling router.replace', async () => {
-    const { ScanFilters } = await import('@/components/scans/ScanFilters')
-    render(<ScanFilters />)
-    const input = screen.getByTestId('branch-filter')
-    fireEvent.change(input, { target: { value: 'feat/my-branch' } })
-    expect(mockReplace).not.toHaveBeenCalled()
-    await act(async () => {
-      vi.advanceTimersByTime(300)
-    })
-    expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('branch=feat'))
-  })
+  it(
+    'branch input waits 300ms before calling router.replace',
+    async () => {
+      const { ScanFilters } = await import('@/components/scans/ScanFilters')
+      render(<ScanFilters />)
+      // Switch to fake timers AFTER render so Radix Select's layout effects
+      // (which depend on the real microtask queue) finish first.
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const input = screen.getByTestId('branch-filter')
+      fireEvent.change(input, { target: { value: 'feat/my-branch' } })
+      expect(mockReplace).not.toHaveBeenCalled()
+      await act(async () => {
+        vi.advanceTimersByTime(300)
+      })
+      expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('branch=feat'))
+    },
+    // 3× Radix Select render under jsdom takes ~3-5s; allow headroom.
+    15000,
+  )
 })
