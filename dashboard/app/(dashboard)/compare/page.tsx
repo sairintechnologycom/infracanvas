@@ -14,7 +14,7 @@ export default function CompareLandingPage() {
         <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center">
           <GitCompare className="h-6 w-6 text-amber-600" />
         </div>
-        <h1 className="text-lg font-semibold text-slate-900">Compare two scans</h1>
+        <h1 className="text-base font-semibold text-slate-900">Compare two scans</h1>
         <p className="text-sm text-slate-500 max-w-md">
           Pick a scan from your history, then click <span className="font-mono text-slate-700">Compare against…</span> in
           the header to choose a target. We&apos;ll show resource diffs side-by-side.

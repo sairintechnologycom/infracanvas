@@ -33,7 +33,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
         data-testid="error-400"
         className="flex flex-col items-center justify-center h-full gap-3 px-6 py-12"
       >
-        <h1 className="text-lg font-semibold text-slate-900">Invalid compare URL</h1>
+        <h1 className="text-base font-semibold text-slate-900">Invalid compare URL</h1>
         <p className="text-sm text-slate-500 text-center max-w-md">
           Both scan IDs must be valid UUIDs. Open a scan from the list and use the
           {' '}<span className="font-mono">Compare</span>{' '}button on the header to start a comparison.
@@ -59,7 +59,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
           data-testid="error-404"
           className="flex flex-col items-center justify-center h-full gap-3 px-6 py-12"
         >
-          <h1 className="text-lg font-semibold text-slate-900">Scan not found</h1>
+          <h1 className="text-base font-semibold text-slate-900">Scan not found</h1>
           <p className="text-sm text-slate-500 text-center max-w-md">
             This scan may have been deleted, or you may not have access to it.
           </p>
@@ -77,7 +77,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
         data-testid="error-5xx"
         className="flex flex-col items-center justify-center h-full gap-3 px-6 py-12"
       >
-        <h1 className="text-lg font-semibold text-slate-900">Compare failed</h1>
+        <h1 className="text-base font-semibold text-slate-900">Compare failed</h1>
         <p className="text-sm text-slate-500 text-center max-w-md">
           The compare service returned an error{status ? ` (${status})` : ''}. Try again in a moment.
         </p>
