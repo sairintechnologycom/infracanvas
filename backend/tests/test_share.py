@@ -504,3 +504,303 @@ def test_create_share_link_no_auth(app_client: Any) -> None:
         # no headers
     )
     assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# TestListShareLinks (07.1-04 / RMD-04) — GET /v1/scans/{scan_id}/share-links
+# ---------------------------------------------------------------------------
+#
+# Test IDs:
+#   SHR-LIST-001  unauthenticated GET returns 401/403
+#   SHR-LIST-002  GET with valid auth returns active links (correct shape)
+#   SHR-LIST-003  GET on another team's scan returns 404 (RLS isolation)
+#   SHR-LIST-004  revoked share-links excluded
+#   SHR-LIST-005  expired share-links excluded
+#   SHR-LIST-006  results ordered by created_at DESC
+
+
+async def _seed_share_link_row(
+    seed_session: Any,
+    *,
+    scan_id: Any,
+    team_id: Any,
+    password: str | None = None,
+    revoked: bool = False,
+    expires_at: datetime | None = None,
+    created_at: datetime | None = None,
+    created_by: str = "u_share_seed",
+) -> Any:
+    """Insert a share_links row directly via the BYPASSRLS seed session.
+
+    Returns the inserted ShareLink ORM instance.
+    """
+    import secrets as _secrets
+    import uuid as _uuid
+
+    from app.db.models import ShareLink as _ShareLink
+
+    raw_token = _secrets.token_urlsafe(32)
+    # We don't need the actual bcrypt hash here — seeded rows are listed,
+    # never verified. Just ensure the DB columns are populated and unique.
+    token_hash = f"$2b$12$seed{_secrets.token_hex(20)}"
+    lookup_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    password_hash = (
+        f"$2b$12$pw{_secrets.token_hex(20)}" if password is not None else None
+    )
+    link = _ShareLink(
+        id=_uuid.uuid4(),
+        team_id=team_id,
+        scan_id=scan_id,
+        token_hash=token_hash,
+        token_lookup_hash=lookup_hash,
+        password_hash=password_hash,
+        expires_at=expires_at,
+        created_by=created_by,
+        revoked_at=datetime.now(timezone.utc) if revoked else None,
+    )
+    async with seed_session.begin():
+        seed_session.add(link)
+        await seed_session.flush()
+        # Override the DB-set created_at if requested (must run inside the same
+        # transaction so the UPDATE sees the just-flushed row).
+        if created_at is not None:
+            from sqlalchemy import update as _update
+
+            await seed_session.execute(
+                _update(_ShareLink)
+                .where(_ShareLink.id == link.id)
+                .values(created_at=created_at)
+            )
+    return link
+
+
+class TestListShareLinks:
+    """GET /v1/scans/{scan_id}/share-links — auth-required active-link list."""
+
+    def test_unauthenticated_returns_401(self, app_client: Any) -> None:
+        """SHR-LIST-001: missing auth → 401 or 403."""
+        fake_scan_id = new_uuid7()
+        resp = app_client.get(f"/v1/scans/{fake_scan_id}/share-links")
+        assert resp.status_code in (401, 403), resp.text
+
+    def test_returns_active_links_for_owner(
+        self,
+        app_client: Any,
+        team_a: Team,
+        auth_headers_factory: Any,
+        mock_r2: Any,
+        stub_stripe_meter: dict[str, Any],
+    ) -> None:
+        """SHR-LIST-002: team owner gets back active links with the expected shape."""
+        headers = auth_headers_factory(team_a.clerk_org_id)
+        scan_id = _seed_committed_scan(app_client, headers, mock_r2)
+
+        # Seed two active links: one with password, one without.
+        for body in ({}, {"password": "secret"}):
+            r = app_client.post(
+                f"/v1/scans/{scan_id}/share-links", json=body, headers=headers
+            )
+            assert r.status_code == 201, r.text
+
+        list_resp = app_client.get(
+            f"/v1/scans/{scan_id}/share-links", headers=headers
+        )
+        assert list_resp.status_code == 200, list_resp.text
+        data = list_resp.json()
+        assert "links" in data
+        assert isinstance(data["links"], list)
+        assert len(data["links"]) == 2
+
+        for item in data["links"]:
+            # Shape must match ShareLink TS interface
+            assert set(item.keys()) >= {
+                "id",
+                "expires_at",
+                "created_by",
+                "has_password",
+                "created_at",
+            }
+            assert isinstance(item["id"], str)
+            assert isinstance(item["created_by"], str)
+            assert isinstance(item["has_password"], bool)
+            assert isinstance(item["created_at"], str)
+
+        # Exactly one link should have has_password=True
+        password_flags = sorted(item["has_password"] for item in data["links"])
+        assert password_flags == [False, True]
+
+    def test_other_teams_scan_returns_404(
+        self,
+        app_client: Any,
+        team_a: Team,
+        auth_headers_factory: Any,
+        mock_r2: Any,
+        stub_stripe_meter: dict[str, Any],
+        seed_session: Any,
+    ) -> None:
+        """SHR-LIST-003: caller from team B asking about team A's scan → 404 (RLS)."""
+        import secrets as _secrets
+
+        headers_a = auth_headers_factory(team_a.clerk_org_id)
+        scan_id = _seed_committed_scan(app_client, headers_a, mock_r2)
+
+        # Build team B and call as a member of team B — RLS must hide team A's scan.
+        team_b_org = f"org_share_b_{_secrets.token_hex(6)}"
+        team_b = Team(
+            id=new_uuid7(),
+            clerk_org_id=team_b_org,
+            name="Team B (share)",
+            stripe_customer_id="cus_share_b",
+        )
+        async def _seed_b() -> None:  # noqa: D401 — local helper
+            async with seed_session.begin():
+                seed_session.add(team_b)
+
+        import asyncio as _asyncio
+
+        _asyncio.get_event_loop().run_until_complete(_seed_b())
+
+        headers_b = auth_headers_factory(team_b_org, sub="u_share_b")
+        resp = app_client.get(
+            f"/v1/scans/{scan_id}/share-links", headers=headers_b
+        )
+        assert resp.status_code == 404, resp.text
+
+    def test_revoked_links_excluded(
+        self,
+        app_client: Any,
+        team_a: Team,
+        auth_headers_factory: Any,
+        mock_r2: Any,
+        stub_stripe_meter: dict[str, Any],
+        seed_session: Any,
+    ) -> None:
+        """SHR-LIST-004: revoked_at IS NOT NULL → row excluded from list."""
+        import asyncio as _asyncio
+        import uuid as _uuid
+
+        headers = auth_headers_factory(team_a.clerk_org_id)
+        scan_id = _seed_committed_scan(app_client, headers, mock_r2)
+
+        # One active + one revoked link, seeded directly so we control revoked_at.
+        _asyncio.get_event_loop().run_until_complete(
+            _seed_share_link_row(
+                seed_session,
+                scan_id=_uuid.UUID(scan_id),
+                team_id=team_a.id,
+                revoked=False,
+            )
+        )
+        _asyncio.get_event_loop().run_until_complete(
+            _seed_share_link_row(
+                seed_session,
+                scan_id=_uuid.UUID(scan_id),
+                team_id=team_a.id,
+                revoked=True,
+            )
+        )
+
+        resp = app_client.get(
+            f"/v1/scans/{scan_id}/share-links", headers=headers
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert len(data["links"]) == 1, data
+
+    def test_expired_links_excluded(
+        self,
+        app_client: Any,
+        team_a: Team,
+        auth_headers_factory: Any,
+        mock_r2: Any,
+        stub_stripe_meter: dict[str, Any],
+        seed_session: Any,
+    ) -> None:
+        """SHR-LIST-005: expires_at < now → row excluded."""
+        import asyncio as _asyncio
+        import uuid as _uuid
+
+        headers = auth_headers_factory(team_a.clerk_org_id)
+        scan_id = _seed_committed_scan(app_client, headers, mock_r2)
+
+        future = datetime.now(timezone.utc) + timedelta(days=7)
+        past = datetime.now(timezone.utc) - timedelta(seconds=5)
+
+        _asyncio.get_event_loop().run_until_complete(
+            _seed_share_link_row(
+                seed_session,
+                scan_id=_uuid.UUID(scan_id),
+                team_id=team_a.id,
+                expires_at=future,
+            )
+        )
+        _asyncio.get_event_loop().run_until_complete(
+            _seed_share_link_row(
+                seed_session,
+                scan_id=_uuid.UUID(scan_id),
+                team_id=team_a.id,
+                expires_at=past,
+            )
+        )
+        # Also seed one with NULL expires_at — must be included.
+        _asyncio.get_event_loop().run_until_complete(
+            _seed_share_link_row(
+                seed_session,
+                scan_id=_uuid.UUID(scan_id),
+                team_id=team_a.id,
+                expires_at=None,
+            )
+        )
+
+        resp = app_client.get(
+            f"/v1/scans/{scan_id}/share-links", headers=headers
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        # 2 visible: future-expiry + null-expiry. The past-expiry one is excluded.
+        assert len(data["links"]) == 2, data
+
+    def test_ordered_by_created_at_desc(
+        self,
+        app_client: Any,
+        team_a: Team,
+        auth_headers_factory: Any,
+        mock_r2: Any,
+        stub_stripe_meter: dict[str, Any],
+        seed_session: Any,
+    ) -> None:
+        """SHR-LIST-006: results ordered by created_at DESC (newest first)."""
+        import asyncio as _asyncio
+        import uuid as _uuid
+
+        headers = auth_headers_factory(team_a.clerk_org_id)
+        scan_id = _seed_committed_scan(app_client, headers, mock_r2)
+
+        now = datetime.now(timezone.utc)
+        t_old = now - timedelta(hours=2)
+        t_mid = now - timedelta(hours=1)
+        t_new = now
+
+        # Seed in non-chronological order to exercise ORDER BY.
+        for created_at, marker in (
+            (t_mid, "u_mid"),
+            (t_old, "u_old"),
+            (t_new, "u_new"),
+        ):
+            _asyncio.get_event_loop().run_until_complete(
+                _seed_share_link_row(
+                    seed_session,
+                    scan_id=_uuid.UUID(scan_id),
+                    team_id=team_a.id,
+                    created_at=created_at,
+                    created_by=marker,
+                )
+            )
+
+        resp = app_client.get(
+            f"/v1/scans/{scan_id}/share-links", headers=headers
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        markers = [item["created_by"] for item in data["links"]]
+        assert markers == ["u_new", "u_mid", "u_old"], markers
