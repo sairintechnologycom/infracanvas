@@ -77,7 +77,7 @@ export function ScansTable({ data, currentParams }: Props) {
           </p>
           <a
             href="/scans"
-            className="text-sm text-amber-600 hover:underline mt-3 inline-block"
+            className="text-sm text-slate-900 hover:text-slate-700 hover:underline mt-3 inline-block"
           >
             Clear all filters
           </a>

@@ -50,7 +50,7 @@ export function TopFindings({ scan }: Props) {
           </p>
           <Link
             href={`/scans/${scan.id}`}
-            className="text-xs text-amber-600 hover:underline mt-2 inline-block"
+            className="text-xs text-slate-900 hover:text-slate-700 hover:underline mt-2 inline-block"
           >
             Open scan →
           </Link>

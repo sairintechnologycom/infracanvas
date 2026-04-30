@@ -22,3 +22,12 @@ Confirmed timeout flakes — all 4 pass 44/44 in isolation (`vitest run <file>`)
 - `dashboard/__tests__/share-modal.test.tsx` "renders 'Share this scan' dialog title when isOpen=true" — surfaced after Plan 07.1-06 (post-Wave-2 full-suite run); 14/14 in isolation.
 
 Recommended fix: bump `testTimeout` for these files in `vitest.config.ts`, migrate `vi.advanceTimersByTime` calls to `await waitFor()`, or pin `pool: 'forks'` to reduce thread contention. Out-of-scope for Phase 7.1 plans — defer to a vitest-tuning sweep.
+
+## 07.1-08 build-blocker resolutions (Rule 3 inline fixes)
+
+Plan 07.1-08 acceptance criteria require `npm run build` to exit 0; both pre-existing build blockers tracked in the table above (Inter unused import in `app/layout.tsx`; missing-module import in `components/ui/form.tsx`) were resolved inline as Rule 3 deviations because the verification gates could not otherwise pass.
+
+- `dashboard/app/layout.tsx`: removed unused `Inter` from the `next/font/google` import list.
+- `dashboard/components/ui/form.tsx`: changed `@/registry/new-york-v4/ui/label` → `@/components/ui/label` (the existing local shadcn primitive). No behavior change — same exported `Label` from radix-ui.
+
+The matching rows in the table above are now considered closed for the 07.1 phase.

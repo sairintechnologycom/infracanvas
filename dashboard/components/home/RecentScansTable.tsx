@@ -41,7 +41,7 @@ export function RecentScansTable({ scans }: Props) {
         <h2 className="text-base font-semibold text-slate-900">Recent scans</h2>
         <Link
           href="/scans"
-          className="text-sm text-amber-600 hover:underline"
+          className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
         >
           View all →
         </Link>

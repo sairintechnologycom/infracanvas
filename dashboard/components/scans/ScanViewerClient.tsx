@@ -82,7 +82,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
         <p className="text-xs text-slate-500">{error ?? 'Unknown error'}</p>
         <button
           onClick={() => window.location.reload()}
-          className="text-sm text-amber-600 hover:underline"
+          className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
         >
           Try again
         </button>
