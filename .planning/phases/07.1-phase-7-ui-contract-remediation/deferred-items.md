@@ -12,11 +12,13 @@ dedicated cleanup pass.
 | 2026-04-30 | 07.1-04 | dashboard/components/scans/ScanPickerModal.tsx, dashboard/components/scans/CompareButton.tsx | `next build` fails with `'server-only' cannot be imported from a Client Component module`. Trace: `lib/backend.ts → ScanPickerModal.tsx → CompareButton.tsx`. `lib/backend.ts` is server-only (uses `auth()`) and is being imported into a Client Component path. Pre-existing — NOT caused by Plan 07.1-04 changes (verified via `npx tsc --noEmit -p tsconfig.json` showing zero errors in `app/api/scan-share/route.ts`; the build trace lists only ScanPicker/CompareButton). Likely introduced by a parallel Plan 07.1 stream that wired CompareButton to a server-side data fetch. | Out-of-scope for plan 04 (files not in `files_modified`). Defer to the plan that owns ScanPickerModal/CompareButton — the component must call a `/api/...` route handler instead of importing `lib/backend.ts` directly. Final cleanup pass or phase verifier should catch. |
 | 2026-04-30 | 07.1-04 | dashboard/components/ui/form.tsx | `Cannot find module '@/registry/new-york-v4/ui/label'`. Pre-existing shadcn-init artefact from Plan 07.1-01 (registry path stub never resolved). | Out-of-scope. Defer to Plan 07.1-01 follow-up or shadcn cleanup pass. |
 
-## 07.1-05 — Pre-existing flaky tests (out of scope, observed during execution)
+## Pre-existing flaky tests (out of scope, observed during full-suite execution)
 
-- `dashboard/__tests__/scan-filters.test.tsx` "renders combobox-role triggers" — times out at 15 s under load.
-- `dashboard/__tests__/scans-table.test.tsx` "branch input waits 300ms before calling router.replace" — times out at 15 s under load.
+Confirmed timeout flakes — all 4 pass 44/44 in isolation (`vitest run <file>`). They time out only when the full vitest suite runs concurrently (`environment 123s` setup overhead under thread contention).
 
-Both pass in isolation and on lighter runs (verified: `npm test -- --run __tests__/compare-layout.test.tsx` → 30/30 green; first full-suite run reported 129/129). They were introduced by Plan 07.1-03 (ScanFilters shadcn migration) and Plan 07.1-04 (scans table debounce). Recommended fix: bump testTimeout for these files or migrate to `await waitFor()` instead of `vi.advanceTimersByTime`.
+- `dashboard/__tests__/scan-filters.test.tsx` "renders combobox-role triggers" — surfaced after Plan 07.1-03 (ScanFilters shadcn migration).
+- `dashboard/__tests__/scans-table.test.tsx` "branch input waits 300ms before calling router.replace" — surfaced after Plan 07.1-03 (debounce test using `vi.advanceTimersByTime`).
+- `dashboard/__tests__/compare-layout.test.tsx` "renders four section headings: Added, Removed, Changed, Findings" — surfaced after Plan 07.1-05 (post-Wave-2 full-suite run); 30/30 in isolation.
+- `dashboard/__tests__/share-modal.test.tsx` "renders 'Share this scan' dialog title when isOpen=true" — surfaced after Plan 07.1-06 (post-Wave-2 full-suite run); 14/14 in isolation.
 
-Tracked here so 07.1-05 does not regress the worktree on these flakes.
+Recommended fix: bump `testTimeout` for these files in `vitest.config.ts`, migrate `vi.advanceTimersByTime` calls to `await waitFor()`, or pin `pool: 'forks'` to reduce thread contention. Out-of-scope for Phase 7.1 plans — defer to a vitest-tuning sweep.
