@@ -20,9 +20,9 @@ interface PageProps {
  *      contract — D-18 says cross-team requests return 404 (not 403) so the
  *      dashboard treats 404 uniformly without leaking team/scan existence.
  *   4. On success, render <CompareLayout/> client boundary. The RSC does NOT
- *      fetch presigned URLs (D-08 / Pitfall 2 — presigned URL TTL <=300s,
- *      may expire before JS hydrates) — CompareViewerPair fetches them
- *      client-side on mount.
+ *      fetch presigned URLs (D-08 / Pitfall 2 — presigned URL TTL <=300s, may
+ *      expire before JS hydrates) — when the user opens the per-resource
+ *      drill-down Sheet, the client requests presigned URLs at that moment.
  */
 export default async function ComparePage({ searchParams }: PageProps) {
   const { a, b } = await searchParams
