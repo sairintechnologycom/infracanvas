@@ -7,6 +7,7 @@ import {
 } from '@infracanvas/viewer'
 import '@infracanvas/viewer/styles.css'
 import type { ResourceGraph, ViewerStoreApi } from '@infracanvas/viewer'
+import { ReactFlowProvider } from '@xyflow/react'
 import { fetchScanJson } from '@/lib/r2'
 
 interface Props {
@@ -93,7 +94,9 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
   return (
     <div className="h-full w-full" data-testid="scan-viewer-client">
       <ViewerProvider store={store}>
-        <DiagramCanvas />
+        <ReactFlowProvider>
+          <DiagramCanvas />
+        </ReactFlowProvider>
       </ViewerProvider>
     </div>
   )
