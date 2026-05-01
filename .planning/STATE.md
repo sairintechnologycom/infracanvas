@@ -28,7 +28,7 @@ Milestone: v1.1 — started 2026-04-20
 Phase: 07.1
 Plan: 01 complete; ready for 02 (Toaster mount + ShareModal/ScanPickerModal Dialog migration — Wave 1)
 Status: Phase 7.1 Plan 01 done — shadcn/ui Wave 0 landed (17 primitives + cn() helper + merged globals.css). Plans 02-09 unblocked.
-Last activity: 2026-04-30 -- Phase 7.1 Plan 01 complete (commits 0610970 + a40d2fe + d7614b5 + b4ae95b)
+Last activity: 2026-05-01 -- Completed quick task 260501-aw7: Fix React Flow zustand provider error on scan detail page
 
 ## Accumulated Context
 
@@ -74,6 +74,12 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - [Phase 3b]: DC Agent CAB approval timeline (4–12 weeks) is critical path
 - [Phase 3b]: Cisco NETCONF compatibility matrix unknown
 - [Phase 4]: Viewer extraction to shared package is load-bearing; divergence creates long-term maintenance liability
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260501-aw7 | Fix React Flow zustand provider error on scan detail page | 2026-05-01 | 4cfd658 | [260501-aw7-fix-react-flow-zustand-provider-error-on](./quick/260501-aw7-fix-react-flow-zustand-provider-error-on/) |
 
 ## Deferred Items
 
