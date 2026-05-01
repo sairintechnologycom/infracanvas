@@ -96,6 +96,9 @@ describe('ScanFilters debounce', () => {
     async () => {
       const { ScanFilters } = await import('@/components/scans/ScanFilters')
       render(<ScanFilters />)
+      // Flush all pending React effects (Radix Select layout effects) before
+      // engaging fake timers, so internal microtasks don't leak into fake time.
+      await act(async () => {})
       // Switch to fake timers AFTER render so Radix Select's layout effects
       // (which depend on the real microtask queue) finish first.
       vi.useFakeTimers({ shouldAdvanceTime: true })
@@ -108,6 +111,7 @@ describe('ScanFilters debounce', () => {
       expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('branch=feat'))
     },
     // 3× Radix Select render under jsdom takes ~3-5s; allow headroom.
-    15000,
+    // Increased to 30000 to handle full-suite CPU contention (170 tests).
+    30000,
   )
 })

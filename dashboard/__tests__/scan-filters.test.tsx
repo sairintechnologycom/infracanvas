@@ -55,6 +55,7 @@ describe('ScanFilters — shadcn Select + Custom range (RMD-01, RMD-06)', () => 
       expect(comboboxes.length).toBeGreaterThanOrEqual(1)
     },
     // 3× Radix Select render under jsdom + worker contention can exceed 5s.
-    15000,
+    // Increased to 30000 to handle full-suite CPU contention (170 tests).
+    30000,
   )
 })
