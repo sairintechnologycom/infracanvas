@@ -5,6 +5,15 @@ import { Sparkline } from '@/components/scans/Sparkline'
 const scores = [70, 75, 82, 88, 91]
 const dates = ['2026-04-25', '2026-04-26', '2026-04-27', '2026-04-28', '2026-04-29']
 
+describe('Sparkline wrapper width regression', () => {
+  it('wrapper div has w-full so it stretches inside flex parents', () => {
+    const { container } = render(<Sparkline scores={scores} dates={dates} />)
+    const svg = container.querySelector('svg')!
+    const wrapper = svg.parentElement!
+    expect(wrapper.className).toMatch(/\bw-full\b/)
+  })
+})
+
 describe('Sparkline hover tooltip (RMD-06)', () => {
   it('renders an svg', () => {
     const { container } = render(<Sparkline scores={scores} dates={dates} />)

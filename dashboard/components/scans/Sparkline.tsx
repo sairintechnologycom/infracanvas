@@ -55,7 +55,7 @@ export function Sparkline({ scores, dates, className = '' }: Props) {
   const handleMouseLeave = () => setHoverIdx(null)
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
