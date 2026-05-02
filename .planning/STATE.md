@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: executing
-last_updated: "2026-04-30T15:18:00.000Z"
-last_activity: "2026-04-30 -- Phase 7.1 Plan 01 complete (shadcn/ui + 17 primitives + globals.css merged); Wave 0 unblocks 02-09"
+last_updated: "2026-05-02T15:55:00.000Z"
+last_activity: "2026-05-02 -- Quick task 260502-tra: Fix sparkline width bug (one-line wrapper-width fix + regression test, 171/171 green)"
 progress:
   total_phases: 18
   completed_phases: 10
@@ -28,7 +28,7 @@ Milestone: v1.1 — started 2026-04-20
 Phase: 07.1
 Plan: 01 complete; ready for 02 (Toaster mount + ShareModal/ScanPickerModal Dialog migration — Wave 1)
 Status: Phase 7.1 Plan 01 done — shadcn/ui Wave 0 landed (17 primitives + cn() helper + merged globals.css). Plans 02-09 unblocked.
-Last activity: 2026-05-01 -- Completed quick task 260501-aw7: Fix React Flow zustand provider error on scan detail page
+Last activity: 2026-05-02 -- Completed quick task 260502-tra: Fix sparkline width bug — wrapper div in Sparkline.tsx
 
 ## Accumulated Context
 
@@ -80,6 +80,7 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260501-aw7 | Fix React Flow zustand provider error on scan detail page | 2026-05-01 | 4cfd658 | [260501-aw7-fix-react-flow-zustand-provider-error-on](./quick/260501-aw7-fix-react-flow-zustand-provider-error-on/) |
+| 260502-tra | Fix sparkline width bug — wrapper div in Sparkline.tsx | 2026-05-02 | 373b0d9 | [260502-tra-fix-sparkline-width-bug-wrapper-div-in-s](./quick/260502-tra-fix-sparkline-width-bug-wrapper-div-in-s/) |
 
 ## Deferred Items
 
