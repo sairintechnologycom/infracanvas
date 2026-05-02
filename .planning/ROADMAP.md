@@ -218,7 +218,7 @@ Plans:
 
 **Status:** INSERTED — second remediation pass after live testing surfaced defects the pre-shipping code-only audit missed.
 **Goal:** Close the 14 P0/P1/P2/P3 defects catalogued in `07.1-LIVE-UI-REVIEW.md` (10/24 live score) so the dashboard is shippable for Phase 7.5 GitHub Connector work.
-**Requirements:** TBD (defined during `/gsd-plan-phase 7.2` from the LIVE review)
+**Requirements:** D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15
 **Depends on:** Phase 7, Phase 7.1 (this remediates 7.1's shipped state)
 **Success criteria:**
 1. Canvas tab on `/scans/[id]` renders the diagram in the dashboard shell (not overflowing viewport, not pushed off-screen)
@@ -230,7 +230,22 @@ Plans:
 7. ShareModal uses shadcn `<Select/>` (not native), warning text uses `text-amber-600`, label reads "Link expires in"
 8. Live re-audit scores ≥20/24 across all 6 pillars
 
+**Plans:** 10 plans
+
+Plans:
+- [ ] 07.2-01-PLAN.md — D-01 viewer App.tsx h-screen → h-full (Wave 1)
+- [ ] 07.2-02-PLAN.md — D-02 useViewerStoreOrSingleton migration for FilterPanel/DetailPanel/SummaryBar/SearchBar + FlowMap variants (Wave 1)
+- [ ] 07.2-03-PLAN.md — D-03 /settings redirect + D-04 sparkline preserveAspectRatio + ScoreSparkline h-[80px] (Wave 1)
+- [ ] 07.2-04-PLAN.md — D-05 gradeInfo() shared util + adoption across ScoreCard/ScansTable/MetadataHeader/ShareViewer (Wave 2)
+- [ ] 07.2-05-PLAN.md — D-06 Sidebar xl-breakpoint collapse removal (Wave 2)
+- [ ] 07.2-06-PLAN.md — D-07 /api/top-findings route handler + TopFindings card rewrite (Wave 2)
+- [ ] 07.2-07-PLAN.md — D-08 ShareModal shadcn Select + "Link expires in" + text-amber-600 warning (Wave 2)
+- [ ] 07.2-08-PLAN.md — D-09 + D-11 + D-12 + D-13 + D-14 dashboard sweep (Wave 3)
+- [ ] 07.2-09-PLAN.md — D-10 viewer FilterPanel typography sweep (Wave 3)
+- [ ] 07.2-10-PLAN.md — D-15 LIVE re-audit ≥20/24 (Wave 4 — verify)
+
 **Context:** Live testing on the dev/local-no-auth branch (2026-05-02) exposed defects that the pre-shipping audit graded as 17/24 missed. Driver: viewer's `App.tsx` was designed for standalone HTML mode; embedding it inside the dashboard shell broke layout assumptions (`h-screen w-screen`) and surfaced a deferred-but-unfinished store migration (`useStore` singleton vs `useViewerStoreOrSingleton` factory). This phase closes both — plus copy, color, spacing, and typography drift left behind by 7.1's plan-08 sweep. Suggested wave structure in `07.1-LIVE-UI-REVIEW.md`: 3 waves, 9–12 plans.
+
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 
