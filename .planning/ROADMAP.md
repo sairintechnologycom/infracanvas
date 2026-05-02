@@ -29,6 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [ ] **Phase 6: SaaS Backend Foundation** — FastAPI + Clerk + Neon + R2 + taskiq + Stripe Billing Meters + observability
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
 - [ ] **Phase 7.1: Phase 7 UI Contract Remediation** (INSERTED) — close UI-SPEC gaps from Phase 7 audit (shadcn init, compare diff list, share toasts/revoke, polish drift)
+- [ ] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — fix 14 P0/P1/P2/P3 defects from live audit (07.1-LIVE-UI-REVIEW.md, 10/24): viewer h-screen embed break, singleton store leak in 4+ viewer components, /settings 404, sparkline ovals, grade-threshold split, sidebar dead zone
 - [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
 - [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
@@ -212,6 +213,24 @@ Plans:
 6. Polish drift closed: amber accent constrained to spec'd reserved-for list, off-scale `text-xl`/`text-lg` headings normalized to the 4-size scale, home page gutters fixed to `px-8 py-12 gap-12`, focus rings normalized to `ring-slate-400`, breadcrumb + relative-date copy aligned to spec, custom-range filter + sparkline hover tooltip implemented
 
 **Context:** Phase 7 shipped functional but the implementation diverged from `07-UI-SPEC.md` on three blockers (shadcn never initialized, compare ships the explicitly-rejected dual canvas, share-management surface incomplete) and several warnings (color/typography/spacing/copy drift). The audit (`07-UI-REVIEW.md`, 2026-04-29) scored 16/24 (B). Inserting this phase before 7.5 keeps the GitHub-connector work building on a contract-aligned dashboard rather than amplifying the divergence. No new features — pure remediation pass.
+
+### Phase 7.2: UI Contract Remediation — Live (INSERTED)
+
+**Status:** INSERTED — second remediation pass after live testing surfaced defects the pre-shipping code-only audit missed.
+**Goal:** Close the 14 P0/P1/P2/P3 defects catalogued in `07.1-LIVE-UI-REVIEW.md` (10/24 live score) so the dashboard is shippable for Phase 7.5 GitHub Connector work.
+**Requirements:** TBD (defined during `/gsd-plan-phase 7.2` from the LIVE review)
+**Depends on:** Phase 7, Phase 7.1 (this remediates 7.1's shipped state)
+**Success criteria:**
+1. Canvas tab on `/scans/[id]` renders the diagram in the dashboard shell (not overflowing viewport, not pushed off-screen)
+2. FilterPanel / DetailPanel / SummaryBar / SearchBar render and react to per-scan state when embedded in dashboard
+3. `/settings` resolves to a real page (redirect to `/settings/members`)
+4. Sparkline data points render as circles, not stretched ovals; container height matches spec (≥80px)
+5. Grade letter shown for any given score is identical across ScoreCard, ScansTable, MetadataHeader, and ShareViewer
+6. Sidebar has no `w-12` icon-only dead zone at 768–1279px viewports
+7. ShareModal uses shadcn `<Select/>` (not native), warning text uses `text-amber-600`, label reads "Link expires in"
+8. Live re-audit scores ≥20/24 across all 6 pillars
+
+**Context:** Live testing on the dev/local-no-auth branch (2026-05-02) exposed defects that the pre-shipping audit graded as 17/24 missed. Driver: viewer's `App.tsx` was designed for standalone HTML mode; embedding it inside the dashboard shell broke layout assumptions (`h-screen w-screen`) and surfaced a deferred-but-unfinished store migration (`useStore` singleton vs `useViewerStoreOrSingleton` factory). This phase closes both — plus copy, color, spacing, and typography drift left behind by 7.1's plan-08 sweep. Suggested wave structure in `07.1-LIVE-UI-REVIEW.md`: 3 waves, 9–12 plans.
 
 ### Phase 7.5: GitHub Repo Connector (INSERTED)
 

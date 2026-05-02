@@ -39,6 +39,7 @@ Last activity: 2026-05-02 -- Completed quick task 260502-tra: Fix sparkline widt
 - 2026-04-21: Phase 5.1 inserted after Phase 5: Parser realism + CLI UX (URGENT — local `module {}` resolution gap and noisy CLI output surfaced during Phase 5 manual testing; pre-Phase 6)
 - 2026-04-21: Phase 7.5 inserted after Phase 7: GitHub Repo Connector (fills the "connect a repo + pick branch + scan" UX gap before Phase 8 webhooks — GitHub-only MVP, multi-provider deferred to v1.2)
 - Phase 7.1 inserted after Phase 7: Phase 7 UI Contract Remediation — close UI-SPEC gaps from 07-UI-REVIEW.md (shadcn init, compare diff list, share toasts/revoke, polish drift) (URGENT)
+- 2026-05-02: Phase 7.2 inserted after Phase 7.1: UI Contract Remediation — Live (live audit 07.1-LIVE-UI-REVIEW.md scored 10/24; 14 fixes covering viewer h-screen embed break, singleton store leak in 4 viewer components, /settings 404, sparkline ovals, grade-threshold split, sidebar dead zone) (URGENT — blocks Phase 7.5)
 
 ### Decisions
 
