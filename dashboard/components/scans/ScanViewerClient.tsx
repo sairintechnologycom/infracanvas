@@ -2,12 +2,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ViewerProvider,
-  DiagramCanvas,
+  ViewerApp,
   createViewerStore,
 } from '@infracanvas/viewer'
 import '@infracanvas/viewer/styles.css'
 import type { ResourceGraph, ViewerStoreApi } from '@infracanvas/viewer'
-import { ReactFlowProvider } from '@xyflow/react'
 import { fetchScanJson } from '@/lib/r2'
 
 interface Props {
@@ -52,6 +51,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
       .then((data) => {
         if (!cancelled) {
           store.getState().setGraph(data)
+          store.getState().setHasFlowMap(Boolean(data.network_paths?.length))
           setGraph(data)
           setLoading(false)
         }
@@ -94,9 +94,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
   return (
     <div className="h-full w-full" data-testid="scan-viewer-client">
       <ViewerProvider store={store}>
-        <ReactFlowProvider>
-          <DiagramCanvas />
-        </ReactFlowProvider>
+        <ViewerApp />
       </ViewerProvider>
     </div>
   )

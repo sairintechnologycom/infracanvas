@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '../store';
+import { renderHook } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import {
+  useStore,
+  createViewerStore,
+  ViewerProvider,
+  useViewerStoreOrSingleton,
+} from '../store';
 import type { ResourceGraph, ResourceNode } from '../types';
 
 const mockNode: ResourceNode = {
@@ -215,5 +222,33 @@ describe('FlowMap store slices (Plan 03-06)', () => {
     useStore.getState().clearFlowMapFilters();
     expect(useStore.getState().filters.severities).toContain('critical');
     expect(useStore.getState().flowMapFilters.severities).toEqual([]);
+  });
+});
+
+describe('useViewerStoreOrSingleton — dual-mode hook (regression for empty-canvas bug)', () => {
+  beforeEach(() => {
+    useStore.setState({ graph: null });
+  });
+
+  it('reads from module singleton when no ViewerProvider is mounted (standalone HTML viewer path)', () => {
+    useStore.getState().setGraph(mockGraph);
+    const { result } = renderHook(() => useViewerStoreOrSingleton((s) => s.graph));
+    expect(result.current).toBe(mockGraph);
+  });
+
+  it('reads from context-bound factory store when wrapped in ViewerProvider (dashboard path)', () => {
+    // Singleton stays empty; factory store gets the graph. This is exactly
+    // the production scenario in ScanViewerClient — without the fix, the
+    // hook would fall through to the empty singleton and the canvas blanks.
+    const factoryStore = createViewerStore();
+    factoryStore.getState().setGraph(mockGraph);
+
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(ViewerProvider, { store: factoryStore }, children);
+
+    const { result } = renderHook(() => useViewerStoreOrSingleton((s) => s.graph), { wrapper });
+    expect(result.current).toBe(mockGraph);
+    // Singleton untouched — proves per-page isolation is preserved.
+    expect(useStore.getState().graph).toBeNull();
   });
 });

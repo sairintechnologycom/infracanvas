@@ -4,7 +4,7 @@ import type { ResourceNode as ResourceNodeData } from '../types';
 import { severityColors, driftColors, getHighestSeverity } from '../lib/colors';
 import { detectProvider } from '../lib/providerTheme';
 import { ServiceIcon } from './icons/ServiceIcon';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 
 type ResourceNodeProps = NodeProps & {
   data: ResourceNodeData;
@@ -16,7 +16,7 @@ const NODE_H = 90;
 const ICON_SIZE = 40;
 
 function ResourceNodeComponent({ data, selected }: ResourceNodeProps) {
-  const setSelectedNode = useStore(s => s.setSelectedNode);
+  const setSelectedNode = useViewerStoreOrSingleton(s => s.setSelectedNode);
   const highestSev = getHighestSeverity(data.findings);
   const findingCount = data.findings.length;
   const isShadow = data.drift === 'shadow';

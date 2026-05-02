@@ -1,12 +1,13 @@
 import { useRef } from 'react';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 
-type TabId = 'canvas' | 'flowmap';
+type TabId = 'canvas' | 'flowmap' | 'costlens';
 
 interface TabDef {
   id: TabId;
   label: string;
   beta?: boolean;
+  soon?: boolean;
   tooltip: string;
 }
 
@@ -29,18 +30,21 @@ const TABS: TabDef[] = [
     beta: true,
     tooltip: `Hybrid network topology — beta, free during preview. Press 2 or ${_shortcut}`,
   },
+  {
+    id: 'costlens',
+    label: 'CostLens',
+    soon: true,
+    tooltip: 'Shared infrastructure cost allocation — coming in Phase 9',
+  },
 ];
 
-const FLOWMAP_DISABLED_COPY =
-  'No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.';
-
 export function TabBar() {
-  const activeTab = useStore((s) => s.activeTab);
-  const setActiveTab = useStore((s) => s.setActiveTab);
-  const hasFlowMap = useStore((s) => s.hasFlowMap);
+  const activeTab = useViewerStoreOrSingleton((s) => s.activeTab);
+  const setActiveTab = useViewerStoreOrSingleton((s) => s.setActiveTab);
   const refs = useRef<Record<TabId, HTMLButtonElement | null>>({
     canvas: null,
     flowmap: null,
+    costlens: null,
   });
 
   const focusTab = (id: TabId) => {
@@ -48,25 +52,28 @@ export function TabBar() {
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const last = TABS.length - 1;
+    const navigable = TABS.filter((t) => !t.soon);
+    const navIdx = navigable.findIndex((t) => t.id === TABS[index].id);
+    if (navIdx === -1) return; // "soon" tab is not keyboard-navigable
+    const last = navigable.length - 1;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      const next = index === last ? 0 : index + 1;
-      setActiveTab(TABS[next].id);
-      focusTab(TABS[next].id);
+      const next = navIdx === last ? 0 : navIdx + 1;
+      setActiveTab(navigable[next].id);
+      focusTab(navigable[next].id);
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      const prev = index === 0 ? last : index - 1;
-      setActiveTab(TABS[prev].id);
-      focusTab(TABS[prev].id);
+      const prev = navIdx === 0 ? last : navIdx - 1;
+      setActiveTab(navigable[prev].id);
+      focusTab(navigable[prev].id);
     } else if (e.key === 'Home') {
       e.preventDefault();
-      setActiveTab(TABS[0].id);
-      focusTab(TABS[0].id);
+      setActiveTab(navigable[0].id);
+      focusTab(navigable[0].id);
     } else if (e.key === 'End') {
       e.preventDefault();
-      setActiveTab(TABS[last].id);
-      focusTab(TABS[last].id);
+      setActiveTab(navigable[last].id);
+      focusTab(navigable[last].id);
     }
   };
 
@@ -87,7 +94,7 @@ export function TabBar() {
     >
       {TABS.map((tab, index) => {
         const isActive = activeTab === tab.id;
-        const isDisabled = tab.id === 'flowmap' && !hasFlowMap;
+        const isSoon = Boolean(tab.soon);
         return (
           <button
             key={tab.id}
@@ -96,14 +103,13 @@ export function TabBar() {
             }}
             role="tab"
             aria-selected={isActive}
-            aria-disabled={isDisabled || undefined}
-            aria-describedby={isDisabled ? 'flowmap-disabled-tooltip' : undefined}
+            aria-disabled={isSoon || undefined}
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
-            tabIndex={isDisabled ? -1 : isActive ? 0 : -1}
-            title={isDisabled ? FLOWMAP_DISABLED_COPY : tab.tooltip}
+            tabIndex={isSoon ? -1 : isActive ? 0 : -1}
+            title={tab.tooltip}
             onClick={() => {
-              if (isDisabled) return;
+              if (isSoon) return;
               setActiveTab(tab.id);
             }}
             onKeyDown={(e) => handleKey(e, index)}
@@ -112,11 +118,11 @@ export function TabBar() {
               padding: '0 16px',
               border: 'none',
               background: isActive ? 'rgba(59,130,246,0.08)' : 'transparent',
-              color: isDisabled ? '#475569' : isActive ? '#F1F5F9' : '#64748B',
+              color: isSoon ? '#475569' : isActive ? '#F1F5F9' : '#64748B',
               borderBottom: isActive ? '2px solid #3B82F6' : '2px solid transparent',
               fontSize: 12,
               fontWeight: isActive ? 700 : 500,
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              cursor: isSoon ? 'not-allowed' : 'pointer',
               transition: 'color 0.12s, background 0.12s',
               display: 'flex',
               alignItems: 'center',
@@ -125,13 +131,13 @@ export function TabBar() {
               outlineOffset: 2,
             }}
             onMouseEnter={(e) => {
-              if (!isActive && !isDisabled) {
+              if (!isActive && !isSoon) {
                 e.currentTarget.style.color = '#94A3B8';
                 e.currentTarget.style.background = 'rgba(45,55,72,0.3)';
               }
             }}
             onMouseLeave={(e) => {
-              if (!isActive && !isDisabled) {
+              if (!isActive && !isSoon) {
                 e.currentTarget.style.color = '#64748B';
                 e.currentTarget.style.background = 'transparent';
               }
@@ -154,28 +160,25 @@ export function TabBar() {
                 BETA
               </span>
             )}
+            {tab.soon && (
+              <span
+                aria-label="coming soon"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  padding: '1px 6px',
+                  borderRadius: 4,
+                  background: 'rgba(100,116,139,0.12)',
+                  color: '#64748B',
+                  lineHeight: 1.4,
+                }}
+              >
+                SOON
+              </span>
+            )}
           </button>
         );
       })}
-      {/* WRG-03 §Accessibility: off-screen tooltip node referenced by the
-          FlowMap button when disabled (see the describedby attribute above). */}
-      <span
-        role="tooltip"
-        id="flowmap-disabled-tooltip"
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          padding: 0,
-          margin: -1,
-          overflow: 'hidden',
-          clip: 'rect(0, 0, 0, 0)',
-          whiteSpace: 'nowrap',
-          border: 0,
-        }}
-      >
-        No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.
-      </span>
     </div>
   );
 }

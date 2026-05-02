@@ -1,13 +1,12 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { useStore } from './store';
+import { useViewerStoreOrSingleton } from './store';
 import { SummaryBar } from './components/SummaryBar';
 import { TabBar } from './components/TabBar';
 import { FilterPanel } from './components/FilterPanel';
 import { DiagramCanvas } from './components/DiagramCanvas';
 import { DetailPanel } from './components/DetailPanel';
-import { sampleData } from './sample-data';
-import type { ResourceGraph } from './types';
+import { FlowMapEmptyState } from './components/flowmap/FlowMapEmptyState';
 
 const FlowMapCanvas = lazy(() =>
   import('./components/flowmap/FlowMapCanvas').then((m) => ({ default: m.FlowMapCanvas })),
@@ -22,25 +21,12 @@ const PathDetailPanel = lazy(() =>
 );
 
 export default function App() {
-  const setGraph = useStore((s) => s.setGraph);
-  const setGateMode = useStore((s) => s.setGateMode);
-  const setHasFlowMap = useStore((s) => s.setHasFlowMap);
-  const activeTab = useStore((s) => s.activeTab);
-  const setActiveTab = useStore((s) => s.setActiveTab);
-  const hasFlowMap = useStore((s) => s.hasFlowMap);
+  const activeTab = useViewerStoreOrSingleton((s) => s.activeTab);
+  const setActiveTab = useViewerStoreOrSingleton((s) => s.setActiveTab);
+  const hasFlowMap = useViewerStoreOrSingleton((s) => s.hasFlowMap);
 
-  useEffect(() => {
-    const injected = window.__INFRACANVAS_DATA__;
-    const data: ResourceGraph = injected ?? sampleData;
-    setGraph(data);
-    const gateMode = window.__INFRACANVAS_GATE__ ?? true;
-    setGateMode(gateMode);
-    // Phase 4 WRG-03: detect presence of flowmap payload for tab disabled state
-    setHasFlowMap(Boolean(injected?.flowmap));
-  }, [setGraph, setGateMode, setHasFlowMap]);
-
-  // Phase 4 WRG-03 (D-11): hash init on mount + hashchange listener.
-  // Unknown hashes silently fall through to 'canvas' (no error toast).
+  // Hash init on mount + hashchange listener.
+  // Unknown hashes silently fall through to 'canvas'.
   useEffect(() => {
     const readHash = () => {
       const hash = window.location.hash.replace(/^#/, '');
@@ -55,8 +41,8 @@ export default function App() {
     return () => window.removeEventListener('hashchange', readHash);
   }, [setActiveTab]);
 
-  // Phase 4 WRG-03 (D-11): sync activeTab -> URL hash via replaceState.
-  // Use replaceState (not pushState) — tab switches must not pollute history.
+  // Sync activeTab → URL hash via replaceState (not pushState — tab switches
+  // must not pollute history).
   useEffect(() => {
     const targetHash = `#${activeTab}`;
     if (window.location.hash !== targetHash) {
@@ -64,8 +50,8 @@ export default function App() {
     }
   }, [activeTab]);
 
-  // Phase 4 WRG-03 (D-12): global keyboard shortcuts — Cmd/Ctrl+\, 1, 2.
-  // Suppressed when focus is inside form fields (input/textarea/select/CE).
+  // Global keyboard shortcuts — Cmd/Ctrl+\, 1, 2.
+  // Suppressed when focus is inside form fields.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -82,9 +68,7 @@ export default function App() {
       // Cmd/Ctrl + \ toggles Canvas <-> FlowMap
       if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
         e.preventDefault();
-        const next = activeTab === 'canvas' ? 'flowmap' : 'canvas';
-        if (next === 'flowmap' && !hasFlowMap) return; // no-op when disabled
-        setActiveTab(next);
+        setActiveTab(activeTab === 'canvas' ? 'flowmap' : 'canvas');
         return;
       }
 
@@ -94,16 +78,15 @@ export default function App() {
         return;
       }
 
-      // '2' jumps to FlowMap (no-op if disabled)
+      // '2' jumps to FlowMap — always navigable; shows empty state if no data
       if (e.key === '2' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (!hasFlowMap) return;
         setActiveTab('flowmap');
         return;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [activeTab, hasFlowMap, setActiveTab]);
+  }, [activeTab, setActiveTab]);
 
   const isFlowMap = activeTab === 'flowmap';
 
@@ -119,13 +102,17 @@ export default function App() {
           aria-labelledby={`tab-${activeTab}`}
         >
           {isFlowMap ? (
-            <Suspense fallback={<div className="flex-1" />}>
-              <FlowMapFilterPanel />
-              <div className="flex-1 min-w-0">
-                <FlowMapCanvas />
-              </div>
-              <PathDetailPanel />
-            </Suspense>
+            hasFlowMap ? (
+              <Suspense fallback={<div className="flex-1" />}>
+                <FlowMapFilterPanel />
+                <div className="flex-1 min-w-0">
+                  <FlowMapCanvas />
+                </div>
+                <PathDetailPanel />
+              </Suspense>
+            ) : (
+              <FlowMapEmptyState />
+            )
           ) : (
             <>
               <FilterPanel />

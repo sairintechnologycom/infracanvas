@@ -18,7 +18,7 @@ interface Filters {
 }
 
 // FlowMap slice types (Plan 03-06)
-type TabId = 'canvas' | 'flowmap';
+type TabId = 'canvas' | 'flowmap' | 'costlens';
 type CloudFilter = 'aws' | 'azure' | 'both';
 
 interface FlowMapFilters {
@@ -224,4 +224,13 @@ export function useViewerStore<T>(selector: (state: StoreState) => T): T {
     throw new Error('useViewerStore must be used within a ViewerProvider');
   }
   return useZustandStore(store, selector);
+}
+
+// Library components (DiagramCanvas, ResourceNode, etc.) call this so they
+// work in BOTH mount paths: the standalone HTML viewer (no provider, writes
+// to module singleton) AND the SaaS dashboard (factory store published via
+// ViewerProvider). Falls back to the singleton when no provider is present.
+export function useViewerStoreOrSingleton<T>(selector: (state: StoreState) => T): T {
+  const contextStore = useContext(ViewerStoreContext);
+  return useZustandStore(contextStore ?? useStore, selector);
 }

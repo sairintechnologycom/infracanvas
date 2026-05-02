@@ -6,16 +6,13 @@ import { useStore } from '../../store';
 
 describe('TabBar (ARIA + keyboard)', () => {
   beforeEach(() => {
-    // Phase 4 WRG-03: default hasFlowMap=true here so existing behaviour tests
-    // exercise the enabled-FlowMap-tab path. A dedicated `describe` below
-    // covers the disabled branch.
     useStore.setState({ activeTab: 'canvas', hasFlowMap: true });
   });
 
-  test('renders role=tablist with two tabs', () => {
+  test('renders role=tablist with three tabs (Canvas, FlowMap, CostLens)', () => {
     render(<TabBar />);
     expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 
   test('Canvas tab is initially selected', () => {
@@ -29,6 +26,11 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(screen.getByText('BETA')).toBeInTheDocument();
   });
 
+  test('CostLens tab carries SOON label', () => {
+    render(<TabBar />);
+    expect(screen.getByText('SOON')).toBeInTheDocument();
+  });
+
   test('clicking FlowMap activates it', () => {
     render(<TabBar />);
     const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
@@ -37,7 +39,7 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(flowmapTab.getAttribute('aria-selected')).toBe('true');
   });
 
-  test('ArrowRight cycles to next tab', () => {
+  test('ArrowRight from Canvas cycles to FlowMap', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     canvasTab.focus();
@@ -45,7 +47,7 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(useStore.getState().activeTab).toBe('flowmap');
   });
 
-  test('ArrowLeft from first tab wraps to last', () => {
+  test('ArrowLeft from Canvas wraps to FlowMap (last navigable, skipping CostLens)', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     canvasTab.focus();
@@ -53,7 +55,7 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(useStore.getState().activeTab).toBe('flowmap');
   });
 
-  test('End jumps to last tab', () => {
+  test('End jumps to last navigable tab (FlowMap, not CostLens)', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     canvasTab.focus();
@@ -70,7 +72,7 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(useStore.getState().activeTab).toBe('canvas');
   });
 
-  test('active tab has tabIndex 0; inactive has -1', () => {
+  test('active tab has tabIndex 0; inactive navigable tab has -1', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
@@ -87,60 +89,59 @@ describe('TabBar (ARIA + keyboard)', () => {
   });
 });
 
-describe('TabBar (WRG-03: FlowMap tab disabled when hasFlowMap=false)', () => {
+describe('TabBar — FlowMap always-on (hasFlowMap=false shows empty state, not disabled tab)', () => {
   beforeEach(() => {
     useStore.setState({ activeTab: 'canvas', hasFlowMap: false });
   });
 
-  test('TBR-D-01: FlowMap tab renders aria-disabled=true when hasFlowMap=false', () => {
-    render(<TabBar />);
-    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
-    expect(flowmapTab.getAttribute('aria-disabled')).toBe('true');
-  });
-
-  test('TBR-D-02: clicking disabled FlowMap does not change activeTab', () => {
-    render(<TabBar />);
-    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
-    fireEvent.click(flowmapTab);
-    expect(useStore.getState().activeTab).toBe('canvas');
-  });
-
-  test('TBR-D-03: disabled FlowMap tab exposes the UI-SPEC remediation copy via title', () => {
-    render(<TabBar />);
-    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
-    expect(flowmapTab.getAttribute('title')).toBe(
-      'No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.',
-    );
-  });
-
-  test('TBR-D-04: disabled FlowMap tab wires aria-describedby to the off-screen tooltip', () => {
-    render(<TabBar />);
-    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
-    expect(flowmapTab.getAttribute('aria-describedby')).toBe('flowmap-disabled-tooltip');
-  });
-
-  test('TBR-D-05: off-screen tooltip node is present with the exact UI-SPEC copy', () => {
-    render(<TabBar />);
-    const tooltip = document.getElementById('flowmap-disabled-tooltip');
-    expect(tooltip).not.toBeNull();
-    expect(tooltip?.getAttribute('role')).toBe('tooltip');
-    expect(tooltip?.textContent).toContain(
-      'No FlowMap data in this scan. Re-run with infracanvas scan --with-flowmap to enable.',
-    );
-  });
-
-  test('TBR-D-06: disabled FlowMap tab uses tabIndex=-1', () => {
-    render(<TabBar />);
-    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
-    expect(flowmapTab.getAttribute('tabindex')).toBe('-1');
-  });
-
-  test('TBR-D-07: enabling hasFlowMap removes the disabled state', () => {
-    useStore.setState({ hasFlowMap: true });
+  test('FlowMap tab is NOT aria-disabled when hasFlowMap=false', () => {
     render(<TabBar />);
     const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
     expect(flowmapTab.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  test('clicking FlowMap when hasFlowMap=false navigates to flowmap tab', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
     fireEvent.click(flowmapTab);
     expect(useStore.getState().activeTab).toBe('flowmap');
+  });
+
+  test('FlowMap tab has normal cursor when hasFlowMap=false', () => {
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    // cursor style is 'pointer', not 'not-allowed'
+    expect(flowmapTab.style.cursor).toBe('pointer');
+  });
+});
+
+describe('TabBar — CostLens "soon" tab is non-interactive', () => {
+  beforeEach(() => {
+    useStore.setState({ activeTab: 'canvas', hasFlowMap: true });
+  });
+
+  test('CostLens tab has aria-disabled=true', () => {
+    render(<TabBar />);
+    const costlensTab = screen.getByRole('tab', { name: /costlens/i });
+    expect(costlensTab.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  test('clicking CostLens does not change activeTab', () => {
+    render(<TabBar />);
+    const costlensTab = screen.getByRole('tab', { name: /costlens/i });
+    fireEvent.click(costlensTab);
+    expect(useStore.getState().activeTab).toBe('canvas');
+  });
+
+  test('CostLens tab has tabIndex=-1', () => {
+    render(<TabBar />);
+    const costlensTab = screen.getByRole('tab', { name: /costlens/i });
+    expect(costlensTab.getAttribute('tabindex')).toBe('-1');
+  });
+
+  test('CostLens tab has not-allowed cursor', () => {
+    render(<TabBar />);
+    const costlensTab = screen.getByRole('tab', { name: /costlens/i });
+    expect(costlensTab.style.cursor).toBe('not-allowed');
   });
 });

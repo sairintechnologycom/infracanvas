@@ -8,6 +8,9 @@
 // by rollupOptions.output.banner in vite.config.lib.ts, not by a source
 // directive (Rollup's optimizer strips source-level bare strings).
 
+// ===== Full app (used by dashboard ScanViewerClient) =====
+export { default as ViewerApp } from './App'
+
 // ===== Components (D-04 — full set) =====
 export { DiagramCanvas } from './components/DiagramCanvas'
 export { FilterPanel } from './components/FilterPanel'

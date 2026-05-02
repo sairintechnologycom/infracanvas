@@ -15,19 +15,23 @@ vi.mock('@xyflow/react', async (importOriginal) => {
 // Mock the store
 vi.mock('../store', () => ({
   useStore: vi.fn(),
+  useViewerStoreOrSingleton: vi.fn(),
 }))
 
-import { useStore } from '../store'
+import { useStore, useViewerStoreOrSingleton } from '../store'
 import { ResourceNodeMemo } from '../components/ResourceNode'
 
 const mockSetSelectedNode = vi.fn()
 
 function setupStoreMock() {
-  const mockUseStore = vi.mocked(useStore)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mockUseStore.mockImplementation((selector: (state: any) => unknown) => {
-    return selector({ setSelectedNode: mockSetSelectedNode })
-  })
+  const impl = (selector: (state: { setSelectedNode: typeof mockSetSelectedNode }) => unknown) =>
+    selector({ setSelectedNode: mockSetSelectedNode })
+  vi.mocked(useStore).mockImplementation(
+    impl as unknown as Parameters<typeof vi.mocked<typeof useStore>['mockImplementation']>[0],
+  )
+  vi.mocked(useViewerStoreOrSingleton).mockImplementation(
+    impl as unknown as Parameters<typeof vi.mocked<typeof useViewerStoreOrSingleton>['mockImplementation']>[0],
+  )
 }
 
 function makeNodeProps(overrides: Partial<ResourceNode> = {}) {

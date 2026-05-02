@@ -16,7 +16,7 @@ import '@xyflow/react/dist/style.css';
 import { ResourceNodeMemo } from './ResourceNode';
 import { GroupNodeMemo } from './GroupNode';
 import { buildFlowElements } from '../lib/layout';
-import { useStore } from '../store';
+import { useStore, useViewerStoreOrSingleton } from '../store';
 import type { ResourceNode } from '../types';
 
 const nodeTypes: NodeTypes = {
@@ -25,10 +25,10 @@ const nodeTypes: NodeTypes = {
 };
 
 export function DiagramCanvas() {
-  const graph = useStore(s => s.graph);
-  const filters = useStore(s => s.filters);
-  const searchQuery = useStore(s => s.searchQuery);
-  const setSelectedNode = useStore(s => s.setSelectedNode);
+  const graph = useViewerStoreOrSingleton(s => s.graph);
+  const filters = useViewerStoreOrSingleton(s => s.filters);
+  const searchQuery = useViewerStoreOrSingleton(s => s.searchQuery);
+  const setSelectedNode = useViewerStoreOrSingleton(s => s.setSelectedNode);
   const { fitView } = useReactFlow();
 
   const { initialNodes, initialEdges } = useMemo(() => {
