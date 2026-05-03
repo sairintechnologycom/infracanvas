@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 import { severityColors } from '../lib/colors';
 import type { DriftStatus, Severity } from '../types';
 
@@ -7,15 +7,15 @@ const severities: Severity[] = ['critical', 'high', 'medium', 'info'];
 const driftStatuses: DriftStatus[] = ['unchanged', 'added', 'changed', 'deleted'];
 
 export function FilterPanel() {
-  const graph = useStore(s => s.graph);
-  const filterPanelOpen = useStore(s => s.filterPanelOpen);
-  const toggleFilterPanel = useStore(s => s.toggleFilterPanel);
-  const filters = useStore(s => s.filters);
-  const toggleSeverityFilter = useStore(s => s.toggleSeverityFilter);
-  const toggleResourceTypeFilter = useStore(s => s.toggleResourceTypeFilter);
-  const toggleDriftFilter = useStore(s => s.toggleDriftFilter);
-  const toggleSourceFilter = useStore(s => s.toggleSourceFilter);
-  const clearFilters = useStore(s => s.clearFilters);
+  const graph = useViewerStoreOrSingleton(s => s.graph);
+  const filterPanelOpen = useViewerStoreOrSingleton(s => s.filterPanelOpen);
+  const toggleFilterPanel = useViewerStoreOrSingleton(s => s.toggleFilterPanel);
+  const filters = useViewerStoreOrSingleton(s => s.filters);
+  const toggleSeverityFilter = useViewerStoreOrSingleton(s => s.toggleSeverityFilter);
+  const toggleResourceTypeFilter = useViewerStoreOrSingleton(s => s.toggleResourceTypeFilter);
+  const toggleDriftFilter = useViewerStoreOrSingleton(s => s.toggleDriftFilter);
+  const toggleSourceFilter = useViewerStoreOrSingleton(s => s.toggleSourceFilter);
+  const clearFilters = useViewerStoreOrSingleton(s => s.clearFilters);
 
   if (!filterPanelOpen || !graph) return null;
 

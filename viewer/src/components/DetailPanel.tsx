@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, FileText, Shield, Code, GitCompare, Lock } from 'lucide-react';
 import type { ResourceNode as ResourceNodeType, AttributeChange } from '../types';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 import { FindingCard } from './FindingCard';
 import { ResourceIcon } from './icons/ResourceIcon';
 import { getResourceColor, driftColors, severityColors } from '../lib/colors';
@@ -9,8 +9,8 @@ import { getResourceColor, driftColors, severityColors } from '../lib/colors';
 type Tab = 'overview' | 'findings' | 'attributes' | 'changes';
 
 export function DetailPanel() {
-  const selectedNode = useStore(s => s.selectedNode);
-  const setSelectedNode = useStore(s => s.setSelectedNode);
+  const selectedNode = useViewerStoreOrSingleton(s => s.selectedNode);
+  const setSelectedNode = useViewerStoreOrSingleton(s => s.setSelectedNode);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   if (!selectedNode) return null;
@@ -190,7 +190,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
 }
 
 function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
-  const gateMode = useStore(s => s.gateMode);
+  const gateMode = useViewerStoreOrSingleton(s => s.gateMode);
 
   if (node.findings.length === 0) {
     return (

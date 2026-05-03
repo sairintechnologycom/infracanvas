@@ -5,6 +5,7 @@ import type { ResourceNode } from '../types'
 // Mock the store module so we can control gateMode
 vi.mock('../store', () => ({
   useStore: vi.fn(),
+  useViewerStoreOrSingleton: vi.fn(),
 }))
 
 // Mock lucide-react icons used in DetailPanel
@@ -33,7 +34,7 @@ vi.mock('../components/FindingCard', () => ({
   ),
 }))
 
-import { useStore } from '../store'
+import { useViewerStoreOrSingleton } from '../store'
 import { DetailPanel } from '../components/DetailPanel'
 
 const mockSetSelectedNode = vi.fn()
@@ -80,9 +81,9 @@ const nodeWithFindings: ResourceNode = {
 }
 
 function setupStoreMock(gateMode: boolean) {
-  const mockUseStore = vi.mocked(useStore)
+  const mockHook = vi.mocked(useViewerStoreOrSingleton)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mockUseStore.mockImplementation((selector: (state: any) => unknown) => {
+  mockHook.mockImplementation((selector: (state: any) => unknown) => {
     const state = {
       selectedNode: nodeWithFindings,
       setSelectedNode: mockSetSelectedNode,
