@@ -1,3 +1,5 @@
+'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { ScanListItem } from '@/lib/types'
 
@@ -5,23 +7,44 @@ interface Props {
   scan: ScanListItem
 }
 
-/**
- * Renders a summary of the latest scan's critical findings on the home dashboard.
- *
- * NOTE: The list endpoint (GET /v1/scans?limit=10) returns `summary_json.findings`
- * as a count map (`{ critical, high, medium, info }`), not the full Finding
- * objects (rule_id, title, resource_id) that 07-UI-SPEC §"/" item 3 originally
- * contemplated. To render rule-id/title/resource-id we would need to download
- * the full per-scan JSON from R2, which the home dashboard intentionally avoids
- * (10× R2 fetches per page load = D-17 violation).
- *
- * Resolution (Rule 1 deviation): show the count + a CTA to open the scan
- * detail page where the full findings list lives. When count is 0, render the
- * "well done" green pill per UI-SPEC item 3.
- */
+interface TopFinding {
+  rule_id: string
+  title: string
+  resource_id: string
+}
+
+interface TopFindingsResp {
+  findings: TopFinding[]
+}
+
 export function TopFindings({ scan }: Props) {
-  const summary = scan.summary_json
-  const critCount = summary?.findings.critical ?? 0
+  const [findings, setFindings] = useState<TopFinding[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+    fetch(`/api/top-findings?scan_id=${scan.id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`${res.status}`)
+        return res.json() as Promise<TopFindingsResp>
+      })
+      .then((body) => {
+        if (cancelled) return
+        setFindings(body.findings)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setError(true)
+        setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [scan.id])
 
   return (
     <section
@@ -32,28 +55,39 @@ export function TopFindings({ scan }: Props) {
         Top 3 critical findings
       </h2>
 
-      {critCount === 0 ? (
-        <div className="mt-4 flex">
-          <span className="bg-green-100 text-green-700 text-sm px-3 py-1.5 rounded-full">
-            0 critical findings — well done
-          </span>
-        </div>
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-500">Loading…</p>
+      ) : error ? (
+        <p className="mt-4 text-sm text-slate-500">
+          Couldn&rsquo;t load critical findings.
+        </p>
+      ) : !findings || findings.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-600">
+          No critical findings — nice work.
+        </p>
       ) : (
-        <div className="mt-4 border-l-4 border-sev-critical bg-red-50/40 p-4 rounded-sm">
-          <p className="text-sm font-semibold text-slate-900">
-            <span data-testid="top-findings-critical-count">{critCount}</span>{' '}
-            critical {critCount === 1 ? 'finding' : 'findings'} in the latest scan
-          </p>
-          <p className="text-xs text-slate-500 mt-1">
-            Per-finding details (rule, title, resource) load with the full scan
-            graph.
-          </p>
-          <Link
-            href={`/scans/${scan.id}`}
-            className="text-xs text-slate-900 hover:text-slate-700 hover:underline mt-2 inline-block"
-          >
-            Open scan →
-          </Link>
+        <div className="mt-4 space-y-3">
+          {findings.map((f) => (
+            <div
+              key={`${f.rule_id}:${f.resource_id}`}
+              className="border-l-4 border-sev-critical bg-red-50/40 p-4 rounded-sm"
+              data-testid="top-finding-card"
+            >
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-slate-100 text-slate-700">
+                  {f.rule_id}
+                </span>
+              </div>
+              <p className="mt-2 text-sm font-medium text-slate-900">{f.title}</p>
+              <p className="mt-1 text-xs text-slate-600 font-mono">{f.resource_id}</p>
+              <Link
+                href={`/scans/${scan.id}`}
+                className="mt-2 inline-block text-xs text-amber-600 hover:underline"
+              >
+                Open scan →
+              </Link>
+            </div>
+          ))}
         </div>
       )}
     </section>

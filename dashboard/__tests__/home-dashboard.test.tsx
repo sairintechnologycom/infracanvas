@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import type { ScanListItem } from '@/lib/types'
@@ -106,46 +106,68 @@ describe('ScoreSparkline component', () => {
   })
 })
 
-describe('TopFindings component', () => {
-  it('renders green pill when 0 critical findings', async () => {
-    const { TopFindings } = await import('@/components/home/TopFindings')
-    const scan = makeScan({
-      summary_json: {
-        score: 95,
-        findings: { critical: 0, high: 0, medium: 0, info: 0 },
-        drift: {},
-        total_resources: 0,
-      },
-    })
-    render(<TopFindings scan={scan} />)
-    expect(screen.getByText(/0 critical findings — well done/i)).toBeInTheDocument()
+describe('TopFindings component (D-07: card-based render via /api/top-findings)', () => {
+  // The new TopFindings fetches /api/top-findings on mount and renders cards.
+  // Tests mock global.fetch and await render+resolution.
+  const realFetch = global.fetch
+
+  function mockFetch(body: { findings: Array<{ rule_id: string; title: string; resource_id: string }> }) {
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    ) as typeof global.fetch
+  }
+
+  afterEach(() => {
+    global.fetch = realFetch
+    vi.restoreAllMocks()
   })
 
-  it('renders critical count when findings exist', async () => {
+  it('renders empty-state line when 0 critical findings', async () => {
+    mockFetch({ findings: [] })
     const { TopFindings } = await import('@/components/home/TopFindings')
     render(<TopFindings scan={makeScan()} />)
-    // 3 critical from default fixture
-    expect(screen.getByTestId('top-findings-critical-count')).toHaveTextContent('3')
+    expect(await screen.findByText(/No critical findings — nice work\./i)).toBeInTheDocument()
   })
 
-  it('renders Open scan link to scan detail', async () => {
+  it('renders 3 cards when findings exist', async () => {
+    mockFetch({
+      findings: [
+        { rule_id: 'SEC-001', title: 'Bucket public', resource_id: 'aws_s3_bucket.a' },
+        { rule_id: 'SEC-002', title: 'Bucket logging off', resource_id: 'aws_s3_bucket.b' },
+        { rule_id: 'SEC-003', title: 'Bucket versioning off', resource_id: 'aws_s3_bucket.c' },
+      ],
+    })
+    const { TopFindings } = await import('@/components/home/TopFindings')
+    render(<TopFindings scan={makeScan()} />)
+    const cards = await screen.findAllByTestId('top-finding-card')
+    expect(cards).toHaveLength(3)
+    expect(screen.getByText('Bucket public')).toBeInTheDocument()
+  })
+
+  it('renders Open scan link inside each card', async () => {
+    mockFetch({
+      findings: [{ rule_id: 'SEC-001', title: 'Bucket public', resource_id: 'aws_s3_bucket.a' }],
+    })
     const { TopFindings } = await import('@/components/home/TopFindings')
     render(<TopFindings scan={makeScan({ id: 'scan-aaa' })} />)
-    const link = screen.getByRole('link', { name: /open scan/i })
+    const link = await screen.findByRole('link', { name: /open scan/i })
     expect(link).toHaveAttribute('href', '/scans/scan-aaa')
   })
 
   it('renders title "Top 3 critical findings"', async () => {
+    mockFetch({ findings: [] })
     const { TopFindings } = await import('@/components/home/TopFindings')
     render(<TopFindings scan={makeScan()} />)
     expect(screen.getByText('Top 3 critical findings')).toBeInTheDocument()
   })
 
-  it('handles null summary_json without crashing', async () => {
+  it('handles fetch error without crashing', async () => {
+    global.fetch = vi.fn(async () =>
+      new Response('boom', { status: 500 }),
+    ) as typeof global.fetch
     const { TopFindings } = await import('@/components/home/TopFindings')
-    expect(() =>
-      render(<TopFindings scan={makeScan({ summary_json: null })} />)
-    ).not.toThrow()
+    expect(() => render(<TopFindings scan={makeScan()} />)).not.toThrow()
+    expect(await screen.findByText(/Couldn.t load critical findings/i)).toBeInTheDocument()
   })
 })
 

@@ -79,10 +79,15 @@ describe('Polish drift gates (RMD-06)', () => {
     expect(findHits(/\bbg-amber-50\b/)).toEqual([])
   })
 
-  it('no text-amber-600 on text-links (amber overuse)', () => {
-    // Reserved-for list does NOT include text-link text-amber-600.
-    // The grade-C pill uses text-amber-700; we allow that.
-    expect(findHits(/\btext-amber-600\b/)).toEqual([])
+  it('no text-amber-600 outside spec-mandated CTAs (D-12)', () => {
+    // Per D-12 (plan 07.2-08) the spec amber-CTA rule applies to two surfaces:
+    //   - dashboard/components/home/RecentScansTable.tsx ("View all" link)
+    //   - dashboard/components/home/TopFindings.tsx       ("Open scan" link)
+    // text-amber-700 is allowed for the grade-C pill across the codebase.
+    const allowed = (p: string) =>
+      p.endsWith('/components/home/RecentScansTable.tsx') ||
+      p.endsWith('/components/home/TopFindings.tsx')
+    expect(findHits(/\btext-amber-600\b/).filter((p) => !allowed(p))).toEqual([])
   })
 
   it('home page uses px-8 py-12 gap-12 gutters', () => {
