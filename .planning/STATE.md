@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-03T13:30:00.000Z"
-last_activity: 2026-05-03 -- Phase 7.5 planned (11 plans across 7 waves, verification passed iter 1; ready to execute)
+last_updated: "2026-05-03T09:10:00.000Z"
+last_activity: 2026-05-03 -- Phase 7.5 Plan 01 complete (Wave 0 foundation: git in Dockerfile, httpx/redis/fakeredis pins, GitHub App settings fields + conftest stubs, shadcn Command primitive)
 progress:
   total_phases: 19
   completed_phases: 12
   total_plans: 102
-  completed_plans: 81
-  percent: 79
+  completed_plans: 82
+  percent: 80
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 7.5 — 11 PLAN.md files written across 7 waves; plan-checker PASSED (iter 1)
-Plan: 0/11 (execution not yet started)
-Status: Ready to execute
-Last activity: 2026-05-03 -- Phase 7.5 planned (RESEARCH + PATTERNS + VALIDATION + 11 PLANs; revision iter 1 closed BLOCKER on RESEARCH §Open Questions markers + 4 warnings)
+Plan: 1/11 (07.5-01 complete; 07.5-02 next)
+Status: In progress (Wave 0 partially complete — Plan 02 next)
+Last activity: 2026-05-03 -- Phase 7.5 Plan 01 closed (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass.
 
 ## Accumulated Context
 
@@ -65,6 +65,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 07.1-01: shadcn/ui v4 emits both `@import "tw-animate-css"` AND `@import "shadcn/tailwind.css"` — kept both (legitimate package exports, latter ships data-* custom variants + accordion keyframes from `node_modules/shadcn/dist/tailwind.css`).
 - Plan 07.1-01: shadcn init's `add` step overwrites the entire `lib/utils.ts` to land `cn()`; pre-existing helpers (`isUUID()` for T-07-08-01 mitigation) must be re-merged manually after init. Documented for future shadcn version bumps.
 - Plan 07.1-01: dashboard/app/layout.tsx unused-import for `Inter` (post Geist migration) blocks `next build` typecheck — out of plan 01 scope, deferred via .planning/phases/07.1-phase-7-ui-contract-remediation/deferred-items.md to a layout-owning plan or the phase verifier cleanup pass.
+- Plan 07.5-01: GitHub App settings fields use empty-string defaults (not Optional[str]) — matches existing string-field convention in Settings (stripe_meter_event_name, git_sha) and avoids None-coercion in downstream auth helpers. Real values come from Fly secrets in dev/prod; tests override via conftest.py env-stub block.
+- Plan 07.5-01: shadcn `add command` did NOT overwrite lib/utils.ts (cn helper already present from Phase 7.1-01) — different from the 07.1-01 init step which DID overwrite. Documented for future shadcn add invocations: `add` only overwrites when the file is missing or differs structurally.
+- Plan 07.5-01: pre-existing `TS6133: 'screen' unused` in dashboard/__tests__/scan-filters.test.tsx (introduced 90852b6 / Phase 7.1-03) deferred via .planning/phases/07.5-github-repo-connector/deferred-items.md — out-of-scope for Plan 07.5-01 per executor SCOPE BOUNDARY rule.
 
 ### Pending Todos
 
@@ -96,9 +99,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-04-30T15:18:00.000Z
+Last session: 2026-05-03T09:10:00.000Z
 Milestone: v1.1 in flight
-Resume: Phase 07.1 Plan 02 (Toaster mount + ShareModal/ScanPickerModal Dialog migration — Wave 1; depends on shadcn primitives delivered by 07.1-01)
+Resume: Phase 07.5 Plan 02 (Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade — depends on Plan 01's settings fields and fakeredis dev dep)
 
-**Planned Phase:** 7.1 (Phase 7 UI Contract Remediation) — 9 plans — 2026-04-30
-**Plan 07.1-01 closed:** 2026-04-30T15:18Z (4 commits: 0610970 test scaffold, a40d2fe shadcn init+primitives, d7614b5 globals.css merge, b4ae95b verification). Smoke test 5/5; full vitest suite 97/97. Build typecheck blocked by deferred app/layout.tsx unused-import (out-of-scope).
+**Planned Phase:** 7.5 (GitHub Repo Connector) — 11 plans — 2026-05-03
+**Plan 07.5-01 closed:** 2026-05-03T09:10Z (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass. Pre-existing scan-filters.test.tsx tsc warning deferred (out-of-scope).

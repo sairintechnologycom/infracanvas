@@ -262,7 +262,7 @@ Plans:
 5. GitLab, Bitbucket, and Azure DevOps are explicitly out of scope — deferred to v1.2 Enterprise
 
 Plans:
-- [ ] 07.5-01-PLAN.md — Wave 0 foundation: deps + Dockerfile + settings + shadcn command primitive
+- [x] 07.5-01-PLAN.md — Wave 0 foundation: deps + Dockerfile + settings + shadcn command primitive
 - [ ] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
 - [ ] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
 - [ ] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback
