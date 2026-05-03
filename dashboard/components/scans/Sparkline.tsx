@@ -59,7 +59,6 @@ export function Sparkline({ scores, dates, className = '' }: Props) {
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
         className={`overflow-visible ${className}`}
         aria-hidden="true"
         onMouseMove={handleMouseMove}
