@@ -58,3 +58,5 @@ uv.lock
 dashboard/.next/
 dashboard/node_modules/
 dashboard/.env.local
+.superpowers/
+landing/next-env.d.ts
