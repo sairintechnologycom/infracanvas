@@ -44,6 +44,14 @@ os.environ.setdefault("R2_SECRET_ACCESS_KEY", "test-secret-key")
 os.environ.setdefault("R2_BUCKET", "infracanvas-scans-test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_placeholder")
+# Phase 7.5 GitHub App stubs — real PEM is generated per-test in
+# tests/integrations/github/conftest.py (Plan 02). Empty PRIVATE_KEY here
+# is fine because no test in the repo currently calls mint_app_jwt() at
+# import time; tests that need a real key override via monkeypatch.
+os.environ.setdefault("GITHUB_APP_ID", "12345")
+os.environ.setdefault("GITHUB_APP_PRIVATE_KEY", "")
+os.environ.setdefault("GITHUB_APP_WEBHOOK_SECRET", "test-webhook-secret")
+os.environ.setdefault("GITHUB_APP_SLUG", "infracanvas-dev")
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path

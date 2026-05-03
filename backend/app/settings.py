@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     git_sha: str = "unknown"
 
+    # GitHub App (Phase 7.5, D-06/D-15) — empty defaults so envs without the
+    # App provisioned yet (CI, local pre-install) don't crash on import. The
+    # real values come from Fly secrets in dev/prod; tests stub via conftest.
+    github_app_id: str = ""
+    github_app_private_key: str = ""        # multi-line PEM, set via Fly secret
+    github_app_webhook_secret: str = ""     # provisioned now (D-15), unused until Phase 8
+    github_app_slug: str = ""               # for constructing install URLs in dashboard env
+
     @field_validator("clerk_allowed_origins", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
