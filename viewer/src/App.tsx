@@ -92,7 +92,7 @@ export default function App() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex flex-col h-screen w-screen" style={{ background: '#f8fafc' }}>
+      <div className="flex flex-col h-full w-full" style={{ background: '#f8fafc' }}>
         <SummaryBar />
         <TabBar />
         <div
