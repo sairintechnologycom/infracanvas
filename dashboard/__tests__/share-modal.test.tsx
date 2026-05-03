@@ -115,8 +115,12 @@ describe('ShareModal', () => {
   it('reveals "⚠" warning text when expiry is changed to "Never (not recommended)"', async () => {
     const { ShareModal } = await import('@/components/share/ShareModal')
     render(<ShareModal scanId="scan-001" isOpen={true} onClose={() => {}} />)
-    const select = screen.getByLabelText(/expir/i) as HTMLSelectElement
-    fireEvent.change(select, { target: { value: 'never' } })
+    // shadcn <Select/> (Radix) — click trigger to open, then click the Never option.
+    const trigger = screen.getByLabelText(/expir/i)
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: 'mouse' })
+    fireEvent.click(trigger)
+    const neverOption = await screen.findByRole('option', { name: /Never/i })
+    fireEvent.click(neverOption)
     const warning = await screen.findByText(/⚠/)
     expect(warning).toBeInTheDocument()
   })

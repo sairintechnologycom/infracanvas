@@ -8,6 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import { ShareLinksList } from './ShareLinksList'
 import type { ShareCreateResp } from '@/lib/types'
 
@@ -134,24 +141,25 @@ export function ShareModal({ scanId, isOpen, onClose }: Props) {
                   htmlFor="share-expiry"
                   className="block text-sm text-slate-700 mb-1"
                 >
-                  Expires in
+                  Link expires in
                 </label>
-                <select
-                  id="share-expiry"
+                <Select
                   value={expiryChoice}
-                  onChange={(e) =>
-                    setExpiryChoice(e.target.value as ExpiryChoice)
-                  }
-                  className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm"
+                  onValueChange={(v) => setExpiryChoice(v as ExpiryChoice)}
                 >
-                  {EXPIRY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="share-expiry" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPIRY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {expiryChoice === 'never' && (
-                  <p className="text-xs text-slate-700 mt-1">
+                  <p className="text-xs text-amber-600 mt-1">
                     ⚠ Anyone with this link can view this scan forever, even
                     after team members leave.
                   </p>

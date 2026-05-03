@@ -79,14 +79,16 @@ describe('Polish drift gates (RMD-06)', () => {
     expect(findHits(/\bbg-amber-50\b/)).toEqual([])
   })
 
-  it('no text-amber-600 outside spec-mandated CTAs (D-12)', () => {
-    // Per D-12 (plan 07.2-08) the spec amber-CTA rule applies to two surfaces:
-    //   - dashboard/components/home/RecentScansTable.tsx ("View all" link)
-    //   - dashboard/components/home/TopFindings.tsx       ("Open scan" link)
+  it('no text-amber-600 outside spec-mandated CTAs (D-08, D-12)', () => {
+    // Per spec the amber-600 token is reserved for three surfaces:
+    //   - components/home/RecentScansTable.tsx ("View all" link, D-12 plan 07.2-08)
+    //   - components/home/TopFindings.tsx       ("Open scan" link, D-12 plan 07.2-08)
+    //   - components/share/ShareModal.tsx       ("Never" expiry warning,  D-08 plan 07.2-07)
     // text-amber-700 is allowed for the grade-C pill across the codebase.
     const allowed = (p: string) =>
       p.endsWith('/components/home/RecentScansTable.tsx') ||
-      p.endsWith('/components/home/TopFindings.tsx')
+      p.endsWith('/components/home/TopFindings.tsx') ||
+      p.endsWith('/components/share/ShareModal.tsx')
     expect(findHits(/\btext-amber-600\b/).filter((p) => !allowed(p))).toEqual([])
   })
 
