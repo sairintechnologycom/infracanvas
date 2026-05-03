@@ -57,7 +57,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
-| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/TBD | Not planned | - |
+| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 0/11 | Planned | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
@@ -247,20 +247,34 @@ Plans:
 **Context:** Live testing on the dev/local-no-auth branch (2026-05-02) exposed defects that the pre-shipping audit graded as 17/24 missed. Driver: viewer's `App.tsx` was designed for standalone HTML mode; embedding it inside the dashboard shell broke layout assumptions (`h-screen w-screen`) and surfaced a deferred-but-unfinished store migration (`useStore` singleton vs `useViewerStoreOrSingleton` factory). This phase closes both — plus copy, color, spacing, and typography drift left behind by 7.1's plan-08 sweep. Suggested wave structure in `07.1-LIVE-UI-REVIEW.md`: 3 waves, 9–12 plans.
 
 
-### Phase 7.5: GitHub Repo Connector (INSERTED)
+### Phase 7.5: GitHub Repo Connector (PLANNED)
 
-**Status:** INSERTED — adds the "pick a repo + scan" user flow before push-driven auto-scan (Phase 8).
+**Status:** PLANNED — 11 plans across 6 waves, ready for /gsd-execute-phase 7.5.
 **Goal:** Let authenticated users connect a GitHub repo, browse repos/branches, and trigger a scan against a specific branch + path — without needing a CLI or a pre-uploaded scan JSON.
-**Requirements:** TBD (defined during `/gsd-discuss-phase 7.5`)
+**Requirements:** GH-01, GH-02, GH-03, GH-04, GH-05
+**Plans:** 11 plans
 **Depends on:** Phase 6 (backend auth/storage/queue), Phase 7 (dashboard shell)
 **Success criteria:**
-1. User installs the InfraCanvas GitHub App (or OAuth) and sees their accessible repos in the dashboard
+1. User installs the InfraCanvas GitHub App and sees their accessible repos in the dashboard
 2. User picks a repo + branch + optional subdirectory path, clicks "Scan"
 3. Backend performs a read-only shallow clone, runs `infracanvas scan`, stores result in Neon + R2 under the team
-4. The resulting scan appears in Phase 7 history/detail views
+4. The resulting scan appears in Phase 7 history/detail views (status pending → ready, polled every 2s)
 5. GitLab, Bitbucket, and Azure DevOps are explicitly out of scope — deferred to v1.2 Enterprise
 
-**Context:** Roadmap gap identified before Phase 8 planning: Phase 8 assumes a repo is already connected and jumps to push-webhook handling, but no phase actually delivers the "connect a repo" UX. This phase closes that gap with GitHub-only for MVP; multi-provider (Azure DevOps / GitLab / Bitbucket) deferred per solo-founder scope discipline.
+Plans:
+- [ ] 07.5-01-PLAN.md — Wave 0 foundation: deps + Dockerfile + settings + shadcn command primitive
+- [ ] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
+- [ ] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
+- [ ] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback
+- [ ] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
+- [ ] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes
+- [ ] 07.5-07-PLAN.md — Wave 3: dashboard proxy routes + lib/types.ts extensions
+- [ ] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components
+- [ ] 07.5-09-PLAN.md — Wave 5: ScanTriggerForm + live /settings/integrations page
+- [ ] 07.5-10-PLAN.md — Wave 5: ScanPendingClient polling + /api/scan-status proxy + scan-detail gating
+- [ ] 07.5-11-PLAN.md — Wave 6: phase verification + manual GitHub smoke checkpoint
+
+**Context:** Roadmap gap identified before Phase 8 planning: Phase 8 assumes a repo is already connected and jumps to push-webhook handling, but no phase actually delivers the "connect a repo" UX. This phase closes that gap with GitHub-only for MVP; multi-provider (Azure DevOps / GitLab / Bitbucket) deferred per solo-founder scope discipline. Architecture decisions locked in 07.5-CONTEXT.md (D-01..D-17): GitHub App auth (mint-per-scan), taskiq scan_repo job reused by Phase 8 webhook flow, /settings/integrations as live state machine, scans.status='pending' polled every 2s.
 
 ### Phase 8: GitHub Webhook + Auto-scan
 
