@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ViewerProvider,
   ViewerApp,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
+  const router = useRouter()
   const store: ViewerStoreApi = useMemo(() => createViewerStore(), [scanId])
   const [graph, setGraph] = useState<ResourceGraph | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -82,7 +84,7 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
         <p className="text-sm text-slate-900 font-semibold">Could not load scan diagram</p>
         <p className="text-xs text-slate-500">{error ?? 'Unknown error'}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => router.refresh()}
           className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
         >
           Try again
