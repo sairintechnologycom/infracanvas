@@ -233,9 +233,9 @@ Plans:
 **Plans:** 10 plans
 
 Plans:
-- [ ] 07.2-01-PLAN.md — D-01 viewer App.tsx h-screen → h-full (Wave 1)
-- [ ] 07.2-02-PLAN.md — D-02 useViewerStoreOrSingleton migration for FilterPanel/DetailPanel/SummaryBar/SearchBar + FlowMap variants (Wave 1)
-- [ ] 07.2-03-PLAN.md — D-03 /settings redirect + D-04 sparkline preserveAspectRatio + ScoreSparkline h-[80px] (Wave 1)
+- [x] 07.2-01-PLAN.md — D-01 viewer App.tsx h-screen → h-full (Wave 1)
+- [x] 07.2-02-PLAN.md — D-02 useViewerStoreOrSingleton migration for FilterPanel/DetailPanel/SummaryBar/SearchBar + FlowMap variants (Wave 1)
+- [x] 07.2-03-PLAN.md — D-03 /settings redirect + D-04 sparkline preserveAspectRatio + ScoreSparkline h-[80px] (Wave 1)
 - [ ] 07.2-04-PLAN.md — D-05 gradeInfo() shared util + adoption across ScoreCard/ScansTable/MetadataHeader/ShareViewer (Wave 2)
 - [ ] 07.2-05-PLAN.md — D-06 Sidebar xl-breakpoint collapse removal (Wave 2)
 - [ ] 07.2-06-PLAN.md — D-07 /api/top-findings route handler + TopFindings card rewrite (Wave 2)
