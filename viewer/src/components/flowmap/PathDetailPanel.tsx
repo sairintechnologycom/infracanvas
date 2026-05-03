@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Network, FileText, Shield, Code, List } from 'lucide-react';
 import { FindingCard } from '../FindingCard';
-import { useStore } from '../../store';
+import { useViewerStoreOrSingleton } from '../../store';
 import type { Finding, ResourceNode } from '../../types';
 
 type Tab = 'overview' | 'findings' | 'attributes' | 'routes';
@@ -13,8 +13,8 @@ const ROUTES_ELIGIBLE_TYPES = new Set([
 ]);
 
 export function PathDetailPanel() {
-  const node = useStore((s) => s.selectedNode);
-  const setSelectedNode = useStore((s) => s.setSelectedNode);
+  const node = useViewerStoreOrSingleton((s) => s.selectedNode);
+  const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // Empty state — nothing selected

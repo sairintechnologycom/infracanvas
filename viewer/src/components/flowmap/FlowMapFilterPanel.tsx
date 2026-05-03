@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useStore } from '../../store';
+import { useViewerStoreOrSingleton } from '../../store';
 import type { Severity, ResourceNode } from '../../types';
 
 const SEVERITIES: Severity[] = ['critical', 'high', 'medium', 'info'];
@@ -21,15 +21,15 @@ const NETWORK_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
 const NETWORK_TYPE_SET = new Set(NETWORK_TYPE_OPTIONS.map((o) => o.value));
 
 export function FlowMapFilterPanel() {
-  const filterPanelOpen = useStore((s) => s.filterPanelOpen);
-  const toggleFilterPanel = useStore((s) => s.toggleFilterPanel);
-  const graph = useStore((s) => s.graph);
-  const filters = useStore((s) => s.flowMapFilters);
-  const toggleSev = useStore((s) => s.toggleFlowMapSeverity);
-  const setCloud = useStore((s) => s.setFlowMapCloud);
-  const toggleNT = useStore((s) => s.toggleFlowMapNodeType);
-  const toggleFL = useStore((s) => s.toggleFlowMapFlowLogs);
-  const clear = useStore((s) => s.clearFlowMapFilters);
+  const filterPanelOpen = useViewerStoreOrSingleton((s) => s.filterPanelOpen);
+  const toggleFilterPanel = useViewerStoreOrSingleton((s) => s.toggleFilterPanel);
+  const graph = useViewerStoreOrSingleton((s) => s.graph);
+  const filters = useViewerStoreOrSingleton((s) => s.flowMapFilters);
+  const toggleSev = useViewerStoreOrSingleton((s) => s.toggleFlowMapSeverity);
+  const setCloud = useViewerStoreOrSingleton((s) => s.setFlowMapCloud);
+  const toggleNT = useViewerStoreOrSingleton((s) => s.toggleFlowMapNodeType);
+  const toggleFL = useViewerStoreOrSingleton((s) => s.toggleFlowMapFlowLogs);
+  const clear = useViewerStoreOrSingleton((s) => s.clearFlowMapFilters);
 
   if (!filterPanelOpen || !graph) return null;
 
