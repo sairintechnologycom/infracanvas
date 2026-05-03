@@ -29,7 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [ ] **Phase 6: SaaS Backend Foundation** — FastAPI + Clerk + Neon + R2 + taskiq + Stripe Billing Meters + observability
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
 - [ ] **Phase 7.1: Phase 7 UI Contract Remediation** (INSERTED) — close UI-SPEC gaps from Phase 7 audit (shadcn init, compare diff list, share toasts/revoke, polish drift)
-- [ ] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — fix 14 P0/P1/P2/P3 defects from live audit (07.1-LIVE-UI-REVIEW.md, 10/24): viewer h-screen embed break, singleton store leak in 4+ viewer components, /settings 404, sparkline ovals, grade-threshold split, sidebar dead zone
+- [x] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — closed 14 D-NN defects; LIVE re-audit 21/24 (was 10/24, +11) (2026-05-03)
 - [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
 - [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
@@ -242,7 +242,7 @@ Plans:
 - [x] 07.2-07-PLAN.md — D-08 ShareModal shadcn Select + "Link expires in" + text-amber-600 warning (Wave 2)
 - [x] 07.2-08-PLAN.md — D-09 + D-11 + D-12 + D-13 + D-14 dashboard sweep (Wave 3)
 - [x] 07.2-09-PLAN.md — D-10 viewer FilterPanel typography sweep (Wave 3)
-- [ ] 07.2-10-PLAN.md — D-15 LIVE re-audit ≥20/24 (Wave 4 — verify)
+- [x] 07.2-10-PLAN.md — D-15 LIVE re-audit ≥20/24 (Wave 4 — verify)
 
 **Context:** Live testing on the dev/local-no-auth branch (2026-05-02) exposed defects that the pre-shipping audit graded as 17/24 missed. Driver: viewer's `App.tsx` was designed for standalone HTML mode; embedding it inside the dashboard shell broke layout assumptions (`h-screen w-screen`) and surfaced a deferred-but-unfinished store migration (`useStore` singleton vs `useViewerStoreOrSingleton` factory). This phase closes both — plus copy, color, spacing, and typography drift left behind by 7.1's plan-08 sweep. Suggested wave structure in `07.1-LIVE-UI-REVIEW.md`: 3 waves, 9–12 plans.
 
