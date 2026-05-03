@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { ResourceNode as ResourceNodeData } from '../../../types'
-import { useStore } from '../../../store'
+import { useViewerStoreOrSingleton } from '../../../store'
 
 const AWS_COLOR = '#FF9900'
 const AZURE_COLOR = '#0078D4'
@@ -9,7 +9,7 @@ const AZURE_COLOR = '#0078D4'
 type CloudHubNodeProps = NodeProps & { data: ResourceNodeData }
 
 function CloudHubNodeComponent({ data, selected }: CloudHubNodeProps) {
-  const setSelectedNode = useStore((s) => s.setSelectedNode)
+  const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode)
   const isAws = data.provider === 'aws'
   const color = isAws ? AWS_COLOR : AZURE_COLOR
   const routes = data.attributes.routes

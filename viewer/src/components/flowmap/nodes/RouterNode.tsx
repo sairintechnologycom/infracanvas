@@ -2,12 +2,12 @@ import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Router } from 'lucide-react'
 import type { ResourceNode as ResourceNodeData } from '../../../types'
-import { useStore } from '../../../store'
+import { useViewerStoreOrSingleton } from '../../../store'
 
 type RouterNodeProps = NodeProps & { data: ResourceNodeData }
 
 function RouterNodeComponent({ data, selected }: RouterNodeProps) {
-  const setSelectedNode = useStore((s) => s.setSelectedNode)
+  const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode)
   const bgpState = String(data.attributes.bgp_state ?? '') || 'unknown'
   const dotColor =
     bgpState === 'Established'

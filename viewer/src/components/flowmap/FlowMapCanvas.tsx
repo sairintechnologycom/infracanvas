@@ -23,7 +23,7 @@ import { DCSiteGroupNodeMemo } from './nodes/DCSiteGroupNode'
 import { PathEdge, pathEdgeMarkerDefs } from './edges/PathEdge'
 import { layoutFlowMap } from './lib/elkLayout'
 import { FlowMapEmptyState } from './FlowMapEmptyState'
-import { useStore } from '../../store'
+import { useViewerStoreOrSingleton } from '../../store'
 import type { NetworkPath, ResourceNode } from '../../types'
 
 // Set of resource types that belong on the FlowMap — cloud network-layer
@@ -80,7 +80,7 @@ const DEFAULT_FLOWMAP_FILTERS: FlowMapFilters = {
 
 // Narrow selector helper — returns the 03-06 flowMapFilters slice or defaults.
 function useFlowMapFilters(): FlowMapFilters {
-  return useStore((s) => {
+  return useViewerStoreOrSingleton((s) => {
     const anyS = s as unknown as { flowMapFilters?: FlowMapFilters }
     return anyS.flowMapFilters ?? DEFAULT_FLOWMAP_FILTERS
   })
@@ -88,15 +88,15 @@ function useFlowMapFilters(): FlowMapFilters {
 
 // Narrow selector — returns the 03-06 setSelectedPath action or a no-op.
 function useSetSelectedPath(): (p: NetworkPath | null) => void {
-  return useStore((s) => {
+  return useViewerStoreOrSingleton((s) => {
     const anyS = s as unknown as { setSelectedPath?: (p: NetworkPath | null) => void }
     return anyS.setSelectedPath ?? (() => undefined)
   })
 }
 
 export function FlowMapCanvas() {
-  const graph = useStore((s) => s.graph)
-  const setSelectedNode = useStore((s) => s.setSelectedNode)
+  const graph = useViewerStoreOrSingleton((s) => s.graph)
+  const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode)
   const flowMapFilters = useFlowMapFilters()
   const setSelectedPath = useSetSelectedPath()
   const { fitView } = useReactFlow()

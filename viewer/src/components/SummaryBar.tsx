@@ -1,5 +1,5 @@
 import { Shield, Filter, Box } from 'lucide-react';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 import { severityColors } from '../lib/colors';
 import type { Severity } from '../types';
 import { SearchBar } from './SearchBar';
@@ -7,11 +7,11 @@ import { SearchBar } from './SearchBar';
 const severityOrder: Severity[] = ['critical', 'high', 'medium', 'info'];
 
 export function SummaryBar() {
-  const graph = useStore(s => s.graph);
-  const toggleFilterPanel = useStore(s => s.toggleFilterPanel);
-  const filterPanelOpen = useStore(s => s.filterPanelOpen);
-  const toggleSeverityFilter = useStore(s => s.toggleSeverityFilter);
-  const activeSeverities = useStore(s => s.filters.severities);
+  const graph = useViewerStoreOrSingleton(s => s.graph);
+  const toggleFilterPanel = useViewerStoreOrSingleton(s => s.toggleFilterPanel);
+  const filterPanelOpen = useViewerStoreOrSingleton(s => s.filterPanelOpen);
+  const toggleSeverityFilter = useViewerStoreOrSingleton(s => s.toggleSeverityFilter);
+  const activeSeverities = useViewerStoreOrSingleton(s => s.filters.severities);
 
   if (!graph) return null;
 

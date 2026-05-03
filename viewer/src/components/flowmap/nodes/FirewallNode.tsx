@@ -2,12 +2,12 @@ import { memo } from 'react'
 import { Handle, Position, useStore as useReactFlowStore, type NodeProps } from '@xyflow/react'
 import { ShieldCheck } from 'lucide-react'
 import type { ResourceNode as ResourceNodeData } from '../../../types'
-import { useStore } from '../../../store'
+import { useViewerStoreOrSingleton } from '../../../store'
 
 type FirewallNodeProps = NodeProps & { data: ResourceNodeData }
 
 function FirewallNodeComponent({ data, selected }: FirewallNodeProps) {
-  const setSelectedNode = useStore((s) => s.setSelectedNode)
+  const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode)
   // ReactFlow internal zoom subscription — transform is [x, y, zoom]
   const zoom = useReactFlowStore((s) => s.transform[2])
 

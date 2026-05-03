@@ -1,9 +1,9 @@
 import { Search } from 'lucide-react';
-import { useStore } from '../store';
+import { useViewerStoreOrSingleton } from '../store';
 
 export function SearchBar() {
-  const searchQuery = useStore(s => s.searchQuery);
-  const setSearchQuery = useStore(s => s.setSearchQuery);
+  const searchQuery = useViewerStoreOrSingleton(s => s.searchQuery);
+  const setSearchQuery = useViewerStoreOrSingleton(s => s.setSearchQuery);
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all"
       style={{
