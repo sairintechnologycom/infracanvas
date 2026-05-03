@@ -42,7 +42,7 @@ export function FilterPanel() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer"
+              className="text-xs px-1.5 py-0.5 rounded cursor-pointer"
               style={{ background: '#252d3d', color: '#94a3b8' }}
             >
               Clear
@@ -56,7 +56,7 @@ export function FilterPanel() {
 
       {/* Severity */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
+        <div className="text-xs uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Severity
         </div>
         <div className="flex flex-col gap-1">
@@ -68,7 +68,7 @@ export function FilterPanel() {
             return (
               <label
                 key={sev}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? severityColors[sev] : '#4a5568' }}
               >
                 <input
@@ -79,7 +79,7 @@ export function FilterPanel() {
                   style={{ accentColor: severityColors[sev] }}
                 />
                 <span className="flex-1 capitalize">{sev}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
+                <span className="text-xs" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}
@@ -88,7 +88,7 @@ export function FilterPanel() {
 
       {/* Resource type */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
+        <div className="text-xs uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Resource Type
         </div>
         <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
@@ -99,7 +99,7 @@ export function FilterPanel() {
             return (
               <label
                 key={rt}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? '#e2e8f0' : '#4a5568' }}
               >
                 <input
@@ -108,8 +108,8 @@ export function FilterPanel() {
                   onChange={() => toggleResourceTypeFilter(rt)}
                   className="accent-sky-500"
                 />
-                <span className="flex-1 truncate font-mono text-[10px]">{label}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
+                <span className="flex-1 truncate font-mono text-xs">{label}</span>
+                <span className="text-xs" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}
@@ -118,7 +118,7 @@ export function FilterPanel() {
 
       {/* Drift status */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
+        <div className="text-xs uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Drift Status
         </div>
         <div className="flex flex-col gap-1">
@@ -128,7 +128,7 @@ export function FilterPanel() {
             return (
               <label
                 key={ds}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? '#e2e8f0' : '#4a5568' }}
               >
                 <input
@@ -138,7 +138,7 @@ export function FilterPanel() {
                   className="accent-sky-500"
                 />
                 <span className="flex-1 capitalize">{ds}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
+                <span className="text-xs" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}
@@ -147,7 +147,7 @@ export function FilterPanel() {
 
       {/* Source */}
       <div className="p-3">
-        <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
+        <div className="text-xs uppercase tracking-wider mb-2 font-semibold" style={{ color: '#4a5568' }}>
           Source
         </div>
         <div className="flex flex-col gap-1">
@@ -160,7 +160,7 @@ export function FilterPanel() {
             return (
               <label
                 key={src}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? activeColor : '#4a5568' }}
               >
                 <input
@@ -170,7 +170,7 @@ export function FilterPanel() {
                   className="accent-sky-500"
                 />
                 <span className="flex-1 capitalize">{src}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>{count}</span>
+                <span className="text-xs" style={{ color: '#374151' }}>{count}</span>
               </label>
             );
           })}

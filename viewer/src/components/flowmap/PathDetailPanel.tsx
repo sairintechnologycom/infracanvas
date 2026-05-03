@@ -75,7 +75,7 @@ export function PathDetailPanel() {
       <div className="p-4" style={{ borderBottom: '1px solid #252d3d' }}>
         <div className="flex items-start justify-between mb-2">
           <span
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+            className="text-xs font-medium px-1.5 py-0.5 rounded"
             style={{ background: `${color}20`, color }}
           >
             {node.type}
@@ -92,7 +92,7 @@ export function PathDetailPanel() {
         <div className="font-semibold text-sm" style={{ color: '#e2e8f0' }}>
           {node.name}
         </div>
-        <div className="text-[11px] font-mono mt-0.5" style={{ color: '#4a5568' }}>
+        <div className="text-xs font-mono mt-0.5" style={{ color: '#4a5568' }}>
           {node.id}
         </div>
       </div>
@@ -106,7 +106,7 @@ export function PathDetailPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1 px-3 py-2 text-[11px] font-medium cursor-pointer transition-colors flex-1 justify-center"
+              className="flex items-center gap-1 px-3 py-2 text-xs font-medium cursor-pointer transition-colors flex-1 justify-center"
               style={{
                 color: isActive ? '#e2e8f0' : '#4a5568',
                 borderBottom: isActive ? `2px solid ${color}` : '2px solid transparent',

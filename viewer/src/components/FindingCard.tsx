@@ -30,14 +30,14 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
       <div className="flex items-center gap-2 mb-1.5">
         <Icon size={14} color={color} />
         <span
-          className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+          className="text-xs font-bold uppercase px-1.5 py-0.5 rounded"
           style={{ background: `${color}20`, color }}
         >
           {finding.severity}
         </span>
         {finding.source === 'policy' && (
           <span
-            className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+            className="text-xs font-bold uppercase px-1.5 py-0.5 rounded"
             style={{
               background: 'rgba(167,139,250,0.15)',
               color: '#a78bfa',
@@ -47,7 +47,7 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
             POLICY
           </span>
         )}
-        <span className="text-[11px] font-mono" style={{ color: '#94a3b8' }}>
+        <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>
           {finding.rule_id}
         </span>
       </div>
@@ -65,14 +65,14 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
           <div className="text-xs font-medium mb-1" style={{ color: '#e2e8f0' }}>
             {finding.title}
           </div>
-          <div className="text-[11px] mb-2" style={{ color: '#94a3b8' }}>
+          <div className="text-xs mb-2" style={{ color: '#94a3b8' }}>
             {finding.description}
           </div>
 
           {/* Evidence */}
           {Object.keys(finding.evidence).length > 0 && (
             <pre
-              className="text-[10px] p-2 rounded overflow-x-auto mb-2"
+              className="text-xs p-2 rounded overflow-x-auto mb-2"
               style={{
                 background: '#0a0e17',
                 color: '#94a3b8',
@@ -85,7 +85,7 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
 
           {/* Remediation */}
           {finding.remediation && (
-            <div className="text-[11px] flex gap-1.5" style={{ color: '#22c55e' }}>
+            <div className="text-xs flex gap-1.5" style={{ color: '#22c55e' }}>
               <span className="shrink-0">Fix:</span>
               <span>{finding.remediation}</span>
             </div>
@@ -97,7 +97,7 @@ export function FindingCard({ finding, gateMode = false }: FindingCardProps) {
               {finding.framework_ids.map(id => (
                 <span
                   key={id}
-                  className="text-[9px] px-1 py-0.5 rounded"
+                  className="text-xs px-1 py-0.5 rounded"
                   style={{
                     background: '#1c2333',
                     color: '#4a5568',

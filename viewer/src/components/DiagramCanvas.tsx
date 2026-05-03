@@ -122,7 +122,7 @@ export function DiagramCanvas() {
       <div className="absolute bottom-3 left-14 flex gap-1.5 z-10">
         <button
           onClick={handleFitView}
-          className="text-[10px] px-2 py-1 rounded cursor-pointer"
+          className="text-xs px-2 py-1 rounded cursor-pointer"
           style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#475569' }}
         >
           Fit View

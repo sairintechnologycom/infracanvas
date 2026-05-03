@@ -44,7 +44,7 @@ export function DetailPanel() {
             <ResourceIcon resourceType={node.type} size={28} />
             <div>
               <span
-                className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                className="text-xs font-medium px-1.5 py-0.5 rounded"
                 style={{ background: `${color}20`, color }}
               >
                 {typeLabel}
@@ -60,7 +60,7 @@ export function DetailPanel() {
           </button>
         </div>
         <div className="font-semibold text-sm" style={{ color: '#e2e8f0' }}>{node.name}</div>
-        <div className="text-[11px] font-mono mt-0.5" style={{ color: '#4a5568' }}>{node.id}</div>
+        <div className="text-xs font-mono mt-0.5" style={{ color: '#4a5568' }}>{node.id}</div>
       </div>
 
       {/* Tabs */}
@@ -72,7 +72,7 @@ export function DetailPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1 px-3 py-2 text-[11px] font-medium cursor-pointer transition-colors flex-1 justify-center"
+              className="flex items-center gap-1 px-3 py-2 text-xs font-medium cursor-pointer transition-colors flex-1 justify-center"
               style={{
                 color: isActive ? '#e2e8f0' : '#4a5568',
                 borderBottom: isActive ? `2px solid ${color}` : '2px solid transparent',
@@ -112,17 +112,17 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       <div className="flex flex-col gap-1.5">
         {rows.map(row => (
           <div key={row.label} className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>{row.label}</span>
-            <span className="text-[11px] font-mono" style={{ color: '#94a3b8' }}>{row.value}</span>
+            <span className="text-xs uppercase tracking-wider" style={{ color: '#4a5568' }}>{row.label}</span>
+            <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{row.value}</span>
           </div>
         ))}
       </div>
 
       {/* Drift status */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>Drift</span>
+        <span className="text-xs uppercase tracking-wider" style={{ color: '#4a5568' }}>Drift</span>
         <span
-          className="text-[10px] font-medium px-2 py-0.5 rounded capitalize"
+          className="text-xs font-medium px-2 py-0.5 rounded capitalize"
           style={{ background: `${driftColor}20`, color: driftColor }}
         >
           {node.drift}
@@ -131,13 +131,13 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
 
       {/* Cost */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#4a5568' }}>Cost</span>
+        <span className="text-xs uppercase tracking-wider" style={{ color: '#4a5568' }}>Cost</span>
         <div className="text-right">
           <div className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
             ${node.cost.monthly_usd.toFixed(2)}/mo
           </div>
           {node.cost.basis && (
-            <div className="text-[10px]" style={{ color: '#4a5568' }}>{node.cost.basis}</div>
+            <div className="text-xs" style={{ color: '#4a5568' }}>{node.cost.basis}</div>
           )}
         </div>
       </div>
@@ -145,14 +145,14 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       {/* Dependencies */}
       {node.dependencies.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
+          <div className="text-xs uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
             Dependencies ({node.dependencies.length})
           </div>
           <div className="flex flex-col gap-1">
             {node.dependencies.map(dep => (
               <div
                 key={dep}
-                className="text-[10px] font-mono px-2 py-1 rounded"
+                className="text-xs font-mono px-2 py-1 rounded"
                 style={{ background: '#1c2333', color: '#94a3b8', border: '1px solid #252d3d' }}
               >
                 {dep}
@@ -165,7 +165,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
       {/* Findings summary */}
       {node.findings.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
+          <div className="text-xs uppercase tracking-wider mb-1.5" style={{ color: '#4a5568' }}>
             Findings Summary
           </div>
           <div className="flex gap-2">
@@ -175,7 +175,7 @@ function OverviewTab({ node }: { node: ResourceNodeType }) {
               return (
                 <span
                   key={sev}
-                  className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                  className="text-xs font-medium px-1.5 py-0.5 rounded"
                   style={{ background: `${severityColors[sev]}20`, color: severityColors[sev] }}
                 >
                   {count} {sev}
@@ -197,7 +197,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
       <div className="flex flex-col items-center justify-center py-8">
         <Shield size={24} color="#22c55e" />
         <div className="text-xs mt-2" style={{ color: '#22c55e' }}>No findings</div>
-        <div className="text-[10px] mt-1" style={{ color: '#4a5568' }}>This resource passed all checks</div>
+        <div className="text-xs mt-1" style={{ color: '#4a5568' }}>This resource passed all checks</div>
       </div>
     );
   }
@@ -214,7 +214,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
             const count = node.findings.filter(f => f.severity === sev).length;
             if (count === 0) return null;
             return (
-              <span key={sev} className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+              <span key={sev} className="text-xs font-medium px-1.5 py-0.5 rounded"
                 style={{ background: `${severityColors[sev]}20`, color: severityColors[sev] }}>
                 {count} {sev}
               </span>
@@ -227,7 +227,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
               style={{ background: '#1c2333', border: '1px solid #252d3d', filter: 'blur(4px)', pointerEvents: 'none', height: 24 }} />
           ))}
         </div>
-        <div className="text-[10px] mt-1" style={{ color: '#4a5568' }}>
+        <div className="text-xs mt-1" style={{ color: '#4a5568' }}>
           Upgrade to see what's wrong and how to fix it
         </div>
         <a href="https://infracanvas.dev/founding" target="_blank" rel="noopener noreferrer"
@@ -235,7 +235,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
           style={{ background: '#3b82f620', border: '1px solid #3b82f6', color: '#60a5fa' }}>
           Unlock details — founding member $49/mo
         </a>
-        <div className="text-[10px]" style={{ color: '#4a5568' }}>
+        <div className="text-xs" style={{ color: '#4a5568' }}>
           Locked forever for founding members
         </div>
       </div>
@@ -254,7 +254,7 @@ function FindingsTab({ node }: { node: Pick<ResourceNodeType, 'findings'> }) {
 function AttributesTab({ node }: { node: { attributes: Record<string, unknown> } }) {
   return (
     <pre
-      className="text-[10px] p-3 rounded overflow-auto"
+      className="text-xs p-3 rounded overflow-auto"
       style={{
         background: '#0a0e17',
         color: '#94a3b8',
@@ -282,7 +282,7 @@ function ChangesTab({ changes }: { changes: AttributeChange[] }) {
       {changes.map((change) => (
         <div
           key={change.attribute}
-          className="p-2 rounded text-[11px]"
+          className="p-2 rounded text-xs"
           style={{ background: '#1c2333', border: '1px solid #252d3d' }}
         >
           <div className="font-semibold mb-1" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>

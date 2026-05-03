@@ -58,7 +58,7 @@ export function FlowMapFilterPanel() {
           {hasActive && (
             <button
               onClick={clear}
-              className="text-[10px] uppercase tracking-wider font-semibold cursor-pointer"
+              className="text-xs uppercase tracking-wider font-semibold cursor-pointer"
               style={{ color: '#94A3B8' }}
             >
               Clear
@@ -78,7 +78,7 @@ export function FlowMapFilterPanel() {
       {/* Severity */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
         <div
-          className="text-[10px] uppercase tracking-wider mb-2 font-semibold"
+          className="text-xs uppercase tracking-wider mb-2 font-semibold"
           style={{ color: '#4a5568' }}
         >
           Severity
@@ -93,7 +93,7 @@ export function FlowMapFilterPanel() {
             return (
               <label
                 key={sev}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? '#e2e8f0' : '#94A3B8' }}
               >
                 <input
@@ -103,7 +103,7 @@ export function FlowMapFilterPanel() {
                   className="w-3 h-3"
                 />
                 <span className="flex-1 capitalize">{sev}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>
+                <span className="text-xs" style={{ color: '#374151' }}>
                   {count}
                 </span>
               </label>
@@ -115,7 +115,7 @@ export function FlowMapFilterPanel() {
       {/* Cloud */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
         <div
-          className="text-[10px] uppercase tracking-wider mb-2 font-semibold"
+          className="text-xs uppercase tracking-wider mb-2 font-semibold"
           style={{ color: '#4a5568' }}
         >
           Cloud
@@ -129,7 +129,7 @@ export function FlowMapFilterPanel() {
               <button
                 key={c}
                 onClick={() => setCloud(c)}
-                className="px-2 py-0.5 text-[11px] font-medium cursor-pointer"
+                className="px-2 py-0.5 text-xs font-medium cursor-pointer"
                 style={{
                   height: 22,
                   borderRadius: 11,
@@ -149,7 +149,7 @@ export function FlowMapFilterPanel() {
       {/* Node Type */}
       <div className="p-3" style={{ borderBottom: '1px solid #252d3d' }}>
         <div
-          className="text-[10px] uppercase tracking-wider mb-2 font-semibold"
+          className="text-xs uppercase tracking-wider mb-2 font-semibold"
           style={{ color: '#4a5568' }}
         >
           Node Type
@@ -162,7 +162,7 @@ export function FlowMapFilterPanel() {
             return (
               <label
                 key={opt.value}
-                className="flex items-center gap-2 cursor-pointer text-[11px] py-0.5"
+                className="flex items-center gap-2 cursor-pointer text-xs py-0.5"
                 style={{ color: isActive ? '#e2e8f0' : '#94A3B8' }}
               >
                 <input
@@ -171,8 +171,8 @@ export function FlowMapFilterPanel() {
                   onChange={() => toggleNT(opt.value)}
                   className="w-3 h-3"
                 />
-                <span className="flex-1 font-mono text-[10px]">{opt.label}</span>
-                <span className="text-[10px]" style={{ color: '#374151' }}>
+                <span className="flex-1 font-mono text-xs">{opt.label}</span>
+                <span className="text-xs" style={{ color: '#374151' }}>
                   {count}
                 </span>
               </label>
@@ -184,13 +184,13 @@ export function FlowMapFilterPanel() {
       {/* Has Flow Logs */}
       <div className="p-3">
         <div
-          className="text-[10px] uppercase tracking-wider mb-2 font-semibold"
+          className="text-xs uppercase tracking-wider mb-2 font-semibold"
           style={{ color: '#4a5568' }}
         >
           Flow Logs
         </div>
         <label
-          className="flex items-center justify-between cursor-pointer text-[11px] py-0.5"
+          className="flex items-center justify-between cursor-pointer text-xs py-0.5"
           style={{ color: '#94A3B8' }}
         >
           <span>Has Flow Logs</span>

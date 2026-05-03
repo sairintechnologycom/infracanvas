@@ -69,7 +69,7 @@ export function SummaryBar() {
         <span className="text-sm font-bold" style={{ color: scoreColor, letterSpacing: '-0.02em' }}>
           {summary.score}
         </span>
-        <span className="text-[10px] font-semibold" style={{ color: scoreColor, opacity: 0.6 }}>
+        <span className="text-xs font-semibold" style={{ color: scoreColor, opacity: 0.6 }}>
           /100
         </span>
       </div>
@@ -115,16 +115,16 @@ export function SummaryBar() {
 
       {/* Metadata cluster — single group */}
       <div className="flex items-center gap-3">
-        <span className="text-[11px]" style={{ color: '#4a5568' }}>
+        <span className="text-xs" style={{ color: '#4a5568' }}>
           {summary.total_resources} resources
         </span>
         {summary.estimated_monthly_cost > 0 && (
-          <span className="text-[11px] font-medium" style={{ color: '#22c55e' }}>
+          <span className="text-xs font-medium" style={{ color: '#22c55e' }}>
             ${summary.estimated_monthly_cost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
           </span>
         )}
         {(summary.drift.added > 0 || summary.drift.changed > 0 || summary.drift.deleted > 0) && (
-          <div className="flex items-center gap-1.5 text-[10px] font-medium">
+          <div className="flex items-center gap-1.5 text-xs font-medium">
             {summary.drift.added > 0 && <span style={{ color: '#22c55e' }}>+{summary.drift.added}</span>}
             {summary.drift.changed > 0 && <span style={{ color: '#eab308' }}>~{summary.drift.changed}</span>}
             {summary.drift.deleted > 0 && <span style={{ color: '#ef4444' }}>-{summary.drift.deleted}</span>}
@@ -136,7 +136,7 @@ export function SummaryBar() {
       <div className="relative group focus-within:z-30">
         <button
           type="button"
-          className="peer flex items-center justify-center rounded-full text-[10px] font-bold cursor-help transition-colors hover:border-slate-500 focus-visible:border-slate-500 focus-visible:outline-none"
+          className="peer flex items-center justify-center rounded-full text-xs font-bold cursor-help transition-colors hover:border-slate-500 focus-visible:border-slate-500 focus-visible:outline-none"
           style={{
             width: 20,
             height: 20,
@@ -152,7 +152,7 @@ export function SummaryBar() {
         <div
           id="edge-legend-tooltip"
           role="tooltip"
-          className="absolute right-0 top-full mt-2 hidden group-hover:flex peer-focus-visible:flex flex-col gap-1.5 px-3 py-2 rounded-lg z-30 text-[10px]"
+          className="absolute right-0 top-full mt-2 hidden group-hover:flex peer-focus-visible:flex flex-col gap-1.5 px-3 py-2 rounded-lg z-30 text-xs"
           style={{
             background: '#0f1419',
             border: '1.5px solid #252d3d',
