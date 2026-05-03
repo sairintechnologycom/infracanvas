@@ -92,10 +92,10 @@ describe('Polish drift gates (RMD-06)', () => {
     expect(findHits(/\btext-amber-600\b/).filter((p) => !allowed(p))).toEqual([])
   })
 
-  it('home page uses px-8 py-12 gap-12 gutters', () => {
+  it('home page uses px-8 py-12 gap-6 gutters (D-11 dropped gap-12)', () => {
     expect(HOME).toMatch(/px-8/)
     expect(HOME).toMatch(/py-12/)
-    expect(HOME).toMatch(/gap-12/)
+    expect(HOME).toMatch(/gap-6/)
   })
 
   it('home page does not render an unspec "Overview" h1', () => {

@@ -36,12 +36,7 @@ export default async function HomePage() {
   const latestScan = data.items[0]
 
   return (
-    <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col gap-12">
-      <header className="flex items-baseline justify-end">
-        <p className="text-xs text-slate-500">
-          Latest scan from <span className="font-mono">{latestScan.branch ?? 'main'}</span>
-        </p>
-      </header>
+    <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col gap-6">
       <ScoreCard scan={latestScan} />
       <ScoreSparkline scans={data.items} />
       <TopFindings scan={latestScan} />
