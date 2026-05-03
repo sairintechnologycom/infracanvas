@@ -240,8 +240,8 @@ Plans:
 - [x] 07.2-05-PLAN.md — D-06 Sidebar xl-breakpoint collapse removal (Wave 2)
 - [x] 07.2-06-PLAN.md — D-07 /api/top-findings route handler + TopFindings card rewrite (Wave 2)
 - [x] 07.2-07-PLAN.md — D-08 ShareModal shadcn Select + "Link expires in" + text-amber-600 warning (Wave 2)
-- [ ] 07.2-08-PLAN.md — D-09 + D-11 + D-12 + D-13 + D-14 dashboard sweep (Wave 3)
-- [ ] 07.2-09-PLAN.md — D-10 viewer FilterPanel typography sweep (Wave 3)
+- [x] 07.2-08-PLAN.md — D-09 + D-11 + D-12 + D-13 + D-14 dashboard sweep (Wave 3)
+- [x] 07.2-09-PLAN.md — D-10 viewer FilterPanel typography sweep (Wave 3)
 - [ ] 07.2-10-PLAN.md — D-15 LIVE re-audit ≥20/24 (Wave 4 — verify)
 
 **Context:** Live testing on the dev/local-no-auth branch (2026-05-02) exposed defects that the pre-shipping audit graded as 17/24 missed. Driver: viewer's `App.tsx` was designed for standalone HTML mode; embedding it inside the dashboard shell broke layout assumptions (`h-screen w-screen`) and surfaced a deferred-but-unfinished store migration (`useStore` singleton vs `useViewerStoreOrSingleton` factory). This phase closes both — plus copy, color, spacing, and typography drift left behind by 7.1's plan-08 sweep. Suggested wave structure in `07.1-LIVE-UI-REVIEW.md`: 3 waves, 9–12 plans.
