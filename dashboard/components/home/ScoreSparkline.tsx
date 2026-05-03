@@ -32,7 +32,7 @@ export function ScoreSparkline({ scans }: Props) {
       <h2 className="text-base font-semibold text-slate-900">
         Score over last 10 scans
       </h2>
-      <div className="mt-4 h-[80px] flex items-center text-slate-700">
+      <div className="mt-4 h-[120px] flex items-center text-slate-700">
         {points.length >= 2 ? (
           <Sparkline scores={points} dates={dates} className="w-full h-full" />
         ) : (

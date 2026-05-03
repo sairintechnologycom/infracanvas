@@ -14,7 +14,7 @@ interface Props {
 const KIND_STYLES: Record<NodeDiff['kind'], string> = {
   added: 'bg-green-50 border-l-2 border-green-500',
   removed: 'bg-red-50 border-l-2 border-red-500',
-  changed: 'bg-amber-50 border-l-2 border-amber-500',
+  changed: 'bg-amber-50 border-l-2 border-amber-200',
   unchanged: 'bg-white',
 }
 

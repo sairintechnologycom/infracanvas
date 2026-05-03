@@ -90,7 +90,7 @@ export function ScoreCard({ scan }: Props) {
         </span>
         <Link
           href={`/scans/${scan.id}`}
-          className="text-xs text-slate-900 hover:text-slate-700 hover:underline mt-2"
+          className="text-xs text-amber-600 hover:underline mt-2"
         >
           Open scan →
         </Link>
