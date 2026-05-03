@@ -1,28 +1,13 @@
 import Link from 'next/link'
 import type { ScanListItem } from '@/lib/types'
+import { gradeInfo } from '@/lib/grade'
 
-export interface GradeInfo {
-  grade: string
-  bgClass: string
-  textClass: string
-}
-
-/**
- * Map a numeric score (0-100) to a letter grade and Tailwind classes for the
- * grade pill. Thresholds match Phase 1 scoring contract and 07-UI-SPEC.
- */
-export function gradeInfo(score: number): GradeInfo {
-  // Thresholds per 07-UI-SPEC §"Score-grade pills" table:
-  //   A / A+ ≥ 90, B / B+ 80–89, C 70–79, D 60–69, F < 60.
-  // The plan-frontmatter test expectations (95→A+, 87→B+, 75→B, 72→C, 65→D, 55→F)
-  // align with this and with the existing ScansTable + MetadataHeader thresholds.
-  if (score >= 95) return { grade: 'A+', bgClass: 'bg-green-100', textClass: 'text-green-700' }
-  if (score >= 90) return { grade: 'A', bgClass: 'bg-green-100', textClass: 'text-green-700' }
-  if (score >= 85) return { grade: 'B+', bgClass: 'bg-sky-100', textClass: 'text-sky-700' }
-  if (score >= 80) return { grade: 'B', bgClass: 'bg-sky-100', textClass: 'text-sky-700' }
-  if (score >= 70) return { grade: 'C', bgClass: 'bg-amber-100', textClass: 'text-amber-700' }
-  if (score >= 60) return { grade: 'D', bgClass: 'bg-orange-100', textClass: 'text-orange-700' }
-  return { grade: 'F', bgClass: 'bg-red-100', textClass: 'text-red-700' }
+function pillClasses(letter: string): string {
+  if (letter === 'A+' || letter === 'A') return 'bg-green-100 text-green-700'
+  if (letter === 'B+' || letter === 'B') return 'bg-sky-100 text-sky-700'
+  if (letter === 'C') return 'bg-amber-100 text-amber-700'
+  if (letter === 'D') return 'bg-orange-100 text-orange-700'
+  return 'bg-red-100 text-red-700'
 }
 
 function formatTimestamp(iso: string): string {
@@ -46,7 +31,8 @@ interface Props {
 export function ScoreCard({ scan }: Props) {
   const summary = scan.summary_json
   const score = summary?.score ?? 0
-  const info = gradeInfo(score)
+  const letter = gradeInfo(score).letter
+  const pillCls = pillClasses(letter)
   const critCount = summary?.findings.critical ?? 0
   const highCount = summary?.findings.high ?? 0
   const driftTotal = summary
@@ -62,9 +48,9 @@ export function ScoreCard({ scan }: Props) {
       <div className="flex flex-col items-center">
         <div className="flex items-center gap-3">
           <span
-            className={`inline-flex items-center justify-center w-7 h-7 rounded-md text-sm font-semibold ${info.bgClass} ${info.textClass}`}
+            className={`inline-flex items-center justify-center w-7 h-7 rounded-md text-sm font-semibold ${pillCls}`}
           >
-            {info.grade}
+            {letter}
           </span>
           <span className="text-[28px] font-semibold tabular-nums text-slate-900">
             {summary ? score : '—'}

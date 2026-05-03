@@ -46,49 +46,9 @@ const makeScan = (overrides: Partial<ScanListItem> = {}): ScanListItem => ({
   ...overrides,
 })
 
-describe('ScoreCard.gradeInfo', () => {
-  it('returns A+ for score >= 90', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    const r = gradeInfo(95)
-    expect(r.grade).toBe('A+')
-    expect(r.bgClass).toBe('bg-green-100')
-    expect(r.textClass).toBe('text-green-700')
-  })
-
-  it('returns B+ for score 87', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    const r = gradeInfo(87)
-    expect(r.grade).toBe('B+')
-    expect(r.bgClass).toBe('bg-sky-100')
-  })
-
-  it('returns C for score 72', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    expect(gradeInfo(72).grade).toBe('C')
-  })
-
-  it('returns F for score 55', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    const r = gradeInfo(55)
-    expect(r.grade).toBe('F')
-    expect(r.bgClass).toBe('bg-red-100')
-  })
-
-  it('returns A for score 90', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    expect(gradeInfo(90).grade).toBe('A')
-  })
-
-  it('returns B for score 82', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    expect(gradeInfo(82).grade).toBe('B')
-  })
-
-  it('returns D for score 65', async () => {
-    const { gradeInfo } = await import('@/components/home/ScoreCard')
-    expect(gradeInfo(65).grade).toBe('D')
-  })
-})
+// gradeInfo() boundary tests are now in dashboard/lib/grade.test.ts (D-05).
+// ScoreCard.tsx no longer exports a local gradeInfo — pill styling stays inline,
+// the canonical letter source is @/lib/grade.
 
 describe('ScoreCard component', () => {
   it('renders score number, grade, and finding counts', async () => {

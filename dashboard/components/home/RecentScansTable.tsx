@@ -3,7 +3,15 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ScanListItem } from '@/lib/types'
-import { gradeInfo } from './ScoreCard'
+import { gradeInfo } from '@/lib/grade'
+
+function pillClasses(letter: string): string {
+  if (letter === 'A+' || letter === 'A') return 'bg-green-100 text-green-700'
+  if (letter === 'B+' || letter === 'B') return 'bg-sky-100 text-sky-700'
+  if (letter === 'C') return 'bg-amber-100 text-amber-700'
+  if (letter === 'D') return 'bg-orange-100 text-orange-700'
+  return 'bg-red-100 text-red-700'
+}
 
 interface Props {
   scans: ScanListItem[]
@@ -81,7 +89,7 @@ export function RecentScansTable({ scans }: Props) {
           <tbody>
             {rows.map(scan => {
               const score = scan.summary_json?.score
-              const info = score !== undefined ? gradeInfo(score) : null
+              const letter = score !== undefined ? gradeInfo(score).letter : null
               const crit = scan.summary_json?.findings.critical ?? 0
               const high = scan.summary_json?.findings.high ?? 0
               return (
@@ -98,12 +106,12 @@ export function RecentScansTable({ scans }: Props) {
                     {scan.branch ?? '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {info && score !== undefined ? (
+                    {letter && score !== undefined ? (
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center justify-center w-6 h-6 rounded-sm text-xs font-semibold ${info.bgClass} ${info.textClass}`}
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded-sm text-xs font-semibold ${pillClasses(letter)}`}
                         >
-                          {info.grade}
+                          {letter}
                         </span>
                         <span className="text-sm tabular-nums">{score}</span>
                       </div>

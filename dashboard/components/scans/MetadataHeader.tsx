@@ -1,35 +1,25 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import type { ScanGetResp } from '@/lib/types'
+import { gradeInfo } from '@/lib/grade'
 
 interface Props {
   scan: ScanGetResp
 }
 
 function ScoreGradePill({ score }: { score: number }) {
-  let grade: string
+  const letter = gradeInfo(score).letter
   let cls: string
-  if (score >= 90) {
-    grade = 'A'
-    cls = 'bg-green-100 text-green-700'
-  } else if (score >= 80) {
-    grade = 'B+'
-    cls = 'bg-sky-100 text-sky-700'
-  } else if (score >= 70) {
-    grade = 'C'
-    cls = 'bg-amber-100 text-amber-700'
-  } else if (score >= 60) {
-    grade = 'D'
-    cls = 'bg-orange-100 text-orange-700'
-  } else {
-    grade = 'F'
-    cls = 'bg-red-100 text-red-700'
-  }
+  if (letter === 'A+' || letter === 'A') cls = 'bg-green-100 text-green-700'
+  else if (letter === 'B+' || letter === 'B') cls = 'bg-sky-100 text-sky-700'
+  else if (letter === 'C') cls = 'bg-amber-100 text-amber-700'
+  else if (letter === 'D') cls = 'bg-orange-100 text-orange-700'
+  else cls = 'bg-red-100 text-red-700'
   return (
     <span
       className={`inline-flex items-center justify-center w-7 h-6 rounded-sm text-xs font-semibold ${cls}`}
     >
-      {grade}
+      {letter}
     </span>
   )
 }
