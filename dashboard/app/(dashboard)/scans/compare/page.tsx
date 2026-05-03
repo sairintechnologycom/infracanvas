@@ -61,7 +61,7 @@ export default async function ComparePage({ searchParams }: PageProps) {
         >
           <h1 className="text-base font-semibold text-slate-900">Scan not found</h1>
           <p className="text-sm text-slate-500 text-center max-w-md">
-            This scan may have been deleted, or you may not have access to it.
+            This scan may have been deleted, or you may not have access to its team.
           </p>
           <Link
             href="/scans"
