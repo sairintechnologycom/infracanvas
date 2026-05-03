@@ -20,16 +20,17 @@ vi.mock('@clerk/nextjs', () => ({
 }))
 
 describe('Sidebar responsive classes', () => {
-  it('has xl:w-[220px] class (full width at 1440p)', () => {
+  it('has w-[220px] class (full width at md+; D-06 removed xl-gated collapse)', () => {
     render(<Sidebar mobileOpen={false} />)
     const sidebar = screen.getByTestId('sidebar')
-    expect(sidebar.className).toMatch(/xl:w-\[220px\]/)
+    expect(sidebar.className).toMatch(/\bw-\[220px\]/)
   })
 
-  it('has w-12 class (icon-only at <xl)', () => {
+  it('has no w-12 icon-only dead zone (D-06)', () => {
     render(<Sidebar mobileOpen={false} />)
     const sidebar = screen.getByTestId('sidebar')
-    expect(sidebar.className).toMatch(/\bw-12\b/)
+    expect(sidebar.className).not.toMatch(/\bw-12\b/)
+    expect(sidebar.className).not.toMatch(/xl:w-\[220px\]/)
   })
 
   it('has hidden md:flex classes (hidden at <768px, visible above)', () => {

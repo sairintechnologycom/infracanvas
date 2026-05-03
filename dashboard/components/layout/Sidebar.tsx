@@ -38,14 +38,14 @@ export function Sidebar({ mobileOpen = false }: SidebarProps) {
   return (
     <aside
       data-testid="sidebar"
-      className={`${visibility} md:flex xl:w-[220px] w-12 flex-shrink-0 h-screen bg-slate-50 border-r border-slate-200 flex-col transition-all duration-200`}
+      className={`${visibility} md:flex w-[220px] flex-shrink-0 h-screen bg-slate-50 border-r border-slate-200 flex-col transition-all duration-200`}
     >
       {/* Top: wordmark + org switcher */}
       <div className="px-4 pt-4 pb-2 space-y-4">
-        <span className="sidebar-label xl:inline hidden text-base font-semibold text-slate-900">
+        <span className="sidebar-label text-base font-semibold text-slate-900">
           InfraCanvas
         </span>
-        <div className="sidebar-org-switcher xl:block hidden">
+        <div className="sidebar-org-switcher">
           {DEV_BYPASS ? (
             <DevOrgSwitcher />
           ) : (
@@ -72,14 +72,14 @@ export function Sidebar({ mobileOpen = false }: SidebarProps) {
               aria-label={label}
               className={[
                 'flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
-                'xl:justify-start justify-center',
+                'justify-start',
                 active
                   ? 'bg-white border-l-2 border-amber-400 text-slate-900 font-medium'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-l-2 border-transparent',
               ].join(' ')}
             >
               <Icon size={16} />
-              <span className="sidebar-label xl:inline hidden">{label}</span>
+              <span className="sidebar-label">{label}</span>
             </Link>
           )
         })}
