@@ -35,13 +35,62 @@ export interface ScanGetResp {
   id: string
   team_id: string
   status: string
-  presigned_get_url: string
+  /**
+   * R2 presigned GET URL for the scan JSON payload.
+   *
+   * Null when status != 'ready' (i.e. 'pending' or 'failed') because the
+   * payload hasn't been written yet. Plan 11's polling page uses
+   * null-vs-non-null as the "still working / show viewer" discriminant.
+   */
+  presigned_get_url: string | null
   size_bytes: number | null
   created_at: string
   summary_json: ScanListItem['summary_json']
   branch: string | null
   commit_sha: string | null
   source: string | null
+  // ── Phase 7.5 extensions (Plan 05) ─────────────────────────────────────────
+  /** Set on `failed` scans by worker (clone error, scan error, upload error). */
+  error_message?: string | null
+  /** Sub-path within the repo that was scanned (default '.'). */
+  source_path?: string | null
+  /** GitHub install id for github-source scans (D-10e). */
+  github_installation_id?: number | null
+  /** owner/name of the repo that was scanned. */
+  github_repo?: string | null
+  /** Branch that was scanned. */
+  github_branch?: string | null
+  /** Resolved HEAD sha at enqueue time. */
+  github_sha?: string | null
+}
+
+// ── GitHub integration API response types (Phase 7.5 — Plan 04) ──────────────
+// Mirrors backend/app/schemas/github.py — keep in sync.
+
+/**
+ * Response item for GET /v1/github/installations (D-10a).
+ *
+ * Sourced from the local `github_installations` table; no GitHub API call.
+ */
+export interface InstallationResp {
+  installation_id: number
+  github_account_login: string
+  github_account_type: 'User' | 'Organization'
+  installed_at: string
+  installed_by_user_id: string
+}
+
+/** Response item for GET /v1/github/repos (D-10b). */
+export interface RepoResp {
+  full_name: string
+  default_branch: string
+  private: boolean
+}
+
+/** Response item for GET /v1/github/branches (D-10c). */
+export interface BranchResp {
+  name: string
+  commit_sha: string
 }
 
 // ── Compare API response types ────────────────────────────────────────────────
