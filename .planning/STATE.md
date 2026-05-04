@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-04T15:05:00.000Z"
-last_activity: 2026-05-04 -- Phase 7.5 Plan 02 complete (Wave 0 schema: 007 github_installations + RLS, 008 scans github columns + dedup partial index, GithubInstallation ORM, 5 shared pytest fixtures + smoke tests, VALIDATION flags flipped)
+last_updated: "2026-05-04T10:16:24.000Z"
+last_activity: 2026-05-04 -- Phase 7.5 Plan 03 complete (Wave 1 GitHub App auth helpers: mint_app_jwt + mint_installation_token, httpx client wrapper for 4 GitHub API calls + 60s gh:repos:* Redis cache, 5 Pydantic schemas for /v1/github/*, 22 new tests via respx + fakeredis)
 progress:
   total_phases: 19
   completed_phases: 12
   total_plans: 102
-  completed_plans: 83
-  percent: 81
+  completed_plans: 84
+  percent: 82
 ---
 
 # Project State
@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 7.5 — github-repo-connector (planned; ready to execute)
+**Current focus:** Phase 7.5 — github-repo-connector (Wave 1 in progress)
 
 ## Current Position
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 7.5 — 11 PLAN.md files written across 7 waves; plan-checker PASSED (iter 1)
-Plan: 2/11 (07.5-01 + 07.5-02 complete; 07.5-03 next — Wave 0 closed)
-Status: In progress (Wave 0 complete — Wave 1 ready to begin with auth helpers)
-Last activity: 2026-05-04 -- Phase 7.5 Plan 02 closed (3 commits: 2b52d6e mig 007 github_installations, d539e15 mig 008 scans github cols + ORM, f70fbc0 fixture scaffolding + smoke tests + VALIDATION flag flip). alembic head at 008; 100 tests collect clean (95 pre-existing + 5 new fixture smoke); reversibility verified.
+Plan: 3/11 (07.5-01 + 07.5-02 + 07.5-03 complete; 07.5-04 next — Wave 1 first plan closed)
+Status: In progress (Wave 1 GitHub auth helpers + schemas landed; Wave 2 routes ready to begin)
+Last activity: 2026-05-04 -- Phase 7.5 Plan 03 closed (6 commits: 3cb47ce RED auth tests, 00a1208 GREEN auth.py, 521b261 RED client tests, e37c508 GREEN client.py with 60s Redis cache, c6451ca schemas/github.py + 8 smoke tests, 95c73ed lint fixes for F401/UP017). 27 tests in tests/integrations/github/ all green; ruff + mypy --strict clean across new files. No live GitHub calls — all hermetic via respx + fakeredis fixtures from Plan 02.
 
 ## Accumulated Context
 
@@ -72,6 +72,10 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 07.5-02: dedup partial index predicate is `WHERE status='ready'` (not `status IS NOT NULL`). Only successful scans are dedup candidates — pending/failed re-scans should still proceed. Index column order `(team_id, github_repo, github_sha, created_at DESC)` puts team_id first so the planner uses the RLS predicate first; created_at DESC enables `ORDER BY created_at DESC LIMIT 1` to be index-only.
 - Plan 07.5-02: `rsa_private_key` test fixture is session-scoped (not module-scoped) — generation is ~150 ms on M-class CPU and the key is functionally immutable; sharing across the session is safe because tests never mutate it. Plan 03+ depends on this fixture name.
 - Plan 07.5-02: `gh_settings_patched` fixture monkeypatches the live `app.settings.settings` singleton rather than constructing a new Settings instance — Plan 03's auth helpers do `from app.settings import settings` at module load, so patching the singleton is the only way to make the test value visible without re-importing the auth module per test.
+- Plan 07.5-03: defensive `isinstance(loaded, RSAPrivateKey)` guard in `mint_app_jwt` — `cryptography.hazmat.primitives.serialization.load_pem_private_key` returns a 13-key union; `jwt.encode(..., algorithm="RS256")` only accepts RSA/EC. Without the guard, mypy --strict refuses the assignment AND a non-RSA key would silently sign with the wrong algorithm. Surfaces config errors as a `TypeError` at sign time rather than an opaque downstream failure.
+- Plan 07.5-03: dual-path Redis client in `client.py::list_installation_repos` — production uses `_get_redis()` lru_cache singleton (matches `storage/r2.py::get_r2_client()`); tests inject `redis_client=fake_redis` via the new kwarg so the lru_cache never traps a stale URL between tests. Establishes the test-fixture-injection pattern for future redis-cached helpers.
+- Plan 07.5-03: `urllib.parse.quote(branch, safe="")` URL-encoding in `get_head_sha` — `feature/foo` becomes `feature%2Ffoo` so the slash isn't treated as a path segment by GitHub's `git/ref/heads/{branch}` endpoint. Test 8 (`test_branch_with_slash`) regression-locks this T-07.5-03-05 mitigation.
+- Plan 07.5-03: `get_installation_metadata` uses App JWT (NOT installation token) — per GitHub Apps API, `/app/installations/{id}` is App-level metadata. Test 7 explicitly registers the `/access_tokens` POST and asserts `call_count == 0` to lock the discrimination.
 
 ### Pending Todos
 
@@ -103,10 +107,11 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-05-04T15:05:00.000Z
+Last session: 2026-05-04T10:16:24.000Z
 Milestone: v1.1 in flight
-Resume: Phase 07.5 Plan 03 (Wave 1 — `mint_app_jwt` + `mint_installation_token` auth helpers; depends on Plan 02's `rsa_private_key` + `gh_settings_patched` + `respx_github` fixtures)
+Resume: Phase 07.5 Plan 04 (Wave 2 — /v1/github/installations + /v1/github/repos + /v1/github/branches + install-callback routes; depends on Plan 03's auth.py + client.py + schemas/github.py)
 
 **Planned Phase:** 7.5 (GitHub Repo Connector) — 11 plans — 2026-05-03
 **Plan 07.5-01 closed:** 2026-05-03T09:10Z (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass. Pre-existing scan-filters.test.tsx tsc warning deferred (out-of-scope).
 **Plan 07.5-02 closed:** 2026-05-04T15:05Z (3 commits: 2b52d6e mig 007 github_installations + RLS + grants, d539e15 mig 008 scans github columns + idx_scans_github_dedup partial index + Scan ORM extensions + GithubInstallation ORM class, f70fbc0 tests/integrations/github/ + tests/jobs/ scaffold + 5 shared pytest fixtures + 5 fixture smoke tests + VALIDATION.md flag flip). alembic head at 008_scan_github_columns; downgrade -2 + upgrade head verified reversible; 100 tests collect clean (95 pre-existing + 5 new). Wave 0 closed; Wave 1 unblocked. Resumption: Task 1 was committed (2b52d6e) by previous executor before usage-limit pause; resumption agent verified the commit, confirmed alembic current=007, and resumed at Task 2 without re-doing Task 1.
+**Plan 07.5-03 closed:** 2026-05-04T10:16Z (6 commits: 3cb47ce test RED auth, 00a1208 feat GREEN mint_app_jwt + mint_installation_token, 521b261 test RED client, e37c508 feat GREEN list_installation_repos + list_branches + get_head_sha + get_installation_metadata + 60s gh:repos:* Redis cache, c6451ca feat schemas/github.py with 5 Pydantic models + 8 smoke tests, 95c73ed fix lint F401/UP017). 27 tests in tests/integrations/github/ all green (5 fixture smoke from Plan 02 + 22 new); ruff + mypy --strict clean. Pure Python — no live GitHub calls (respx + fakeredis fixtures from Plan 02 cover everything). Wave 1 first plan closed; Plans 04 + 05 + 06 + 07 in Wave 2 all unblocked on the auth/client/schemas contract.

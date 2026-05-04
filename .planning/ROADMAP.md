@@ -263,8 +263,8 @@ Plans:
 
 Plans:
 - [x] 07.5-01-PLAN.md — Wave 0 foundation: deps + Dockerfile + settings + shadcn command primitive
-- [ ] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
-- [ ] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
+- [x] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
+- [x] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
 - [ ] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback
 - [ ] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
 - [ ] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes
