@@ -266,7 +266,7 @@ Plans:
 - [x] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
 - [x] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
 - [x] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback (4 endpoints, 21 tests, RLS-isolated, App-JWT install reverify, 60s repo cache, rate-limit→503, idempotent ON CONFLICT upsert, 302 dashboard redirects)
-- [ ] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
+- [x] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
 - [ ] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes
 - [ ] 07.5-07-PLAN.md — Wave 3: dashboard proxy routes + lib/types.ts extensions
 - [ ] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components
