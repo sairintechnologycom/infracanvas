@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-03T09:10:00.000Z"
-last_activity: 2026-05-03 -- Phase 7.5 Plan 01 complete (Wave 0 foundation: git in Dockerfile, httpx/redis/fakeredis pins, GitHub App settings fields + conftest stubs, shadcn Command primitive)
+last_updated: "2026-05-04T15:05:00.000Z"
+last_activity: 2026-05-04 -- Phase 7.5 Plan 02 complete (Wave 0 schema: 007 github_installations + RLS, 008 scans github columns + dedup partial index, GithubInstallation ORM, 5 shared pytest fixtures + smoke tests, VALIDATION flags flipped)
 progress:
   total_phases: 19
   completed_phases: 12
   total_plans: 102
-  completed_plans: 82
-  percent: 80
+  completed_plans: 83
+  percent: 81
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 7.5 — 11 PLAN.md files written across 7 waves; plan-checker PASSED (iter 1)
-Plan: 1/11 (07.5-01 complete; 07.5-02 next)
-Status: In progress (Wave 0 partially complete — Plan 02 next)
-Last activity: 2026-05-03 -- Phase 7.5 Plan 01 closed (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass.
+Plan: 2/11 (07.5-01 + 07.5-02 complete; 07.5-03 next — Wave 0 closed)
+Status: In progress (Wave 0 complete — Wave 1 ready to begin with auth helpers)
+Last activity: 2026-05-04 -- Phase 7.5 Plan 02 closed (3 commits: 2b52d6e mig 007 github_installations, d539e15 mig 008 scans github cols + ORM, f70fbc0 fixture scaffolding + smoke tests + VALIDATION flag flip). alembic head at 008; 100 tests collect clean (95 pre-existing + 5 new fixture smoke); reversibility verified.
 
 ## Accumulated Context
 
@@ -68,6 +68,10 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 07.5-01: GitHub App settings fields use empty-string defaults (not Optional[str]) — matches existing string-field convention in Settings (stripe_meter_event_name, git_sha) and avoids None-coercion in downstream auth helpers. Real values come from Fly secrets in dev/prod; tests override via conftest.py env-stub block.
 - Plan 07.5-01: shadcn `add command` did NOT overwrite lib/utils.ts (cn helper already present from Phase 7.1-01) — different from the 07.1-01 init step which DID overwrite. Documented for future shadcn add invocations: `add` only overwrites when the file is missing or differs structurally.
 - Plan 07.5-01: pre-existing `TS6133: 'screen' unused` in dashboard/__tests__/scan-filters.test.tsx (introduced 90852b6 / Phase 7.1-03) deferred via .planning/phases/07.5-github-repo-connector/deferred-items.md — out-of-scope for Plan 07.5-01 per executor SCOPE BOUNDARY rule.
+- Plan 07.5-02: split into TWO atomic alembic migrations (007 + 008) instead of one combined migration — reversibility is per-revision, so a future revert can touch only the scans columns without disturbing github_installations (or vice versa). Cost is two Running upgrade lines on a fresh DB; benefit is sharper rollback granularity.
+- Plan 07.5-02: dedup partial index predicate is `WHERE status='ready'` (not `status IS NOT NULL`). Only successful scans are dedup candidates — pending/failed re-scans should still proceed. Index column order `(team_id, github_repo, github_sha, created_at DESC)` puts team_id first so the planner uses the RLS predicate first; created_at DESC enables `ORDER BY created_at DESC LIMIT 1` to be index-only.
+- Plan 07.5-02: `rsa_private_key` test fixture is session-scoped (not module-scoped) — generation is ~150 ms on M-class CPU and the key is functionally immutable; sharing across the session is safe because tests never mutate it. Plan 03+ depends on this fixture name.
+- Plan 07.5-02: `gh_settings_patched` fixture monkeypatches the live `app.settings.settings` singleton rather than constructing a new Settings instance — Plan 03's auth helpers do `from app.settings import settings` at module load, so patching the singleton is the only way to make the test value visible without re-importing the auth module per test.
 
 ### Pending Todos
 
@@ -99,9 +103,10 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-05-03T09:10:00.000Z
+Last session: 2026-05-04T15:05:00.000Z
 Milestone: v1.1 in flight
-Resume: Phase 07.5 Plan 02 (Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade — depends on Plan 01's settings fields and fakeredis dev dep)
+Resume: Phase 07.5 Plan 03 (Wave 1 — `mint_app_jwt` + `mint_installation_token` auth helpers; depends on Plan 02's `rsa_private_key` + `gh_settings_patched` + `respx_github` fixtures)
 
 **Planned Phase:** 7.5 (GitHub Repo Connector) — 11 plans — 2026-05-03
 **Plan 07.5-01 closed:** 2026-05-03T09:10Z (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass. Pre-existing scan-filters.test.tsx tsc warning deferred (out-of-scope).
+**Plan 07.5-02 closed:** 2026-05-04T15:05Z (3 commits: 2b52d6e mig 007 github_installations + RLS + grants, d539e15 mig 008 scans github columns + idx_scans_github_dedup partial index + Scan ORM extensions + GithubInstallation ORM class, f70fbc0 tests/integrations/github/ + tests/jobs/ scaffold + 5 shared pytest fixtures + 5 fixture smoke tests + VALIDATION.md flag flip). alembic head at 008_scan_github_columns; downgrade -2 + upgrade head verified reversible; 100 tests collect clean (95 pre-existing + 5 new). Wave 0 closed; Wave 1 unblocked. Resumption: Task 1 was committed (2b52d6e) by previous executor before usage-limit pause; resumption agent verified the commit, confirmed alembic current=007, and resumed at Task 2 without re-doing Task 1.
