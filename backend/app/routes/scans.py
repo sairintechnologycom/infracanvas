@@ -40,7 +40,6 @@ import json
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-import stripe
 import structlog
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -52,7 +51,6 @@ from infracanvas.graph.models import ResourceGraph  # cross-package via file:../
 
 from app.auth.clerk import ClerkPrincipal, require_role
 from app.auth.deps import resolve_team_from_clerk_org
-from app.billing.stripe_meter import record_scan_meter_event
 from app.db.models import Scan, ScanStatus, Team
 from app.db.session import get_sessionmaker
 from app.schemas.scan import (
@@ -66,6 +64,7 @@ from app.schemas.scan import (
     ScanListResp,
 )
 from app.services.diff import compute_diff
+from app.services.scans import fire_scan_meter_or_502
 from app.storage import r2
 from app.util.ids import new_uuid7
 
@@ -210,20 +209,14 @@ async def commit_scan(
             # raises, the enclosing session.begin() context manager
             # rolls back. Per D-09: every committed scan row carries a
             # meter event; partial states are impossible.
-            try:
-                await record_scan_meter_event(
-                    scan_id=str(scan_id),
-                    stripe_customer_id=team.stripe_customer_id or "",
-                )
-            except stripe.error.StripeError as e:
-                _log.error(
-                    "meter_event_failed",
-                    scan_id=str(scan_id),
-                    error=repr(e),
-                )
-                raise HTTPException(
-                    status.HTTP_502_BAD_GATEWAY, "meter_failed"
-                ) from e
+            #
+            # Phase 7.5 Plan 05: extracted to app.services.scans so the
+            # worker (scan_repo, Plan 06) shares the SAME meter call site
+            # — keeps the D-08/D-09 invariant testable in isolation.
+            await fire_scan_meter_or_502(
+                scan_id=scan_id,
+                stripe_customer_id=team.stripe_customer_id or "",
+            )
         # Tx committed here on success; rolled back on any exception above.
 
     # 5b. Post-commit R2 move: pending/ → teams/.../, then delete pending/.

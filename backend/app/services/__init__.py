@@ -1,1 +1,1 @@
-"""Backend service helpers (bcrypt, etc.)."""
+"""Backend service helpers (bcrypt, diff, scan finalization)."""
