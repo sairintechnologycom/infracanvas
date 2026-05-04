@@ -36,21 +36,10 @@ vi.mock('@/components/scans/ScanViewerClient', () => ({
   ),
 }))
 
-// MetadataHeader + ScanDetailActions render in the ready branch and are
-// out of scope for this gate test — stub to keep DOM minimal.
-vi.mock('@/components/scans/MetadataHeader', () => ({
-  MetadataHeader: () => <div data-testid="metadata-header-mock" />,
-}))
-
-vi.mock(
-  '@/app/(dashboard)/scans/[id]/ScanDetailActions',
-  () => ({
-    ScanDetailActions: () => <div data-testid="scan-detail-actions-mock" />,
-  }),
-  { virtual: true } as never,
-)
-
-import { renderScanByStatus } from '@/app/(dashboard)/scans/[id]/page'
+// renderScanByStatus lives in its own module (page.tsx exports are
+// restricted by Next.js 15). Importing the helper directly avoids
+// pulling in ScanDetailPage's RSC body + Clerk server-side dep.
+import { renderScanByStatus } from '@/app/(dashboard)/scans/[id]/renderScanByStatus'
 
 const makeScan = (overrides: Partial<ScanGetResp> = {}): ScanGetResp => ({
   id: 'scan-abc',

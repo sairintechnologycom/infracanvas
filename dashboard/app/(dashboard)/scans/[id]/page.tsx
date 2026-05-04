@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import { backendFetch } from '@/lib/backend'
 import type { ScanGetResp } from '@/lib/types'
 import { MetadataHeader } from '@/components/scans/MetadataHeader'
-import { ScanViewerClient } from '@/components/scans/ScanViewerClient'
 import { ScanDetailActions } from './ScanDetailActions'
+import { renderScanByStatus } from './renderScanByStatus'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -28,21 +28,10 @@ export default async function ScanDetailPage({ params }: PageProps) {
       {/* Mounts on the client; injects [Compare] [Share] into the top-bar slot (RMD-05) */}
       <ScanDetailActions scanId={scan.id} branch={scan.branch} />
       <MetadataHeader scan={scan} />
-      {/* ScanViewerClient fills remaining height; viewer manages its own pan/zoom.
-       *  presigned_get_url is null for pending/failed scans (Phase 7.5 Plan 05) —
-       *  Plan 11 will replace this with a polling state machine; until then, simply
-       *  hide the viewer when the payload isn't ready yet. */}
-      <div className="flex-1 min-h-0">
-        {scan.presigned_get_url ? (
-          <ScanViewerClient scanId={id} initialPresignedUrl={scan.presigned_get_url} />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            {scan.status === 'failed'
-              ? `Scan failed${scan.error_message ? `: ${scan.error_message}` : ''}`
-              : 'Scan in progress…'}
-          </div>
-        )}
-      </div>
+      {/* Phase 7.5 Plan 10 status gate: routes pending/failed scans to
+       *  ScanPendingClient (polls /api/scan-status every 2s; surfaces
+       *  Retry on failed). Ready path is unchanged. */}
+      <div className="flex-1 min-h-0">{renderScanByStatus(scan)}</div>
     </div>
   )
 }
