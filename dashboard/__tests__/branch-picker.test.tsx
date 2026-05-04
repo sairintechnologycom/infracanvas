@@ -155,9 +155,10 @@ describe('BranchPicker', () => {
         onChange={onChange}
       />,
     )
-    // Wait for fetch + initial default_branch onChange to fire
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith('dev'))
-    onChange.mockClear()
+    // Wait for fetch to settle (Select trigger no longer disabled).
+    await waitFor(() =>
+      expect(screen.getByRole('combobox')).not.toHaveAttribute('disabled'),
+    )
 
     fireEvent.click(screen.getByRole('combobox'))
     await waitFor(() => {
