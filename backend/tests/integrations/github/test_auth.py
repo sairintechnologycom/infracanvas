@@ -19,7 +19,6 @@ import time
 import httpx
 import jwt
 import pytest
-import respx
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 

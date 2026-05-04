@@ -14,7 +14,7 @@ Covers the eight behaviors from Plan 07.5-03 Task 3:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -33,7 +33,7 @@ def test_installation_resp_happy():
         installation_id=99,
         github_account_login="foo",
         github_account_type="Organization",
-        installed_at=datetime.now(tz=timezone.utc),
+        installed_at=datetime.now(tz=UTC),
         installed_by_user_id="user_abc",
     )
     assert obj.installation_id == 99
