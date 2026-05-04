@@ -267,7 +267,7 @@ Plans:
 - [x] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
 - [x] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback (4 endpoints, 21 tests, RLS-isolated, App-JWT install reverify, 60s repo cache, rate-limit→503, idempotent ON CONFLICT upsert, 302 dashboard redirects)
 - [x] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
-- [ ] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes
+- [x] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes (2026-05-04 — full pipeline lands; r2.put_bytes async helper via run_in_threadpool; scan_repo @broker.task ships 7-kwarg signature with mint→clone→traversal-guard→scan→put_bytes→finalize_scan; 3 token-redaction layers + WHERE pending guard + tmpdir cleanup; rc 0/1 success rc=2 fail; 16 tests; backend pipeline now end-to-end executable)
 - [ ] 07.5-07-PLAN.md — Wave 3: dashboard proxy routes + lib/types.ts extensions
 - [ ] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components
 - [ ] 07.5-09-PLAN.md — Wave 5: ScanTriggerForm + live /settings/integrations page
