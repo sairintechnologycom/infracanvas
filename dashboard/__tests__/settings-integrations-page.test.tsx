@@ -186,7 +186,7 @@ describe('settings/integrations page (live state machine)', () => {
 
   it('initial loading state: neither InstallButton nor ScanTriggerForm yet', async () => {
     // Deferred fetch — never resolves until we let it.
-    let resolveFetch: ((v: unknown) => void) | null = null
+    let resolveFetch: ((v: unknown) => void) = () => {}
     const fetchMock = vi.fn().mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -204,6 +204,6 @@ describe('settings/integrations page (live state machine)', () => {
     // A loading hint must be in the DOM (skeleton or "Loading…" text).
     expect(screen.getByTestId('github-loading')).toBeInTheDocument()
     // Resolve to keep the test deterministic.
-    resolveFetch?.({ ok: true, status: 200, json: async () => [] })
+    resolveFetch({ ok: true, status: 200, json: async () => [] })
   })
 })

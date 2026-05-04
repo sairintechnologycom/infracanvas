@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { readFileSync } from 'node:fs'
@@ -30,6 +30,17 @@ const mockPathname = vi.fn(() => '/settings/members')
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname(),
   useRouter: () => ({ push: vi.fn() }),
+  // Phase 7.5 Plan 09 — integrations page reads ?install=success.
+  useSearchParams: () => new URLSearchParams(''),
+}))
+
+// Phase 7.5 Plan 09 — integrations page now composes child components that
+// require Clerk + fetch. Mock both so this layout-level test stays focused.
+vi.mock('@/components/integrations/InstallButton', () => ({
+  InstallButton: () => <button data-testid="install-button-stub">Install</button>,
+}))
+vi.mock('@/components/integrations/ScanTriggerForm', () => ({
+  ScanTriggerForm: () => <div data-testid="scan-trigger-form-stub" />,
 }))
 
 // Mock Clerk OrganizationProfile — lightweight stand-in
@@ -85,18 +96,32 @@ describe('settings/billing page', () => {
 })
 
 describe('settings/integrations page', () => {
-  it('renders Slack and GitHub cards with disabled GitHub button', async () => {
+  beforeEach(() => {
+    // Stub fetch so the page's mount-time GET /api/github/installations
+    // resolves predictably (empty list → InstallButton path).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      }),
+    )
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders Slack and GitHub cards (live state machine — Plan 07.5-09)', async () => {
     const { default: IntegrationsPage } = await import(
       '@/app/(dashboard)/settings/integrations/page'
     )
     render(<IntegrationsPage />)
     expect(screen.getByRole('heading', { name: /slack/i })).toBeInTheDocument()
-    const githubBtn = screen.getByTestId('github-connect-btn')
-    expect(githubBtn).toBeDisabled()
-    expect(githubBtn).toHaveTextContent(/connect github/i)
+    expect(screen.getByRole('heading', { name: /github/i })).toBeInTheDocument()
   })
 
-  it('renders Slack webhook input and Save button', async () => {
+  it('renders Slack webhook input and Save button (preserved)', async () => {
     const { default: IntegrationsPage } = await import(
       '@/app/(dashboard)/settings/integrations/page'
     )
