@@ -37,7 +37,6 @@ from typing import Any
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Shared helpers — mock subprocess factory and tmpdir snapshot inspector.
 # ---------------------------------------------------------------------------
@@ -145,6 +144,72 @@ def _wire_r2_to_moto(monkeypatch: pytest.MonkeyPatch, mock_r2: Any) -> None:
 
 
 @pytest.fixture
+async def _wire_db_to_pg(
+    pg_container: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Repoint the app's async engine at the testcontainer using NullPool.
+
+    Mirrors ``tests/test_tasks.py::_wire_db_to_pg``. Required because the
+    worker calls ``get_sessionmaker()`` from its module body, and that
+    sessionmaker would otherwise point at the .env DATABASE_URL (likely
+    localhost:5432, not the testcontainer host:port).
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import NullPool
+
+    from app.db import session as sess_mod
+    from app.settings import settings
+
+    host = pg_container.get_container_host_ip()
+    port = pg_container.get_exposed_port(5432)
+    dbname = pg_container.dbname if hasattr(pg_container, "dbname") else "test"
+    db_url = f"postgresql+asyncpg://infracanvas_app:app@{host}:{port}/{dbname}"
+    monkeypatch.setattr(settings, "database_url", db_url)
+
+    test_engine = create_async_engine(db_url, poolclass=NullPool)
+    test_sm = async_sessionmaker(
+        test_engine, expire_on_commit=False, class_=sess_mod.AsyncSession
+    )
+    monkeypatch.setattr(sess_mod, "_engine", test_engine)
+    monkeypatch.setattr(sess_mod, "_Session", test_sm)
+
+
+@pytest.fixture
+def stub_stripe_meter(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Replace ``stripe_meter._client`` with a SDK-shape capturing stub.
+
+    Returns a dict with ``calls`` (list of (params, options)) and
+    ``next_failure`` (set to True to make the next call raise StripeError).
+    Mirrors the same-name fixture in ``tests/test_scans.py``.
+    """
+    import stripe
+
+    from app.billing import stripe_meter
+
+    state: dict[str, Any] = {"calls": [], "next_failure": False}
+
+    class _MeterEvents:
+        def create(self, *, params: Any, options: Any = None) -> Any:
+            if state["next_failure"]:
+                state["next_failure"] = False
+                raise stripe.error.APIError("simulated_meter_failure")
+            state["calls"].append({"params": dict(params), "options": options})
+            return None
+
+    class _Billing:
+        meter_events = _MeterEvents()
+
+    class _V2:
+        billing = _Billing()
+
+    class _Client:
+        v2 = _V2()
+
+    monkeypatch.setattr(stripe_meter, "_client", lambda: _Client())
+    return state
+
+
+@pytest.fixture
 def _stub_mint_token(monkeypatch: pytest.MonkeyPatch) -> str:
     """Stub mint_installation_token to a known value the redaction tests
     can assert against. Returned string is the test token."""
@@ -180,17 +245,17 @@ def _stub_db_update_to_noop(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def begin(self):  # type: ignore[no-untyped-def]
             class _Tx:
-                async def __aenter__(self_inner):  # type: ignore[no-untyped-def]
+                async def __aenter__(self_inner):  # type: ignore[no-untyped-def]  # noqa: N805
                     return self_inner
 
-                async def __aexit__(self_inner, *exc):  # type: ignore[no-untyped-def]
+                async def __aexit__(self_inner, *exc):  # type: ignore[no-untyped-def]  # noqa: N805
                     return False
 
             return _Tx()
 
         async def execute(self, *_args, **_kwargs):  # type: ignore[no-untyped-def]
             class _R:
-                def scalar_one_or_none(self_inner):  # type: ignore[no-untyped-def]
+                def scalar_one_or_none(self_inner):  # type: ignore[no-untyped-def]  # noqa: N805
                     return None
 
             return _R()
@@ -603,6 +668,7 @@ async def test_scan_rc2_failure(
 async def test_happy_path(
     monkeypatch: pytest.MonkeyPatch,
     seed_session: Any,
+    _wire_db_to_pg: None,
     _wire_r2_to_moto: None,
     _stub_mint_token: str,
     stub_stripe_meter: dict[str, Any],
@@ -612,9 +678,9 @@ async def test_happy_path(
     """JOB-SR-01: full pipeline — clone, scan, put_bytes, finalize_scan
     (DB UPDATE pending then ready + Stripe meter event).
     """
-    import app.queue.tasks.scan_repo as sr_mod
     from sqlalchemy import text
 
+    import app.queue.tasks.scan_repo as sr_mod
     from app.db.models import Scan, ScanStatus, Team
     from app.util.ids import new_uuid7
 
@@ -686,6 +752,7 @@ async def test_happy_path(
 async def test_scan_rc1_treated_as_success(
     monkeypatch: pytest.MonkeyPatch,
     seed_session: Any,
+    _wire_db_to_pg: None,
     _wire_r2_to_moto: None,
     _stub_mint_token: str,
     stub_stripe_meter: dict[str, Any],
@@ -695,9 +762,9 @@ async def test_scan_rc1_treated_as_success(
     """JOB-SR-10: scan rc=1 (findings present) is success — finalize_scan
     is still called, row flips to ready, meter fires.
     """
-    import app.queue.tasks.scan_repo as sr_mod
     from sqlalchemy import text
 
+    import app.queue.tasks.scan_repo as sr_mod
     from app.db.models import Scan, ScanStatus, Team
     from app.util.ids import new_uuid7
 
@@ -756,6 +823,7 @@ async def test_scan_rc1_treated_as_success(
 async def test_failed_update_uses_pending_guard(
     monkeypatch: pytest.MonkeyPatch,
     seed_session: Any,
+    _wire_db_to_pg: None,
     _stub_mint_token: str,
     tmp_path: Path,
 ) -> None:
@@ -763,9 +831,9 @@ async def test_failed_update_uses_pending_guard(
     The failure-path UPDATE has WHERE status='pending', so a no-op — the
     'ready' row is NOT clobbered to 'failed'.
     """
-    import app.queue.tasks.scan_repo as sr_mod
     from sqlalchemy import text
 
+    import app.queue.tasks.scan_repo as sr_mod
     from app.db.models import Scan, ScanStatus, Team
     from app.util.ids import new_uuid7
 
