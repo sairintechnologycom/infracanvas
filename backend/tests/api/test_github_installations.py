@@ -14,7 +14,6 @@ covered by ``tests/integrations/github/`` separately.
 """
 from __future__ import annotations
 
-import secrets
 from typing import Any
 
 import pytest

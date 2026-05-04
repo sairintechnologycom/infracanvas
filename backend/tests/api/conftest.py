@@ -89,8 +89,9 @@ def patch_clerk_jwks(monkeypatch: pytest.MonkeyPatch, mock_clerk):
 
     Mirrors test_scans.py::patch_clerk_jwks.
     """
-    import app.auth.clerk as clerk_mod
     from jwt import PyJWKClient
+
+    import app.auth.clerk as clerk_mod
 
     monkeypatch.setattr(clerk_mod, "_jwks_client", PyJWKClient(mock_clerk.jwks_url))
     from app.settings import settings
