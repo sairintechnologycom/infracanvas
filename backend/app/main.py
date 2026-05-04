@@ -18,7 +18,7 @@ from app.obs.logging import configure_logging
 from app.obs.middleware import RequestContextMiddleware
 from app.obs.sentry import init_sentry
 from app.routes import github as github_routes
-from app.routes import health
+from app.routes import health, scans_from_github
 from app.routes import scans as scan_routes
 from app.routes import share as share_routes
 from app.routes import webhooks as wh_routes
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(scan_routes.router)
     app.include_router(share_routes.router, prefix="/v1")
     app.include_router(github_routes.router)
+    app.include_router(scans_from_github.router)
     return app
 
 

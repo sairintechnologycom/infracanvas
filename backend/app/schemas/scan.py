@@ -62,18 +62,37 @@ class ScanCommitReq(BaseModel):
 
 
 class ScanGetResp(BaseModel):
-    """Response body for ``GET /v1/scans/{id}`` and ``commit``."""
+    """Response body for ``GET /v1/scans/{id}`` and ``commit``.
+
+    Phase 7.5 D-13: ``presigned_get_url`` is ``None`` when ``status`` is
+    not ``ready`` (the R2 object doesn't exist yet for ``pending`` rows
+    and won't exist for ``failed`` rows). The polling page (Plan 11)
+    treats a null URL as "still scanning" and a non-null URL as
+    "render the viewer".
+
+    The new ``error_message`` + ``source_path`` + ``github_*`` fields are
+    populated by either ``POST /v1/scans/from-github`` (sets ``github_*``
+    + ``status='pending'``) or the ``scan_repo`` worker (sets
+    ``error_message`` on failure or moves to ``status='ready'``).
+    """
 
     id: UUID
     team_id: UUID
     status: ScanStatus
-    presigned_get_url: str
+    presigned_get_url: str | None = None
     size_bytes: int | None
     created_at: datetime
     summary_json: dict[str, Any] | None = None
     branch: str | None = None
     commit_sha: str | None = None
     source: str | None = None
+    # Phase 7.5 D-13 — populated by the GitHub-trigger flow + worker.
+    error_message: str | None = None
+    source_path: str | None = None
+    github_installation_id: int | None = None
+    github_repo: str | None = None
+    github_branch: str | None = None
+    github_sha: str | None = None
 
 
 class ScanListItemResp(BaseModel):

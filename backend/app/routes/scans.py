@@ -277,6 +277,12 @@ async def commit_scan(
                 branch=row.branch,
                 commit_sha=row.commit_sha,
                 source=row.source,
+                error_message=row.error_message,
+                source_path=row.source_path,
+                github_installation_id=row.github_installation_id,
+                github_repo=row.github_repo,
+                github_branch=row.github_branch,
+                github_sha=row.github_sha,
             )
 
 
@@ -312,9 +318,16 @@ async def get_scan(
                 raise HTTPException(
                     status.HTTP_404_NOT_FOUND, "scan_not_found"
                 )
-            get_url = await run_in_threadpool(
-                r2.presigned_get, row.r2_key, _GET_TTL_SECONDS
-            )
+            # Phase 7.5 D-13: only sign a GET URL when the row is ready
+            # (pending/failed rows have no R2 object — signing would
+            # produce a URL that 404s against R2). The polling page
+            # treats null as "still scanning / failed" and a non-null
+            # URL as "render the viewer".
+            get_url: str | None = None
+            if row.status == ScanStatus.ready and row.r2_key:
+                get_url = await run_in_threadpool(
+                    r2.presigned_get, row.r2_key, _GET_TTL_SECONDS
+                )
             return ScanGetResp(
                 id=row.id,
                 team_id=row.team_id,
@@ -326,6 +339,12 @@ async def get_scan(
                 branch=row.branch,
                 commit_sha=row.commit_sha,
                 source=row.source,
+                error_message=row.error_message,
+                source_path=row.source_path,
+                github_installation_id=row.github_installation_id,
+                github_repo=row.github_repo,
+                github_branch=row.github_branch,
+                github_sha=row.github_sha,
             )
 
 
