@@ -107,6 +107,82 @@ def test_get_returns_bytes(mock_r2, monkeypatch) -> None:
     assert get_bytes(key) == body
 
 
+async def test_put_bytes_uploads_to_r2(mock_r2, monkeypatch) -> None:
+    """STO-005: ``put_bytes`` writes the object to the configured bucket
+    with the given key/body/content-type via boto3 ``put_object``.
+
+    Worker-side helper (Phase 7.5 Plan 06): the ``scan_repo`` taskiq job
+    uploads the scan JSON blob directly under
+    ``teams/{team_id}/scans/{scan_id}.json`` — no presigned-PUT round
+    trip because the worker IS the trusted writer.
+    """
+    _swap_r2_client_for_moto(monkeypatch, mock_r2.bucket)
+    from app.storage.r2 import get_bytes, head, put_bytes
+
+    key = "teams/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/scans/sc_005.json"
+    body = b'{"hello":"put_bytes"}'
+
+    await put_bytes(key, body, "application/json")
+
+    assert get_bytes(key) == body
+    h = head(key)
+    assert h["ContentLength"] == len(body)
+    assert h["ContentType"] == "application/json"
+
+
+async def test_put_bytes_runs_in_threadpool(mock_r2, monkeypatch) -> None:
+    """STO-006: ``put_bytes`` offloads the blocking boto3 call via
+    ``fastapi.concurrency.run_in_threadpool`` so it does not block the
+    worker asyncio event loop.
+
+    boto3 is sync; calling it directly inside an async coroutine would
+    pin the event loop for the duration of the upload. We assert the
+    helper invokes ``run_in_threadpool`` exactly once per call.
+    """
+    _swap_r2_client_for_moto(monkeypatch, mock_r2.bucket)
+    from app.storage import r2 as r2_mod
+
+    call_log: list[str] = []
+    real_run_in_threadpool = r2_mod.run_in_threadpool
+
+    async def _spy(fn, *args, **kwargs):  # type: ignore[no-untyped-def]
+        call_log.append("invoked")
+        return await real_run_in_threadpool(fn, *args, **kwargs)
+
+    monkeypatch.setattr(r2_mod, "run_in_threadpool", _spy)
+
+    key = "teams/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/scans/sc_006.json"
+    await r2_mod.put_bytes(key, b"x", "application/json")
+    assert call_log == ["invoked"], (
+        f"expected exactly one threadpool offload, saw {call_log!r}"
+    )
+
+
+async def test_put_bytes_propagates_boto_error(mock_r2, monkeypatch) -> None:
+    """STO-007: a boto3 ``ClientError`` from ``put_object`` re-raises out
+    of ``put_bytes`` so the worker can flip the scan to ``failed``.
+
+    The helper does not swallow R2 transport errors — the worker's
+    outer try/except is the single failure-handling site, which keeps
+    the failure-path UPDATE invariant in one place.
+    """
+    from botocore.exceptions import ClientError
+
+    from app.storage import r2 as r2_mod
+
+    class _BoomClient:
+        def put_object(self, **kwargs):  # type: ignore[no-untyped-def]
+            raise ClientError(
+                error_response={"Error": {"Code": "InternalError", "Message": "boom"}},
+                operation_name="PutObject",
+            )
+
+    monkeypatch.setattr(r2_mod, "get_r2_client", lambda: _BoomClient())
+
+    with pytest.raises(ClientError):
+        await r2_mod.put_bytes("teams/x/scans/sc.json", b"x", "application/json")
+
+
 def test_copy_then_delete_moves_pending_to_final(mock_r2, monkeypatch) -> None:
     """STO-004 (D-11): commit flow copies pending/ → teams/{team_id}/scans/
     then deletes the pending/ source. After the move, only the final key
