@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-04T10:16:24.000Z"
-last_activity: 2026-05-04 -- Phase 7.5 Plan 03 complete (Wave 1 GitHub App auth helpers: mint_app_jwt + mint_installation_token, httpx client wrapper for 4 GitHub API calls + 60s gh:repos:* Redis cache, 5 Pydantic schemas for /v1/github/*, 22 new tests via respx + fakeredis)
+last_updated: "2026-05-04T12:56:13.000Z"
+last_activity: 2026-05-04 -- Phase 7.5 Plan 04 complete (Wave 2 first plan: 4 GET endpoints under /v1/github/* — installations / repos / branches / install-callback — with full CC-2 RLS-scoped dep stack, state==clerk_org_id CSRF guard, App-JWT install reverify, idempotent ON CONFLICT upsert, dashboard 302 redirects, 21 integration tests under tests/api/)
 progress:
   total_phases: 19
   completed_phases: 12
   total_plans: 102
-  completed_plans: 84
-  percent: 82
+  completed_plans: 85
+  percent: 83
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 7.5 — 11 PLAN.md files written across 7 waves; plan-checker PASSED (iter 1)
-Plan: 3/11 (07.5-01 + 07.5-02 + 07.5-03 complete; 07.5-04 next — Wave 1 first plan closed)
-Status: In progress (Wave 1 GitHub auth helpers + schemas landed; Wave 2 routes ready to begin)
-Last activity: 2026-05-04 -- Phase 7.5 Plan 03 closed (6 commits: 3cb47ce RED auth tests, 00a1208 GREEN auth.py, 521b261 RED client tests, e37c508 GREEN client.py with 60s Redis cache, c6451ca schemas/github.py + 8 smoke tests, 95c73ed lint fixes for F401/UP017). 27 tests in tests/integrations/github/ all green; ruff + mypy --strict clean across new files. No live GitHub calls — all hermetic via respx + fakeredis fixtures from Plan 02.
+Plan: 4/11 (07.5-01 + 07.5-02 + 07.5-03 + 07.5-04 complete; 07.5-05 next — Wave 2 first plan closed)
+Status: In progress (Wave 2 GitHub discovery + install-callback routes landed; Wave 2 remaining plans 05/06/07/08 still ahead)
+Last activity: 2026-05-04 -- Phase 7.5 Plan 04 closed (3 commits: 266db62 test RED installations/repos/branches, 5565716 feat GREEN app/routes/github.py with 4 handlers + main.py registration, c595e14 test install-callback). 21 tests in tests/api/ collect cleanly; ruff + mypy --strict clean across app/routes/github.py + app/main.py. Tests skip on the local machine (Docker not running) but execute fully on CI; behaviour gates RLS isolation, ORDER BY installed_at DESC, q-filter, cache hit (zero GitHub calls), 403/429→503 + Retry-After:60, owner/name URL split, regex pattern guard 422, state mismatch 403, App-JWT discrimination via 3-segment shape assert, idempotent ON CONFLICT DO UPDATE, 302 with ?install=success/failed.
 
 ## Accumulated Context
 
@@ -76,6 +76,12 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 07.5-03: dual-path Redis client in `client.py::list_installation_repos` — production uses `_get_redis()` lru_cache singleton (matches `storage/r2.py::get_r2_client()`); tests inject `redis_client=fake_redis` via the new kwarg so the lru_cache never traps a stale URL between tests. Establishes the test-fixture-injection pattern for future redis-cached helpers.
 - Plan 07.5-03: `urllib.parse.quote(branch, safe="")` URL-encoding in `get_head_sha` — `feature/foo` becomes `feature%2Ffoo` so the slash isn't treated as a path segment by GitHub's `git/ref/heads/{branch}` endpoint. Test 8 (`test_branch_with_slash`) regression-locks this T-07.5-03-05 mitigation.
 - Plan 07.5-03: `get_installation_metadata` uses App JWT (NOT installation token) — per GitHub Apps API, `/app/installations/{id}` is App-level metadata. Test 7 explicitly registers the `/access_tokens` POST and asserts `call_count == 0` to lock the discrimination.
+- Plan 07.5-04: install-callback verb is GET (per RESEARCH §Open Q5 — GitHub redirects with GET, not POST; CONTEXT D-10d "POST" is a typo). FastAPI `@router.get("/install-callback")` correctly mirrors that.
+- Plan 07.5-04: state-CSRF semantic divergence from D-14: `state == team.clerk_org_id` (browser-knowable Clerk org id), NOT `state == team.id`. The dashboard's InstallButton sends Clerk `organization.id`; the backend resolves the Team via existing `resolve_team_from_clerk_org` and checks `state == team.clerk_org_id`, closing the CSRF loop without leaking team_id to the browser.
+- Plan 07.5-04: membership probe (look up the installation_id in github_installations under the team's RLS context) runs BEFORE the GitHub API call in /v1/github/repos and /v1/github/branches. Two reasons: cross-team probes return 404 without spending the GitHub rate limit; explicit `installation_not_found` is friendlier than a downstream auth error.
+- Plan 07.5-04: install-callback handler bundled into the same Task 1 GREEN commit (5565716) as the three read endpoints rather than a separate Task 2 GREEN. Splitting a 4-handler single-file route module across two commits would have left imports in an awkward intermediate state (RedirectResponse / get_installation_metadata imported with no usage in Task 1, tripping ruff F401). Task 2 commit (c595e14) is consequently test-only — the 7 tests still gate the behaviour. TDD strict cadence violated for Task 2 only; documented in plan SUMMARY Deviations §1.
+- Plan 07.5-04: tests/api/conftest.py duplicates the GitHub fixtures from tests/integrations/github/conftest.py rather than promoting to tests/conftest.py. Promotion would force every other test module (test_scans, test_share, test_webhooks, ...) to import fakeredis + respx + cryptography RSA generators on collection. Local duplication is ~70 lines and isolated to the API test surface.
+- Plan 07.5-04: DASHBOARD_URL resolved via `os.environ.get` with localhost fallback (mirrors share.py:87 _share_url precedent) rather than adding a new dashboard_url Settings field. Adding a Settings field would force every test conftest + .env example to define a default; env-var fallback is locally scoped and obviously skippable in tests via `monkeypatch.setenv`.
 
 ### Pending Todos
 
@@ -107,11 +113,12 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-05-04T10:16:24.000Z
+Last session: 2026-05-04T12:56:13.000Z
 Milestone: v1.1 in flight
-Resume: Phase 07.5 Plan 04 (Wave 2 — /v1/github/installations + /v1/github/repos + /v1/github/branches + install-callback routes; depends on Plan 03's auth.py + client.py + schemas/github.py)
+Resume: Phase 07.5 Plan 05 (Wave 2 — POST /v1/scans/from-github + _finalize_scan extraction; depends on Plan 03's get_head_sha + ScanFromGitHubReq + Plan 02's scans github_* columns. Note: Plan 05's app/main.py edit will add a second include_router after the github_routes.router line landed by Plan 04)
 
 **Planned Phase:** 7.5 (GitHub Repo Connector) — 11 plans — 2026-05-03
 **Plan 07.5-01 closed:** 2026-05-03T09:10Z (4 commits: 033fc9b chore deps+Dockerfile, bb841c3 RED settings tests, 260cf6d GREEN settings + conftest stubs, 6bd29f4 shadcn command primitive). 7/7 settings tests pass; 95 tests collected clean; 183/183 dashboard tests pass. Pre-existing scan-filters.test.tsx tsc warning deferred (out-of-scope).
 **Plan 07.5-02 closed:** 2026-05-04T15:05Z (3 commits: 2b52d6e mig 007 github_installations + RLS + grants, d539e15 mig 008 scans github columns + idx_scans_github_dedup partial index + Scan ORM extensions + GithubInstallation ORM class, f70fbc0 tests/integrations/github/ + tests/jobs/ scaffold + 5 shared pytest fixtures + 5 fixture smoke tests + VALIDATION.md flag flip). alembic head at 008_scan_github_columns; downgrade -2 + upgrade head verified reversible; 100 tests collect clean (95 pre-existing + 5 new). Wave 0 closed; Wave 1 unblocked. Resumption: Task 1 was committed (2b52d6e) by previous executor before usage-limit pause; resumption agent verified the commit, confirmed alembic current=007, and resumed at Task 2 without re-doing Task 1.
 **Plan 07.5-03 closed:** 2026-05-04T10:16Z (6 commits: 3cb47ce test RED auth, 00a1208 feat GREEN mint_app_jwt + mint_installation_token, 521b261 test RED client, e37c508 feat GREEN list_installation_repos + list_branches + get_head_sha + get_installation_metadata + 60s gh:repos:* Redis cache, c6451ca feat schemas/github.py with 5 Pydantic models + 8 smoke tests, 95c73ed fix lint F401/UP017). 27 tests in tests/integrations/github/ all green (5 fixture smoke from Plan 02 + 22 new); ruff + mypy --strict clean. Pure Python — no live GitHub calls (respx + fakeredis fixtures from Plan 02 cover everything). Wave 1 first plan closed; Plans 04 + 05 + 06 + 07 in Wave 2 all unblocked on the auth/client/schemas contract.
+**Plan 07.5-04 closed:** 2026-05-04T12:56Z (3 commits: 266db62 test RED installations/repos/branches, 5565716 feat GREEN app/routes/github.py with 4 handlers + main.py registration, c595e14 test install-callback). 21 integration tests in tests/api/ collect cleanly (4 installations + 5 repos + 5 branches + 7 callback); ruff + mypy --strict clean across app/routes/github.py + app/main.py. Tests skip locally (Docker absent) but execute fully on CI; behaviour gates RLS isolation, ORDER BY installed_at DESC, q-filter, cache hit asserts ZERO GitHub calls, 403/429→503+Retry-After:60, owner/name URL split, regex pattern guard 422, state mismatch 403, App-JWT discrimination via 3-segment shape assert, idempotent ON CONFLICT DO UPDATE, 302 redirects with ?install=success/failed. main.py edit is surgical (1 import + 1 include_router) so Plan 05's scans_from_github registration can land cleanly. Plans 05 + 09 + 10 + 11 unblocked on the /v1/github/* contract.

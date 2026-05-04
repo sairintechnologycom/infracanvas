@@ -57,7 +57,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
-| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 2/11 | In progress | - |
+| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 4/11 | In progress | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
@@ -265,7 +265,7 @@ Plans:
 - [x] 07.5-01-PLAN.md — Wave 0 foundation: deps + Dockerfile + settings + shadcn command primitive
 - [x] 07.5-02-PLAN.md — Wave 0 schema: github_installations table + scans columns + ORM + test fixtures + alembic upgrade
 - [x] 07.5-03-PLAN.md — Wave 1: GitHub App auth + httpx client + Pydantic schemas
-- [ ] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback
+- [x] 07.5-04-PLAN.md — Wave 2: /v1/github/installations + repos + branches + install-callback (4 endpoints, 21 tests, RLS-isolated, App-JWT install reverify, 60s repo cache, rate-limit→503, idempotent ON CONFLICT upsert, 302 dashboard redirects)
 - [ ] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
 - [ ] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes
 - [ ] 07.5-07-PLAN.md — Wave 3: dashboard proxy routes + lib/types.ts extensions
