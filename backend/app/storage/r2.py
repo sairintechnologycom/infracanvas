@@ -25,6 +25,7 @@ from typing import Any
 import boto3
 from botocore.client import BaseClient
 from botocore.config import Config
+from fastapi.concurrency import run_in_threadpool
 
 from app.settings import settings
 
@@ -92,6 +93,40 @@ def head(key: str) -> dict[str, Any]:
     when the object doesn't exist (the route translates that to HTTP 404).
     """
     return get_r2_client().head_object(Bucket=settings.r2_bucket, Key=key)
+
+
+async def put_bytes(
+    key: str, body: bytes, content_type: str = "application/json"
+) -> None:
+    """Upload raw bytes to R2 at ``key``. Worker-side direct write.
+
+    Used by the Phase 7.5 ``scan_repo`` taskiq job to deposit a freshly
+    produced scan JSON blob under the canonical key shape
+    ``teams/{team_id}/scans/{scan_id}.json`` without going through the
+    two-step presigned-PUT-then-commit dance the CLI uses (the worker
+    is a trusted writer; presigning would just add a self-signed
+    network round trip).
+
+    boto3 ``put_object`` is blocking; the call is offloaded via
+    :func:`fastapi.concurrency.run_in_threadpool` so the async worker
+    event loop is not pinned for the duration of the upload.
+
+    Errors (``botocore.exceptions.ClientError`` for any non-2xx PUT
+    response, including auth/transport failures) propagate to the
+    caller — the worker's outer try/except is the single failure-
+    handling site that flips the scan row to ``status='failed'``.
+    """
+    client = get_r2_client()
+
+    def _put() -> None:
+        client.put_object(
+            Bucket=settings.r2_bucket,
+            Key=key,
+            Body=body,
+            ContentType=content_type,
+        )
+
+    await run_in_threadpool(_put)
 
 
 def get_bytes(key: str) -> bytes:
