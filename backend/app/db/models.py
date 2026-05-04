@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -66,6 +66,15 @@ class Scan(Base):
     branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
     commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     source: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Phase 7.5 D-12 / D-13 — GitHub repo connector provenance + debug fields.
+    source_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    github_installation_id: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
+    )
+    github_repo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    github_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    github_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -119,3 +128,38 @@ class ShareLink(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class GithubInstallation(Base):
+    """GitHub App installation per team (Phase 7.5 D-11).
+
+    Stores the long-lived ``github_installation_id`` (opaque integer, NOT a
+    secret) plus account metadata so the dashboard can render
+    "Installed on @owner" without an extra GitHub API call. Token material
+    is never persisted — workers mint fresh installation tokens via App JWT
+    on every scan (D-06).
+
+    RLS posture (mirrors ``ShareLink``): ENABLE + FORCE Row-Level Security
+    with a single FOR ALL policy ``team_id = current_setting('app.current_team_id', true)::uuid``.
+    Migration 007 owns the policy + grants; this ORM class is the typed
+    handle the API + worker use to read/write rows.
+    """
+
+    __tablename__ = "github_installations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    github_installation_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    github_account_login: Mapped[str] = mapped_column(String(255), nullable=False)
+    github_account_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    installed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    installed_by_user_id: Mapped[str] = mapped_column(String(64), nullable=False)
