@@ -57,7 +57,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
-| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 4/11 | In progress | - |
+| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 8/11 | In progress | - |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
@@ -269,7 +269,7 @@ Plans:
 - [x] 07.5-05-PLAN.md — Wave 2: _finalize_scan helper extraction + POST /v1/scans/from-github + extended GET /v1/scans/{id}
 - [x] 07.5-06-PLAN.md — Wave 3: scan_repo taskiq job (clone + scan + R2 + finalize) + put_bytes (2026-05-04 — full pipeline lands; r2.put_bytes async helper via run_in_threadpool; scan_repo @broker.task ships 7-kwarg signature with mint→clone→traversal-guard→scan→put_bytes→finalize_scan; 3 token-redaction layers + WHERE pending guard + tmpdir cleanup; rc 0/1 success rc=2 fail; 16 tests; backend pipeline now end-to-end executable)
 - [x] 07.5-07-PLAN.md — Wave 3: dashboard proxy routes + lib/types.ts extensions (2026-05-04 — 4 Next.js Route Handlers under dashboard/app/api/github/{installations,repos,branches}/route.ts + dashboard/app/api/scans/from-github/route.ts proxy via backendFetch+Clerk JWT; repos+branches preserve 503+Retry-After:60 for rate-limit toasts; POST preserves 422/503/404 with generic 'request_failed' body for 500 to avoid info-leak; lib/types.ts gains InstallationResp/RepoResp/BranchResp + 6 optional ScanGetResp Phase 7.5 fields; presigned_get_url relaxed to nullable; tsc clean; 183/183 tests pass; 2 commits)
-- [ ] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components
+- [x] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components (2026-05-04 — 3 reusable client components under dashboard/components/integrations/: InstallButton (window.open install URL state==clerkOrgId + noopener,noreferrer; T-07.5-08-01 mitigation), RepoCombobox (shadcn Popover+Command with shouldFilter={false} + 250ms useRef debounce + cancellable fetch + private lock icon + inline 503 alert), BranchPicker (shadcn Select + lazy-load on selectedRepo + URL-encoded repo path + default-to-default_branch fallback when value empty + cancellable fetch + same 503 inline alert); 17 vitest tests added 4+7+6 — full dashboard suite 200/200 pass; 6 commits via 3 TDD RED→GREEN cycles)
 - [ ] 07.5-09-PLAN.md — Wave 5: ScanTriggerForm + live /settings/integrations page
 - [ ] 07.5-10-PLAN.md — Wave 5: ScanPendingClient polling + /api/scan-status proxy + scan-detail gating
 - [ ] 07.5-11-PLAN.md — Wave 6: phase verification + manual GitHub smoke checkpoint
