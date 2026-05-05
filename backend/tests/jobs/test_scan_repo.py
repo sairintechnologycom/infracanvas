@@ -883,3 +883,416 @@ async def test_failed_update_uses_pending_guard(
     assert refreshed.status == "ready", (
         "WHERE status='pending' guard must not flip a ready row to failed"
     )
+
+
+# ---------------------------------------------------------------------------
+# JOB-SR-14..18 — Slack alert fire conditions (Plan 08-03).
+#
+# These tests mock the full pipeline up to finalize_scan so the Slack block
+# executes.  They do NOT need the Postgres testcontainer — all DB access is
+# intercepted via _stub_full_pipeline_for_slack() below.
+# ---------------------------------------------------------------------------
+
+
+def _stub_full_pipeline_for_slack(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    source: str,
+    slack_webhook_url: str | None,
+    critical: int,
+    scan_json: dict[str, Any] | None = None,
+) -> None:
+    """Wire all the mocks needed so scan_repo completes the happy path and
+    reaches the Slack fire block.
+
+    Stubs applied:
+    - mint_installation_token → deterministic fake token
+    - asyncio.create_subprocess_exec → fake clone + fake scan + writes scan.json
+    - put_bytes → no-op
+    - finalize_scan → no-op
+    - get_sessionmaker → controlled so the first call (team SELECT in section 8)
+      returns stripe_customer_id and the second call (Slack SELECT in section 9)
+      returns source + slack_webhook_url.
+    """
+    import app.queue.tasks.scan_repo as sr_mod
+
+    # Stub token mint.
+    async def _fake_mint(installation_id: int) -> str:
+        return "ghs_fake_test_token"
+
+    monkeypatch.setattr(sr_mod, "mint_installation_token", _fake_mint)
+
+    # Force a deterministic tmp_root so we control the scan.json path.
+    forced_tmp = tmp_path / "scan-slack"
+    monkeypatch.setattr(sr_mod, "_make_tmp_root", lambda: forced_tmp, raising=False)
+
+    # Build scan payload with the requested critical count.
+    payload = scan_json or {
+        "summary": {
+            "total_resources": 2,
+            "score": 50,
+            "findings": {"critical": critical, "high": 0, "medium": 0, "info": 0},
+        },
+        "nodes": [],
+    }
+
+    monkeypatch.setattr(
+        asyncio,
+        "create_subprocess_exec",
+        _exec_factory(
+            scan_proc=_FakeProc(returncode=0),
+            write_scan_json_at=forced_tmp / "scan.json",
+            scan_payload=payload,
+        ),
+    )
+
+    # Stub R2 put_bytes to a no-op.
+    async def _fake_put_bytes(key: str, body: bytes, content_type: str = "") -> None:
+        pass
+
+    monkeypatch.setattr(sr_mod, "put_bytes", _fake_put_bytes)
+
+    # Stub finalize_scan to a no-op coroutine.
+    async def _fake_finalize(session: Any, **kwargs: Any) -> None:  # type: ignore[no-untyped-def]
+        pass
+
+    monkeypatch.setattr(sr_mod, "finalize_scan", _fake_finalize)
+
+    # Build session mock that dispatches by SQL text content.
+    # Section 8 executes: set_config, then SELECT stripe_customer_id FROM teams
+    # Section 9 (Slack) executes: SELECT s.source, t.slack_webhook_url FROM scans
+    #
+    # We detect which query is being made by inspecting the SQL string fragment
+    # rather than relying on call ordering — more robust to future reordering.
+
+    class _FakeRow0:
+        """Team row returned for the stripe_customer_id SELECT (section 8)."""
+        stripe_customer_id = "cus_test"
+
+    # Use a dynamic type so closure vars are captured without the class-body
+    # scoping restriction (class body can't reference outer locals by name).
+    _slack_source = source
+    _slack_url = slack_webhook_url
+    _FakeRow1 = type(
+        "_FakeRow1",
+        (),
+        {"source": _slack_source, "slack_webhook_url": _slack_url},
+    )
+
+    class _NoopResult:
+        """For set_config and other side-effect-only calls."""
+        def one_or_none(self) -> None:
+            return None
+
+    class _FakeTeamResult:
+        def one_or_none(self) -> _FakeRow0:
+            return _FakeRow0()
+
+    class _FakeSlackResult:
+        def one_or_none(self) -> Any:  # type: ignore[no-untyped-def]
+            return _FakeRow1()
+
+    class _FakeSession:
+        async def __aenter__(self):  # type: ignore[no-untyped-def]
+            return self
+
+        async def __aexit__(self, *exc):  # type: ignore[no-untyped-def]
+            return False
+
+        def begin(self):  # type: ignore[no-untyped-def]
+            class _Tx:
+                async def __aenter__(self_inner):  # type: ignore[no-untyped-def]  # noqa: N805
+                    return self_inner
+
+                async def __aexit__(self_inner, *exc):  # type: ignore[no-untyped-def]  # noqa: N805
+                    return False
+
+            return _Tx()
+
+        async def execute(self, stmt: Any, *_args: Any, **_kwargs: Any) -> Any:
+            stmt_str = str(stmt)
+            if "set_config" in stmt_str:
+                return _NoopResult()
+            if "stripe_customer_id" in stmt_str:
+                return _FakeTeamResult()
+            if "slack_webhook_url" in stmt_str:
+                return _FakeSlackResult()
+            return _NoopResult()
+
+    class _FakeMaker:
+        def __call__(self) -> _FakeSession:
+            return _FakeSession()
+
+    monkeypatch.setattr(sr_mod, "get_sessionmaker", lambda: _FakeMaker())
+
+
+async def test_slack_fires_on_webhook_source_with_critical(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JOB-SR-14: source='webhook', slack_webhook_url set, critical=2 →
+    httpx.AsyncClient.post called once with the Slack URL and a JSON body
+    containing 'Critical' and the repo name.
+    """
+    import unittest.mock as mock
+
+    import httpx
+
+    import app.queue.tasks.scan_repo as sr_mod
+
+    slack_url = "https://hooks.slack.com/services/T/B/x"
+    _stub_full_pipeline_for_slack(
+        monkeypatch,
+        tmp_path,
+        source="webhook",
+        slack_webhook_url=slack_url,
+        critical=2,
+    )
+
+    post_calls: list[dict[str, Any]] = []
+
+    async def _fake_http_post(url: str, *, json: Any = None, timeout: float = 5.0) -> Any:
+        post_calls.append({"url": url, "json": json})
+
+        class _Resp:
+            status_code = 200
+
+        return _Resp()
+
+    mock_client = mock.AsyncMock()
+    mock_client.__aenter__ = mock.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mock.AsyncMock(return_value=False)
+    mock_client.post = _fake_http_post
+
+    with mock.patch("httpx.AsyncClient", return_value=mock_client):
+        await sr_mod.scan_repo.original_func(
+            scan_id="sc_slack_fire",
+            installation_id=42,
+            repo="acme/infra",
+            branch="main",
+            sha="a" * 40,
+            path=".",
+            team_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    assert len(post_calls) == 1, f"Expected 1 Slack POST, got {len(post_calls)}"
+    assert post_calls[0]["url"] == slack_url
+    body = post_calls[0]["json"]
+    assert body is not None
+    body_str = str(body)
+    assert "Critical" in body_str, f"'Critical' not in Slack body: {body_str!r}"
+    assert "acme/infra" in body_str, f"repo name not in Slack body: {body_str!r}"
+
+
+async def test_slack_no_fire_on_github_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JOB-SR-15: source='github' (not 'webhook'), slack_webhook_url set,
+    critical=3 → httpx.AsyncClient.post NOT called.
+    """
+    import unittest.mock as mock
+
+    import app.queue.tasks.scan_repo as sr_mod
+
+    _stub_full_pipeline_for_slack(
+        monkeypatch,
+        tmp_path,
+        source="github",
+        slack_webhook_url="https://hooks.slack.com/services/T/B/x",
+        critical=3,
+    )
+
+    post_calls: list[Any] = []
+
+    async def _fake_http_post(url: str, **kwargs: Any) -> Any:
+        post_calls.append(url)
+
+        class _Resp:
+            status_code = 200
+
+        return _Resp()
+
+    mock_client = mock.AsyncMock()
+    mock_client.__aenter__ = mock.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mock.AsyncMock(return_value=False)
+    mock_client.post = _fake_http_post
+
+    with mock.patch("httpx.AsyncClient", return_value=mock_client):
+        await sr_mod.scan_repo.original_func(
+            scan_id="sc_no_slack_github",
+            installation_id=42,
+            repo="acme/infra",
+            branch="main",
+            sha="b" * 40,
+            path=".",
+            team_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    # Gate: scan_repo module must import httpx for the Slack block to work.
+    assert hasattr(sr_mod, "httpx"), (
+        "scan_repo must import httpx at module level for the Slack block"
+    )
+    assert len(post_calls) == 0, f"Expected 0 Slack POSTs for source='github', got {len(post_calls)}"
+
+
+async def test_slack_no_fire_on_zero_critical(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JOB-SR-16: source='webhook', slack_webhook_url set, critical=0 →
+    httpx.AsyncClient.post NOT called (no critical findings, no alert).
+    """
+    import unittest.mock as mock
+
+    import app.queue.tasks.scan_repo as sr_mod
+
+    _stub_full_pipeline_for_slack(
+        monkeypatch,
+        tmp_path,
+        source="webhook",
+        slack_webhook_url="https://hooks.slack.com/services/T/B/x",
+        critical=0,
+    )
+
+    post_calls: list[Any] = []
+
+    async def _fake_http_post(url: str, **kwargs: Any) -> Any:
+        post_calls.append(url)
+
+        class _Resp:
+            status_code = 200
+
+        return _Resp()
+
+    mock_client = mock.AsyncMock()
+    mock_client.__aenter__ = mock.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mock.AsyncMock(return_value=False)
+    mock_client.post = _fake_http_post
+
+    with mock.patch("httpx.AsyncClient", return_value=mock_client):
+        await sr_mod.scan_repo.original_func(
+            scan_id="sc_no_slack_zero_crit",
+            installation_id=42,
+            repo="acme/infra",
+            branch="main",
+            sha="c" * 40,
+            path=".",
+            team_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    # Gate: scan_repo module must import httpx for the Slack block to work.
+    assert hasattr(sr_mod, "httpx"), (
+        "scan_repo must import httpx at module level for the Slack block"
+    )
+    assert len(post_calls) == 0, f"Expected 0 Slack POSTs for critical=0, got {len(post_calls)}"
+
+
+async def test_slack_no_fire_when_url_none(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JOB-SR-17: source='webhook', slack_webhook_url=None, critical=5 →
+    httpx.AsyncClient.post NOT called (no Slack URL configured).
+    """
+    import unittest.mock as mock
+
+    import app.queue.tasks.scan_repo as sr_mod
+
+    _stub_full_pipeline_for_slack(
+        monkeypatch,
+        tmp_path,
+        source="webhook",
+        slack_webhook_url=None,
+        critical=5,
+    )
+
+    post_calls: list[Any] = []
+
+    async def _fake_http_post(url: str, **kwargs: Any) -> Any:
+        post_calls.append(url)
+
+        class _Resp:
+            status_code = 200
+
+        return _Resp()
+
+    mock_client = mock.AsyncMock()
+    mock_client.__aenter__ = mock.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mock.AsyncMock(return_value=False)
+    mock_client.post = _fake_http_post
+
+    with mock.patch("httpx.AsyncClient", return_value=mock_client):
+        await sr_mod.scan_repo.original_func(
+            scan_id="sc_no_slack_url_none",
+            installation_id=42,
+            repo="acme/infra",
+            branch="main",
+            sha="d" * 40,
+            path=".",
+            team_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    # Gate: scan_repo module must import httpx for the Slack block to work.
+    assert hasattr(sr_mod, "httpx"), (
+        "scan_repo must import httpx at module level for the Slack block"
+    )
+    assert len(post_calls) == 0, f"Expected 0 Slack POSTs when URL is None, got {len(post_calls)}"
+
+
+async def test_slack_httpx_failure_logged_not_raised(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JOB-SR-18: source='webhook', slack_webhook_url set, critical=1 →
+    httpx.AsyncClient.post raises httpx.ConnectError → no exception propagates
+    from scan_repo, and sentry_sdk.capture_exception is called.
+    """
+    import unittest.mock as mock
+
+    import httpx
+
+    import app.queue.tasks.scan_repo as sr_mod
+
+    _stub_full_pipeline_for_slack(
+        monkeypatch,
+        tmp_path,
+        source="webhook",
+        slack_webhook_url="https://hooks.slack.com/services/T/B/x",
+        critical=1,
+    )
+
+    captured: list[Any] = []
+
+    def _fake_capture(exc: Any) -> None:
+        captured.append(exc)
+
+    monkeypatch.setattr(sr_mod.sentry_sdk, "capture_exception", _fake_capture)
+
+    async def _exploding_post(url: str, **kwargs: Any) -> Any:
+        raise httpx.ConnectError("timeout")
+
+    mock_client = mock.AsyncMock()
+    mock_client.__aenter__ = mock.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mock.AsyncMock(return_value=False)
+    mock_client.post = _exploding_post
+
+    with mock.patch("httpx.AsyncClient", return_value=mock_client):
+        # Must NOT raise — the Slack block swallows the error.
+        await sr_mod.scan_repo.original_func(
+            scan_id="sc_slack_httpx_fail",
+            installation_id=42,
+            repo="acme/infra",
+            branch="main",
+            sha="e" * 40,
+            path=".",
+            team_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    assert len(captured) == 1, (
+        f"Expected sentry_sdk.capture_exception called once, got {len(captured)}"
+    )
+    assert isinstance(captured[0], httpx.ConnectError), (
+        f"Expected httpx.ConnectError to be captured, got {type(captured[0])}"
+    )
