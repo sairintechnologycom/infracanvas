@@ -30,7 +30,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [ ] **Phase 7: SaaS Dashboard + Scan History + Share Links** — Next.js 15 dashboard on Vercel, scan list/detail/compare, share links
 - [ ] **Phase 7.1: Phase 7 UI Contract Remediation** (INSERTED) — close UI-SPEC gaps from Phase 7 audit (shadcn init, compare diff list, share toasts/revoke, polish drift)
 - [x] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — closed 14 D-NN defects; LIVE re-audit 21/24 (was 10/24, +11) (2026-05-03)
-- [ ] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8)
+- [x] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8) — completed 2026-05-05
 - [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
 - [ ] **Phase 10: DC Agent Core** — Go agent, NETCONF/SSH, NetFlow collector, encrypted push, CAB security packet
@@ -57,7 +57,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 6. SaaS Backend Foundation | v1.1 | 0/8 | Planned | - |
 | 7. SaaS Dashboard + History + Share | v1.1 | 0/TBD | Not planned | - |
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
-| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 8/11 | In progress | - |
+| 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 11/11 | Complete | 2026-05-05 |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
 | 9. CostLens | v1.1 | 0/TBD | Not planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
@@ -249,7 +249,7 @@ Plans:
 
 ### Phase 7.5: GitHub Repo Connector (PLANNED)
 
-**Status:** PLANNED — 11 plans across 6 waves, ready for /gsd-execute-phase 7.5.
+**Status:** COMPLETE (2026-05-05) — 11/11 plans shipped across 6 waves; PHASE-VERIFICATION.md status=passed + signed_off=2026-05-05; manual GitHub smoke approved by operator against a real InfraCanvas DEV App installation + sandbox Terraform fixture. Phase 8 (GitHub Webhook + Auto-scan) unblocked.
 **Goal:** Let authenticated users connect a GitHub repo, browse repos/branches, and trigger a scan against a specific branch + path — without needing a CLI or a pre-uploaded scan JSON.
 **Requirements:** GH-01, GH-02, GH-03, GH-04, GH-05
 **Plans:** 11 plans
@@ -272,7 +272,7 @@ Plans:
 - [x] 07.5-08-PLAN.md — Wave 4: InstallButton + RepoCombobox + BranchPicker components (2026-05-04 — 3 reusable client components under dashboard/components/integrations/: InstallButton (window.open install URL state==clerkOrgId + noopener,noreferrer; T-07.5-08-01 mitigation), RepoCombobox (shadcn Popover+Command with shouldFilter={false} + 250ms useRef debounce + cancellable fetch + private lock icon + inline 503 alert), BranchPicker (shadcn Select + lazy-load on selectedRepo + URL-encoded repo path + default-to-default_branch fallback when value empty + cancellable fetch + same 503 inline alert); 17 vitest tests added 4+7+6 — full dashboard suite 200/200 pass; 6 commits via 3 TDD RED→GREEN cycles)
 - [x] 07.5-09-PLAN.md — Wave 5: ScanTriggerForm + live /settings/integrations page (2026-05-04 — ScanTriggerForm composes Plan 08 RepoCombobox+BranchPicker+path Input+Scan Button → POST /api/scans/from-github → router.push(/scans/{id}); /settings/integrations rewritten as 3-state machine (loading/preinstall/postinstall) with bounded post-install hydration poll capped at 5×3s ≈ 15s when ?install=success AND empty list (T-07.5-09-01); Slack stub preserved; Rule 1 refresh of 2 settings-routes.test.tsx invariants for the removed disabled placeholder; 14 new vitest tests 7+7 — full dashboard suite 214/214 pass (was 200, +14 net); 4 commits via 2 TDD RED→GREEN cycles; tsc clean across in-scope files)
 - [x] 07.5-10-PLAN.md — Wave 5: ScanPendingClient polling + /api/scan-status proxy + scan-detail gating (2026-05-05 — /api/scan-status proxy via backendFetch+Clerk JWT mirroring scan-presigned route; ScanPendingClient implements CC-14 useEffect+setInterval(2000)+cancelled-flag teardown polling /api/scan-status while pending → router.refresh on ready, render error_message + Retry CTA on failed; Retry POSTs /api/scans/from-github with payload sourced exclusively from server-fetched scan github_* columns (T-07.5-10-03); scan-detail page status gate (renderScanByStatus helper extracted to its own module per Next.js 15 page-export restriction Rule-1 fix) routes pending/failed → ScanPendingClient, ready+URL → unchanged ScanViewerClient path; Rule-1 fix #2 dropped vitest 4 invalid 3-arg vi.mock form; 11 new vitest tests added 7+4 — full dashboard suite 225/225 pass (was 214, +11 net); 5 commits via 2 TDD RED→GREEN cycles plus 1 standalone proxy commit; tsc clean across in-scope files)
-- [ ] 07.5-11-PLAN.md — Wave 6: phase verification + manual GitHub smoke checkpoint
+- [x] 07.5-11-PLAN.md — Wave 6: phase verification + manual GitHub smoke checkpoint (2026-05-05 — Task 1 commit bbfa0c7 wrote 07.5-PHASE-VERIFICATION.md (Sections 1 per-VALIDATION.md row + 2 GH-01..GH-05 traceability with file:line + 3 T1–T9 cross-cutting greps all green) and 07.5-MANUAL-SMOKE.md (263-line operator checklist: P1–P5 pre-flight + S1–S16 smoke); Task 2 was the checkpoint:human-verify gate (gate=blocking) — operator walked the 16-step checklist against a real InfraCanvas DEV App installation + sandbox Terraform fixture and resumed with "approved"; Task 3 flipped Section 4 sign-off to all-checked + status=passed + signed_off=2026-05-05, wrote 07.5-11-SUMMARY.md, advanced STATE.md + this ROADMAP.md. Phase 7.5 CLOSED.)
 
 **Context:** Roadmap gap identified before Phase 8 planning: Phase 8 assumes a repo is already connected and jumps to push-webhook handling, but no phase actually delivers the "connect a repo" UX. This phase closes that gap with GitHub-only for MVP; multi-provider (Azure DevOps / GitLab / Bitbucket) deferred per solo-founder scope discipline. Architecture decisions locked in 07.5-CONTEXT.md (D-01..D-17): GitHub App auth (mint-per-scan), taskiq scan_repo job reused by Phase 8 webhook flow, /settings/integrations as live state machine, scans.status='pending' polled every 2s.
 
