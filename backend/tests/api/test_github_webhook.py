@@ -69,7 +69,7 @@ def settings_with_secret(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture
-def test_client() -> TestClient:
+def webhook_client() -> TestClient:
     """Plain TestClient (no Postgres) — sufficient for the HMAC/event-filter tests."""
     from app.main import create_app
 
@@ -111,12 +111,12 @@ def _push_payload(
 
 
 def test_invalid_hmac_returns_401(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
 ) -> None:
     """T-8-02-01: wrong signature → 401 before any payload parsing."""
     body = _push_payload()
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
@@ -133,7 +133,7 @@ def test_invalid_hmac_returns_401(
 # ---------------------------------------------------------------------------
 
 
-def test_unconfigured_secret_returns_500(test_client: TestClient) -> None:
+def test_unconfigured_secret_returns_500(webhook_client: TestClient) -> None:
     """T-8-02-03: empty ``github_app_webhook_secret`` → 500 before HMAC.
 
     This test does NOT apply the settings_with_secret fixture so the
@@ -147,7 +147,7 @@ def test_unconfigured_secret_returns_500(test_client: TestClient) -> None:
     settings.github_app_webhook_secret = ""
     try:
         body = b'{"zen": "test"}'
-        r = test_client.post(
+        r = webhook_client.post(
             "/v1/webhooks/github",
             content=body,
             headers={
@@ -167,13 +167,13 @@ def test_unconfigured_secret_returns_500(test_client: TestClient) -> None:
 
 
 def test_ping_event_returns_200(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
 ) -> None:
     """GitHub sends ping on webhook creation → 200 {"ok": True} immediately."""
     body = json.dumps({"zen": "test"}).encode()
     sig = _sign(body, WEBHOOK_SECRET)
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
@@ -192,13 +192,13 @@ def test_ping_event_returns_200(
 
 
 def test_non_push_event_returns_200(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
 ) -> None:
     """T-8-02-06: X-GitHub-Event other than push/ping → 200 {"ok": True}."""
     body = json.dumps({"action": "created"}).encode()
     sig = _sign(body, WEBHOOK_SECRET)
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
@@ -217,13 +217,13 @@ def test_non_push_event_returns_200(
 
 
 def test_deleted_branch_returns_200(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
 ) -> None:
     """T-8-02-04: deleted=True push → 200 {"ok": True}, no scan row created."""
     body = _push_payload(deleted=True, after="b" * 40)
     sig = _sign(body, WEBHOOK_SECRET)
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
@@ -242,13 +242,13 @@ def test_deleted_branch_returns_200(
 
 
 def test_non_default_branch_returns_200(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
 ) -> None:
     """T-8-02-05: push to feature branch → 200 {"ok": True}, no scan row."""
     body = _push_payload(ref="refs/heads/feature", default_branch="main")
     sig = _sign(body, WEBHOOK_SECRET)
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
@@ -267,7 +267,7 @@ def test_non_default_branch_returns_200(
 
 
 def test_happy_path_creates_scan_and_enqueues(
-    test_client: TestClient,
+    webhook_client: TestClient,
     settings_with_secret: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -361,7 +361,7 @@ def test_happy_path_creates_scan_and_enqueues(
         repo="acme/infra",
     )
     sig = _sign(body, WEBHOOK_SECRET)
-    r = test_client.post(
+    r = webhook_client.post(
         "/v1/webhooks/github",
         content=body,
         headers={
