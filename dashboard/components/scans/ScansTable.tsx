@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { Terminal, Upload } from 'lucide-react'
+import { Terminal, Upload, Zap } from 'lucide-react'
 import type { ScanListResp, ScanListItem } from '@/lib/types'
 import { gradeInfo } from '@/lib/grade'
 import { SeverityBadge } from './SeverityBadge'
@@ -28,7 +28,15 @@ function ScoreGradePill({ score }: { score: number }) {
   )
 }
 
-function SourceCell({ source }: { source: ScanListItem['source'] }) {
+export function SourceCell({ source }: { source: ScanListItem['source'] }) {
+  if (source === 'webhook') {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Zap size={14} className="text-violet-500" />
+        <span className="text-sm text-slate-600">Auto-scan</span>
+      </div>
+    )
+  }
   if (source === 'cli') {
     return (
       <div className="flex items-center gap-1.5">
@@ -45,7 +53,7 @@ function SourceCell({ source }: { source: ScanListItem['source'] }) {
       </div>
     )
   }
-  if (source === 'github_webhook') {
+  if (source === 'github' || source === 'github_webhook') {
     return (
       <div className="flex items-center gap-1.5">
         <Upload size={14} className="text-slate-500" />
