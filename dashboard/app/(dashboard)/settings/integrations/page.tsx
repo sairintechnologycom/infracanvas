@@ -42,6 +42,10 @@ export default function IntegrationsPage() {
   )
   const [error, setError] = useState<string | null>(null)
 
+  const [slackSaving, setSlackSaving] = useState(false)
+  const [slackSaved, setSlackSaved] = useState(false)
+  const [slackError, setSlackError] = useState<string | null>(null)
+
   // Initial fetch on mount.
   useEffect(() => {
     let cancelled = false
@@ -109,10 +113,30 @@ export default function IntegrationsPage() {
         <form
           className="flex items-center gap-2 mt-3"
           action="#"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onSubmit={(e: any) => {
+          onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault()
-            // TODO Phase 8: POST /v1/integrations/slack { webhook_url }
+            setSlackSaving(true)
+            setSlackSaved(false)
+            setSlackError(null)
+            const formData = new FormData(e.currentTarget)
+            const webhookUrl = formData.get('slack_webhook') as string
+            try {
+              const res = await fetch('/api/integrations/slack', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhook_url: webhookUrl }),
+              })
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                setSlackError((data as { error?: string }).error ?? 'Failed to save webhook URL')
+              } else {
+                setSlackSaved(true)
+              }
+            } catch {
+              setSlackError('Network error — please try again')
+            } finally {
+              setSlackSaving(false)
+            }
           }}
         >
           <input
@@ -123,11 +147,25 @@ export default function IntegrationsPage() {
           />
           <button
             type="submit"
-            className="border border-slate-300 hover:bg-slate-50 text-slate-900 text-sm font-medium px-3 py-2 rounded-md transition-colors"
+            disabled={slackSaving}
+            className="border border-slate-300 hover:bg-slate-50 text-slate-900 text-sm font-medium px-3 py-2 rounded-md transition-colors disabled:opacity-50"
           >
-            Save webhook URL
+            {slackSaving ? 'Saving…' : slackSaved ? 'Saved!' : 'Save webhook URL'}
           </button>
         </form>
+        {slackError && (
+          <p
+            className="text-xs text-red-600 mt-2"
+            data-testid="slack-error"
+          >
+            {slackError}
+          </p>
+        )}
+        {slackSaved && (
+          <p className="text-xs text-green-600 mt-2" data-testid="slack-saved">
+            Webhook URL saved successfully.
+          </p>
+        )}
       </div>
 
       {/* GitHub card — live (Plan 09). */}
