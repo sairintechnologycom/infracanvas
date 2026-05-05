@@ -31,7 +31,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [ ] **Phase 7.1: Phase 7 UI Contract Remediation** (INSERTED) — close UI-SPEC gaps from Phase 7 audit (shadcn init, compare diff list, share toasts/revoke, polish drift)
 - [x] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — closed 14 D-NN defects; LIVE re-audit 21/24 (was 10/24, +11) (2026-05-03)
 - [x] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8) — completed 2026-05-05
-- [ ] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical
+- [x] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical — completed 2026-05-05
 - [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
 - [ ] **Phase 10: DC Agent Core** — Go agent, NETCONF/SSH, NetFlow collector, encrypted push, CAB security packet
 - [ ] **Phase 11: Firewall Integration** — Cisco ASA REST/SSH + FMC + Checkpoint Management API

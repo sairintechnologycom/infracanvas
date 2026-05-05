@@ -53,9 +53,9 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 
 ### Category 6 — GitHub Integration (WBH)
 
-- [ ] **WBH-01** GitHub push webhook endpoint — verifies signature, enqueues scan job
-- [ ] **WBH-02** Auto-scan worker — clones repo, runs `infracanvas scan`, stores result in Neon + R2
-- [ ] **WBH-03** Slack alert on Critical findings (team-configured webhook URL)
+- [x] **WBH-01** GitHub push webhook endpoint — verifies signature, enqueues scan job (Validated in Phase 8: GitHub Webhook + Auto-scan)
+- [x] **WBH-02** Auto-scan worker — clones repo, runs `infracanvas scan`, stores result in Neon + R2 (Validated in Phase 8: GitHub Webhook + Auto-scan)
+- [x] **WBH-03** Slack alert on Critical findings (team-configured webhook URL) (Validated in Phase 8: GitHub Webhook + Auto-scan)
 
 ### Category 7 — CostLens Shared Cost (CLA / CPC)
 
@@ -149,7 +149,7 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 | DSH-01 | 5 | 05-01..03 | ✓ Validated (2026-04-21) |
 | API-01..07, TMM-01..02, OBS-01..02 | 6 | TBD | Not planned |
 | DSH-02..06, HST-01..03, SHR-01..02 | 7 | TBD | Not planned |
-| WBH-01..03 | 8 | TBD | Not planned |
+| WBH-01..03 | 8 | 2026-05-05 | Complete |
 | CLA-01..06, CPC-01..03 | 9 | TBD | Not planned |
 | DCA-01..09 | 10 | TBD | Not planned |
 | ASA-01..03, CKP-01..02 | 11 | TBD | Not planned |

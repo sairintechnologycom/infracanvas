@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-05T06:35:00.000Z"
-last_activity: 2026-05-05 -- Phase 7.5 Plan 11 complete (Wave 6: phase verifier + manual GitHub smoke checkpoint) — PHASE 7.5 CLOSED. Task 1 (commit bbfa0c7) wrote 07.5-PHASE-VERIFICATION.md (Section 1 per-VALIDATION.md row commands + aggregate suite gates; Section 2 GH-01..GH-05 traceability matrix with file:line refs against the live working tree; Section 3 T1–T9 cross-cutting grep invariants — all 9 GREEN at write time covering auth-coverage greps + RLS GUC count + no-PEM-in-source + token-redaction defense-in-depth + traversal guard + team_id-as-kwarg + finalize_scan callsite + state==clerk_org_id + no-react-query lockout) and 07.5-MANUAL-SMOKE.md (263-line operator checklist: P1–P5 pre-flight one-time-per-env GitHub App register + private key gen + Fly secrets + Vercel env, then S1–S16 smoke covering install URL → callback → /settings/integrations hydration → ScanTriggerForm pick + submit → /scans/{id} pending → ScanPendingClient poll-to-ready → Stripe test-dashboard meter event observation → R2 object existence at teams/{team_id}/scans/{scan_id}.json → negative-path Retry → token-leakage `fly logs | grep -E "ghs_|x-access-token"` zero matches assertion). Task 2 was the checkpoint:human-verify gate (gate=blocking) — operator walked the 16-step checklist against a real InfraCanvas DEV App installation + sandbox Terraform fixture repo and resumed with single-word verdict "approved" on 2026-05-05 indicating all S1–S16 checkpoints passed end-to-end. Task 3 (this commit) flipped PHASE-VERIFICATION.md frontmatter to status=passed + signed_off=2026-05-05, checked all 6 Section 4 sign-off boxes, dated the summary sentence ("All 5 requirements (GH-01..GH-05) verified. Manual smoke green on 2026-05-05."), wrote 07.5-11-SUMMARY.md with the recap of what plans 01–10 shipped (backend pipeline 4 routes + 1 worker + 2 sibling helpers + 1 R2 helper + 2 alembic migrations; dashboard surface 4 proxies + 4 client components + 1 polling shell + 1 status-gate helper + 1 page rewrite; verification gates), and advanced this STATE.md + ROADMAP.md (plan 07.5-11 row + Phase 7.5 progress row both flipped to complete with completion date 2026-05-05). Phase 7.5 net delivery: end-to-end "connect a GitHub repo → pick branch+path → scan → see result" UX, GitHub-only (multi-provider deferred to v1.2 per solo-founder discipline). Backend ≈100+ tests green; dashboard 225/225 green (+42 from phase start). Phase 8 (GitHub Webhook + Auto-scan) unblocked — webhook handler will reuse the same scan_repo.kiq() worker contract with no worker changes.
+last_updated: "2026-05-05T13:20:00.000Z"
+last_activity: 2026-05-05 -- Phase 8 complete (6/6 plans, 3 waves — PHASE 8 CLOSED). Wave 1: 08-01 migration 009 + ORM (slack_webhook_url + team_id_for_installation SECURITY DEFINER). Wave 1: 08-02 POST /v1/webhooks/github HMAC handler (7 tests). Wave 1: 08-03 Slack alert block in scan_repo (5 tests). Wave 2: 08-04 PATCH /v1/integrations/slack endpoint with SSRF guard + RLS GUC (3 tests). Wave 3 parallel: 08-05 Auto-scan source badge in ScansTable/MetadataHeader (4 tests, suite 233/233); 08-06 Slack proxy route + integrations form wiring (4 tests). All 22 new tests green. Code review: 0 critical, 5 warnings, 4 info. Verification: 9/9 automated must-haves passed; 2 human UAT items pending live infrastructure smoke (SC-1 30s timing, SC-3 Slack delivery). Phase 9 (CostLens) next.
 progress:
   total_phases: 19
-  completed_phases: 13
+  completed_phases: 14
   total_plans: 108
-  completed_plans: 92
-  percent: 85
+  completed_plans: 98
+  percent: 91
 ---
 
 # Project State
