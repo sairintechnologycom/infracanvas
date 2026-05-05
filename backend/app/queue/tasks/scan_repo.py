@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import httpx
 import json
 import os
 import shutil
@@ -288,6 +289,56 @@ async def scan_repo(
                     size_bytes=size_bytes,
                     summary_json=summary_json,
                 )
+
+        # ---- 9. Slack alert on Critical findings (Plan 08-03). ----------
+        # Only fires for push-webhook-triggered scans (source='webhook')
+        # with ≥ 1 Critical finding AND a configured Slack URL.
+        # httpx failures are caught, logged, and captured in Sentry — never
+        # re-raised so a bad Slack endpoint cannot abort the job or block
+        # the retry queue.
+        sm9 = get_sessionmaker()
+        async with sm9() as slack_session:
+            slack_row = (
+                await slack_session.execute(
+                    text(
+                        "SELECT s.source, t.slack_webhook_url "
+                        "FROM scans s JOIN teams t ON t.id = s.team_id "
+                        "WHERE s.id = :id"
+                    ),
+                    {"id": scan_id},
+                )
+            ).one_or_none()
+
+        critical_count = (
+            summary_json.get("findings", {}).get("critical", 0)
+            if isinstance(summary_json, dict)
+            else 0
+        )
+        if (
+            slack_row is not None
+            and slack_row.source == "webhook"
+            and slack_row.slack_webhook_url is not None
+            and critical_count >= 1
+        ):
+            try:
+                async with httpx.AsyncClient() as http_client:
+                    await http_client.post(
+                        slack_row.slack_webhook_url,
+                        json={
+                            "text": (
+                                f":rotating_light: *Critical findings detected* in `{repo}`\n"
+                                f"{critical_count} Critical finding(s) found. "
+                                f"View scan: /scans/{scan_id}"
+                            )
+                        },
+                        timeout=5.0,
+                    )
+                log_ctx.info("scan_repo.slack_alert_sent", repo=repo)
+            except Exception as slack_exc:
+                log_ctx.warning(
+                    "scan_repo.slack_alert_failed", error=repr(slack_exc)
+                )
+                sentry_sdk.capture_exception(slack_exc)
 
         log_ctx.info(
             "scan_repo.success",
