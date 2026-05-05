@@ -63,19 +63,21 @@ Exceptions:
 
 Both surfaces share the same conceptual scale. Implementation tokens differ per surface.
 
+**Weight constraint:** 2 weights per surface maximum. All roles map to either 400 (regular) or 600 (semibold).
+
 ### Dashboard surface (shadcn/Tailwind CSS vars)
 
 | Role | Size | Weight | Line Height | Tailwind class |
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 | 1.5 | `text-sm` |
-| Label | 12px | 500 | 1.4 | `text-xs font-medium` |
+| Label | 12px | 400 | 1.4 | `text-xs` |
 | Heading | 16px | 600 | 1.25 | `text-base font-semibold` |
-| Display | 24px | 700 | 1.2 | `text-2xl font-bold` |
+| Display | 24px | 600 | 1.2 | `text-2xl font-semibold` |
 
 - Body (14px/400/1.5) — table cells, card body text, line-item descriptions
-- Label (12px/500/1.4) — column headers, badge text, metadata chips
+- Label (12px/400/1.4) — column headers, badge text, metadata chips
 - Heading (16px/600/1.25) — section headings ("Idle & Oversized Recommendations"), card workload names
-- Display (24px/700/1.2) — total allocated cost per workload in the dashboard table summary row
+- Display (24px/600/1.2) — total allocated cost per workload in the dashboard table summary row
 
 Dollar amounts in the workload column: `font-mono text-sm` (`text-sm` + `font-mono`) to align decimal points. Use `tabular-nums` (`font-variant-numeric: tabular-nums`).
 
@@ -84,9 +86,9 @@ Dollar amounts in the workload column: `font-mono text-sm` (`text-sm` + `font-mo
 | Role | Size | Weight | Line Height | CSS |
 |------|------|--------|-------------|-----|
 | Body | 14px | 400 | 1.5 | `text-sm` |
-| Label | 12px | 500 | 1.4 | `text-xs font-medium` |
+| Label | 12px | 400 | 1.4 | `text-xs` |
 | Heading | 16px | 600 | 1.25 | `text-base font-semibold` |
-| Display | 20px | 700 | 1.2 | `text-xl font-bold` |
+| Display | 20px | 600 | 1.2 | `text-xl font-semibold` |
 
 Dollar amounts in viewer workload cards: `font-mono tabular-nums text-sm`.
 
@@ -187,6 +189,8 @@ Dollar amounts in viewer workload cards: `font-mono tabular-nums text-sm`.
 - `IdleRecommendationsList` is separated from the table by a 48px top margin (`mt-12`) and a full-width `<hr className="border-border" />`.
 - Expandable detail row: clicking the chevron in a workload row expands an inline sub-row showing per-shared-resource line items (name, $amount, % share). Uses `aria-expanded` on the trigger row. No modal — inline accordion pattern.
 
+**Details chevron ("›") trigger behavior:** The chevron is intentionally icon-only. The "Details" column header text serves as the label context for the entire column. On hover, show a tooltip with text `"View cost breakdown"` via shadcn `Tooltip` (`TooltipProvider` > `Tooltip` > `TooltipTrigger` > `TooltipContent`). The trigger is a `<button>` with `aria-label="View cost breakdown for {workload name}"` and `aria-expanded` reflecting the row's expanded state.
+
 ### Viewer — CostLens tab layout
 
 ```
@@ -263,6 +267,8 @@ Dollar amounts in viewer workload cards: `font-mono tabular-nums text-sm`.
 | Column: workload | Workload | Dashboard table header |
 | Column: allocated | Allocated / mo | Dashboard table header |
 | Column: shared | Shared Resources | Dashboard table header |
+| Column: details | Details | Dashboard table header (provides label context for icon-only chevron) |
+| Details chevron tooltip | View cost breakdown | Shown on hover via shadcn Tooltip |
 | Recommendations heading | Idle & Oversized Recommendations | Dashboard + Viewer section heading |
 | Idle badge | idle | `WasteBadge` text — all lowercase |
 | Oversized badge | oversized | `WasteBadge` text — all lowercase |
@@ -287,6 +293,7 @@ Dollar amounts in viewer workload cards: `font-mono tabular-nums text-sm`.
 |-------------|----------------|
 | Tab keyboard navigation | Viewer TabBar already uses arrow-key nav (existing code in `TabBar.tsx`); dashboard uses shadcn `Tabs` which is Radix — keyboard nav is built in |
 | Expandable table rows | `aria-expanded` on chevron button, `aria-controls` pointing to detail row `id` |
+| Details chevron button | `aria-label="View cost breakdown for {workload name}"` — removes reliance on icon alone for screen readers |
 | Cost amounts | Do NOT use color alone to convey cost magnitude — always pair color with text label (e.g., "idle" badge + dollar amount) |
 | Screen reader workload card | `aria-label="Workload: payments-svc, $412.00 per month"` on each card root |
 | Idle recommendation | Each row has `role="listitem"` within a `role="list"` wrapper |
@@ -299,7 +306,7 @@ Dollar amounts in viewer workload cards: `font-mono tabular-nums text-sm`.
 
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|-------------|
-| shadcn official | `tabs`, `table`, `card`, `skeleton`, `badge`, `button` | not required |
+| shadcn official | `tabs`, `table`, `card`, `skeleton`, `badge`, `button`, `tooltip` | not required |
 
 No third-party registries declared. Gate not applicable.
 
