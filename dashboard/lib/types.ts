@@ -23,7 +23,7 @@ export interface ScanListItem {
   } | null
   branch: string | null
   commit_sha: string | null
-  source: 'cli' | 'manual' | 'github_webhook' | null
+  source: 'cli' | 'manual' | 'github_webhook' | 'github' | 'webhook' | null
 }
 
 export interface ScanListResp {

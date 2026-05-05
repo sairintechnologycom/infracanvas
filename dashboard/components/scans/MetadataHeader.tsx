@@ -74,6 +74,14 @@ export function MetadataHeader({ scan }: Props) {
             {scan.commit_sha.slice(0, 7)}
           </span>
         )}
+        {scan.source === 'webhook' && (
+          <span
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 whitespace-nowrap"
+            data-testid="auto-scan-badge"
+          >
+            Auto-scan
+          </span>
+        )}
         {score !== undefined && (
           <>
             <ScoreGradePill score={score} />
