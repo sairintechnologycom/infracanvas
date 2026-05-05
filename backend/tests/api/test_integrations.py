@@ -11,10 +11,14 @@
   3. test_missing_field_returns_422
      — body missing webhook_url → 422 (Pydantic validation).
 
-  4. test_no_auth_returns_401
-     — no Authorization header → 401 (T-8-04-03 unauthenticated write gate).
-
 Wave 2 — all tests mock the DB and auth layer.  No Postgres testcontainer required.
+
+Auth gate (T-8-04-03): the route depends on ``require_role`` which chains through
+``require_principal`` — the Bearer token must be present or 401 fires at the FastAPI
+layer before any fixture override can intercept it.
+
+We override ``require_principal`` (the JWKS-validation dep) so tests don't need a
+real Clerk JWT, and ``resolve_team_from_clerk_org`` so no Postgres lookup is needed.
 """
 from __future__ import annotations
 
@@ -36,14 +40,18 @@ def integrations_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     """TestClient with mocked auth + mocked DB session.
 
     Overrides:
-    - ``require_role`` dep → returns a fake ClerkPrincipal (no Clerk call)
+    - ``require_principal`` dep → returns a fake ClerkPrincipal (no Clerk call)
     - ``resolve_team_from_clerk_org`` dep → returns a fake Team (no DB lookup)
-    - ``get_sessionmaker`` inside the route → returns a mock session factory
+    - ``get_sessionmaker`` inside the route → mock session factory
 
-    The mock session factory satisfies the ``async with sm() as session, session.begin()``
-    double-async-context-manager pattern used by the route.
+    We override ``require_principal`` (rather than ``require_role``) because
+    ``require_role`` returns a *new closure* each call — dependency_overrides
+    matches by object identity, so the factory-returned closure from the route
+    definition won't match a new closure created in the test.  Overriding the
+    underlying ``require_principal`` that the role closure ultimately calls means
+    all ``require_role(...)`` usages are satisfied through a single, stable key.
     """
-    from app.auth.clerk import ClerkPrincipal, require_role
+    from app.auth.clerk import ClerkPrincipal, require_principal
     from app.auth.deps import resolve_team_from_clerk_org
     from app.db.models import Team
     from app.main import create_app
@@ -68,11 +76,13 @@ def integrations_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     # Build app, then override dependencies BEFORE TestClient starts
     app = create_app()
 
-    # Override auth deps so no Clerk call fires
-    app.dependency_overrides[require_role("owner", "admin", "member")] = lambda: fake_principal
+    # Override require_principal — all require_role(...) closures call this
+    app.dependency_overrides[require_principal] = lambda: fake_principal
+    # Override team resolution dep — bypasses DB lookup
     app.dependency_overrides[resolve_team_from_clerk_org] = lambda: fake_team
 
-    # Build a mock sessionmaker that satisfies the double async-CM pattern
+    # Build a mock sessionmaker that satisfies the double async-CM pattern:
+    # ``async with sm() as session, session.begin():``
     mock_session = AsyncMock()
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=False)
