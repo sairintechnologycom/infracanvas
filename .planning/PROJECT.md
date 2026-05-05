@@ -9,7 +9,7 @@ InfraCanvas is a hybrid cloud intelligence platform that gives engineering and l
 ## Current State
 
 **Latest milestone:** v1.0 (shipped 2026-04-19) — Canvas + FlowMap v1.0 Hybrid Cloud Intelligence MVP
-**Focus:** v1.1 in flight — Phase 5 (Viewer Extraction) complete 2026-04-21; next up Phase 6 SaaS Backend Foundation (FastAPI + Clerk + Neon + R2 + taskiq), then Phase 7 SaaS Dashboard + CostLens alongside FlowMap 3b
+**Focus:** v1.1 in flight — Phase 8 complete 2026-05-05 (GitHub Webhook + Auto-scan: push webhook handler, scan worker, Slack alert on Critical findings, Auto-scan badge UI, integrations form); Phase 9 CostLens next
 
 ## Current Milestone: v1.1 Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 
@@ -173,4 +173,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-21 — Phase 5 Viewer Extraction complete; dual-build @infracanvas/viewer shipped; Phase 7 SaaS Dashboard gate unblocked; Phase 6 SaaS Backend next*
+*Last updated: 2026-05-05 — Phase 8 complete (GitHub Webhook + Auto-scan); WBH-01..03 validated; Phase 9 CostLens next*
