@@ -1,7 +1,8 @@
 ---
 phase: 9
 slug: costlens
-status: draft
+status: approved
+reviewed_at: 2026-05-05
 shadcn_initialized: true
 preset: new-york / slate / cssVariables
 created: 2026-05-05
