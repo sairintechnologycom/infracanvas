@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class CostLensConfig(BaseModel):
+    workload_tag_key: str = "Service"
 
 
 class InfraCanvasConfig(BaseModel):
@@ -14,6 +18,7 @@ class InfraCanvasConfig(BaseModel):
     output_dir: str = "."
     open_browser: bool = True
     provider: str = "aws"
+    costlens: CostLensConfig = Field(default_factory=CostLensConfig)
 
 
 def load_config(directory: Path) -> InfraCanvasConfig:

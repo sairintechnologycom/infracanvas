@@ -147,6 +147,7 @@ class NetworkPath(BaseModel):
     direction: str  # "forward" | "return"
     hops: list[PathHop] = Field(default_factory=list)
     evidence: dict[str, object] = Field(default_factory=dict)
+    path_cost: PathCost | None = None
 
 
 class DCCollectorReading(BaseModel):
@@ -177,3 +178,48 @@ class ResourceGraph(BaseModel):
     summary: GraphSummary = Field(default_factory=GraphSummary)
     network_paths: list[NetworkPath] = Field(default_factory=list)
     dc_sites: list[DCSite] = Field(default_factory=list)
+    costlens: CostLensData | None = None
+
+
+# Phase 9: CostLens allocation models
+
+
+class CostLineItem(BaseModel):
+    resource_id: str
+    resource_type: str
+    label: str
+    monthly_usd: float
+    share_pct: float  # 0.0 for dedicated; allocation % for shared
+
+
+class WorkloadCost(BaseModel):
+    name: str
+    total_monthly_usd: float
+    line_items: list[CostLineItem] = Field(default_factory=list)
+
+
+class SharedResourceSummary(BaseModel):
+    resource_id: str
+    resource_type: str
+    monthly_usd: float
+    workload_count: int
+
+
+class IdleRecommendation(BaseModel):
+    resource_id: str
+    resource_type: str
+    description: str
+    monthly_waste_usd: float
+
+
+class CostLensData(BaseModel):
+    workloads: list[WorkloadCost] = Field(default_factory=list)
+    shared_resources: list[SharedResourceSummary] = Field(default_factory=list)
+    recommendations: list[IdleRecommendation] = Field(default_factory=list)
+
+
+class PathCost(BaseModel):
+    estimated_monthly_usd: float
+    rate_per_gb: float
+    assumed_gb: float
+    basis: str
