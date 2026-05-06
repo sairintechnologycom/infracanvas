@@ -59,15 +59,15 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 
 ### Category 7 — CostLens Shared Cost (CLA / CPC)
 
-- [ ] **CLA-01** TGW attachment cost split by workload tag (resources attached to the TGW)
-- [ ] **CLA-02** ExpressRoute circuit cost split by connected vNet workload tag
-- [ ] **CLA-03** Azure Firewall cost split by route-table-referenced workloads
-- [ ] **CLA-04** Shared NAT Gateway + VPC Endpoint cost split by traffic share
-- [ ] **CLA-05** Idle/oversized resource recommendations
-- [ ] **CLA-06** CostLens dashboard panel showing allocated vs shared cost per workload
-- [ ] **CPC-01** Per-path cross-cloud data transfer cost computation
+- [x] **CLA-01** TGW attachment cost split by workload tag (resources attached to the TGW)
+- [x] **CLA-02** ExpressRoute circuit cost split by connected vNet workload tag
+- [x] **CLA-03** Azure Firewall cost split by route-table-referenced workloads
+- [x] **CLA-04** Shared NAT Gateway + VPC Endpoint cost split by traffic share
+- [x] **CLA-05** Idle/oversized resource recommendations
+- [x] **CLA-06** CostLens dashboard panel showing allocated vs shared cost per workload
+- [x] **CPC-01** Per-path cross-cloud data transfer cost computation
 - [ ] **CPC-02** Flow-log-driven data transfer attribution
-- [ ] **CPC-03** Cost-aware path ranking in FlowMap viewer
+- [x] **CPC-03** Cost-aware path ranking in FlowMap viewer
 
 ### Category 8 — Dashboard UI (DSH)
 
@@ -150,7 +150,7 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 | API-01..07, TMM-01..02, OBS-01..02 | 6 | TBD | Not planned |
 | DSH-02..06, HST-01..03, SHR-01..02 | 7 | TBD | Not planned |
 | WBH-01..03 | 8 | 2026-05-05 | Complete |
-| CLA-01..06, CPC-01..03 | 9 | TBD | Not planned |
+| CLA-01..06, CPC-01, CPC-03 | 9 | 7/7 | Complete 2026-05-06 |
 | DCA-01..09 | 10 | TBD | Not planned |
 | ASA-01..03, CKP-01..02 | 11 | TBD | Not planned |
 | PTH-01..03, ASY-01..03, NET-010, FMV-02, NFN-02 | 12 | TBD | Not planned |

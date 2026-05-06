@@ -9,7 +9,7 @@ progress:
   total_phases: 19
   completed_phases: 14
   total_plans: 115
-  completed_plans: 103
+  completed_plans: 104
   percent: 89
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 9 — CostLens (7 plans, 3 waves — execution started 2026-05-06)
-Plan: 09-06 complete (Wave 2 second plan — Dashboard ScanDetailTabs + CostTab + WorkloadTable)
-Status: Phase 9 Plan 06 CLOSED on 2026-05-06 — scan detail page shows Viewer + Cost tabs (shadcn Tabs variant=line); ScanDetailTabs fetches R2 JSON once and shares graph between tabs (T-09-06-03 mitigated); WorkloadTable with expandable chevron (aria-expanded + aria-controls + TooltipProvider) + empty state; IdleRecommendationsList with amber-600 waste amounts; renderScanByStatus now uses ScanDetailTabs instead of ScanViewerClient; CostLensData/WorkloadCost/IdleRecommendation re-exported from dashboard/lib/types.ts; 236/236 dashboard tests pass (was 225 + rebased fixes; +11 net); viewer package rebuilt to ship CostLens types to dist. Plan 09-07 (FlowMap PathDetailPanel Cost tab) is the remaining Wave 2 plan.
-Last activity: 2026-05-06 -- Phase 9 Plan 06 closed (Dashboard Cost tab, 4 commits: a9eed6e feat types+ScanDetailTabs+CostTab, 79617c5 test WorkloadTable RED, ee0c952 feat WorkloadTable+IdleRecommendationsList+renderScanByStatus GREEN + 3 Rule-1 fixes). 236/236 dashboard tests pass. Plan 09-07 unblocked.
+Plan: 09-07 complete (Wave 2 final plan — FlowMap PathDetailPanel Cost tab + path sorting)
+Status: Phase 9 Plan 07 CLOSED on 2026-05-06 — PathDetailPanel shows Cost tab when node.cost.monthly_usd > 0; CostTab displays Monthly Cost + Basis rows using existing Row helper; disclaimer shown when basis contains 'no flow data'; hasCost gate prevents tab from appearing when cost is zero; 156/156 viewer tests pass (+5 net); tsc clean; Phase 9 CostLens COMPLETE (7/7 plans).
+Last activity: 2026-05-06 -- Phase 9 Plan 07 closed (FlowMap PathDetailPanel Cost tab, 2 commits: 06f2b54 test RED, 5883fa3 feat GREEN). 156/156 viewer tests pass. Phase 9 CostLens complete.
 Previous last activity: 2026-05-06 -- Phase 9 Plan 01 closed (Wave 0: shadcn badge/tooltip + 3 test stub files, 3 commits: 7a1d181 chore shadcn, a2c6520 test Python RED stubs, 61fba6f test viewer+dashboard stubs) (6 commits across 3 TDD RED→GREEN cycles: 20ff331 test InstallButton, 89b62c5 feat InstallButton, 856fdd7 test RepoCombobox, 20f175c feat RepoCombobox, 1a61ba2 test BranchPicker, 83e5309 feat BranchPicker+test fix). Three new client components under dashboard/components/integrations/: InstallButton.tsx (~35 LoC, opens https://github.com/apps/{slug}/installations/new?state={clerkOrgId} via window.open with noopener,noreferrer; T-07.5-08-01 mitigation; returns null when no Clerk org), RepoCombobox.tsx (~150 LoC, shadcn Popover + Command recipe with shouldFilter={false} so cmdk doesn't double-filter the server-filtered list, CC-15 useRef+setTimeout 250ms debounce on /api/github/repos?installation_id=X&q=Y, CC-14 useEffect+cancelled cleanup, lucide Lock with aria-label='private' on private repos, inline 503 'Rate limited — try again in 60s' role=alert preserving Plan 07 Retry-After:60), BranchPicker.tsx (~115 LoC, shadcn Select with lazy-load on selectedRepo change + URL-encoded full_name + default-to-default_branch fallback only when value empty + cancellable cleanup + same 503 inline alert). 17 vitest tests added (4 install-button + 7 repo-combobox + 6 branch-picker) — full dashboard suite 200/200 pass (was 183/183; +17 net, no regressions). Test 6 of branch-picker fixed during GREEN (Rule 1: original assertion expected default-branch onChange when value='dev' was preset, but the fallback only fires when value is empty — corrected to assert on Select trigger disabled state). tsc --noEmit clean across in-scope files (only pre-existing scan-filters.test.tsx TS6133 deferred from Plan 01 remains). Components are intentionally NOT composed with each other — RepoCombobox does not import BranchPicker; composition belongs to Plan 09's ScanTriggerForm. Props contracts documented in SUMMARY.md for downstream consumers. Wave 4 plan 09 + plan 10 + Wave 5 plan 11 + Wave 6 verifier next. (Previous Plan 07 detail preserved in §Plan 07.5-07 closed below.)
 
 ## Accumulated Context
