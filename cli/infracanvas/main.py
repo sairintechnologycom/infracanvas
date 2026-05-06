@@ -411,6 +411,23 @@ def scan(
                       ignore_rules=effective_ignore, ci=ci,
                       shadow=shadow, flowmap=flowmap, policy=policy)
 
+    estimator = CostEstimator()
+    graph = estimator.estimate(graph)
+
+    # Phase 9: CostLens allocation pipeline
+    from infracanvas.cost.allocator import SharedCostAllocator  # noqa: PLC0415
+    from infracanvas.cost.egress import EgressEstimator  # noqa: PLC0415
+    from infracanvas.cost.idle import IdleDetector  # noqa: PLC0415
+    try:
+        _allocator = SharedCostAllocator(workload_tag_key=config.costlens.workload_tag_key)
+        graph = _allocator.allocate(graph)
+        _detector = IdleDetector()
+        graph = _detector.detect(graph)
+        _egress = EgressEstimator()
+        graph = _egress.estimate(graph)
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[yellow]Warning:[/yellow] CostLens allocation failed: {exc}")
+
     # --json: JSON to stdout, always exit 0 on success (replaces the old --quiet JSON-dump behavior)
     if json_out:
         sys.stdout.write(export_graph(graph))

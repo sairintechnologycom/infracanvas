@@ -63,6 +63,8 @@ def _is_cross_cloud(src_node: ResourceNode, dst_node: ResourceNode) -> bool:
 
 def _lookup_rate(src_region: str, dst_region: str, cross_cloud: bool) -> float:
     """Look up egress rate for a region pair. Returns DEFAULT_EGRESS_RATE if unknown."""
+    if _normalize_region(src_region) == _normalize_region(dst_region):
+        return 0.0
     if cross_cloud:
         return CROSS_CLOUD_EGRESS
 

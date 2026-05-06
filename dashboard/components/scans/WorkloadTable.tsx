@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import type { WorkloadCost } from '@infracanvas/viewer'
 import {
   TooltipProvider,
@@ -59,9 +59,8 @@ export function WorkloadTable({ workloads }: Props) {
                   .join(' + ') || '—'
 
               return (
-                <>
+                <Fragment key={wl.name}>
                   <tr
-                    key={wl.name}
                     className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
                   >
                     <td
@@ -124,7 +123,7 @@ export function WorkloadTable({ workloads }: Props) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               )
             })}
           </tbody>

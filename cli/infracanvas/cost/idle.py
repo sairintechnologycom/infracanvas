@@ -59,11 +59,18 @@ def _idle_vpc_endpoint(
     )
 
 
+_FIREWALL_CHILD_TYPES = frozenset({
+    "azurerm_firewall_policy",
+    "azurerm_firewall_network_rule_collection",
+    "azurerm_firewall_application_rule_collection",
+})
+
 _IDLE_SIGNALS: dict[str, str] = {
     "aws_nat_gateway": "No aws_route entries reference this NAT Gateway in the Terraform graph",
     "aws_ec2_transit_gateway": "No aws_ec2_transit_gateway_vpc_attachment children found",
     "azurerm_express_route_circuit": "No azurerm_virtual_network_gateway_connection children found",
     "aws_vpc_endpoint": "No aws_route_table entries reference this VPC Endpoint",
+    "azurerm_firewall": "No firewall policy or rule collection children found",
 }
 
 _IDLE_CANDIDATES: frozenset[str] = frozenset(_IDLE_SIGNALS.keys())
@@ -100,6 +107,12 @@ class IdleDetector:
                 is_idle = _idle_express_route(node, edges_by_source, node_by_id)
             elif node.type == "aws_vpc_endpoint":
                 is_idle = _idle_vpc_endpoint(node, edges_by_target, node_by_id)
+            elif node.type == "azurerm_firewall":
+                is_idle = not any(
+                    node_by_id.get(e["target"]) is not None
+                    and node_by_id[e["target"]].type in _FIREWALL_CHILD_TYPES
+                    for e in edges_by_source.get(node.id, [])
+                )
 
             if is_idle:
                 recommendations.append(IdleRecommendation(
