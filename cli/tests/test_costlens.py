@@ -276,10 +276,43 @@ class TestIdleDetector:
         graph = IdleDetector().detect(graph)
         assert len(graph.costlens.recommendations) == 0
 
-    @pytest.mark.xfail(reason="not implemented — stub: Task 2 wires main.py")
     def test_integration_full_graph(self):
         """CLA-C-15: Full graph scan produces valid CostLensData JSON block."""
-        pytest.fail("not implemented")
+        import json
+
+        from infracanvas.cost.allocator import SharedCostAllocator
+        from infracanvas.cost.idle import IdleDetector
+
+        # Build a graph with: TGW + attachment (1 workload), idle NAT GW
+        tgw = _node("aws_ec2_transit_gateway", "main", monthly_usd=36.50)
+        attachment = _node(
+            "aws_ec2_transit_gateway_vpc_attachment",
+            "app_attach",
+            attrs={"Service": "payments"},
+            monthly_usd=0.0,
+        )
+        nat = _node("aws_nat_gateway", "main", monthly_usd=32.85)  # idle — no aws_route edge
+
+        graph = _graph(
+            [tgw, attachment, nat],
+            [(tgw.id, attachment.id)],  # TGW → attachment; no aws_route → nat, so nat is idle
+        )
+
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+
+        assert graph.costlens is not None
+        # Workloads: 'payments' should appear (from attachment tag)
+        wl_names = [w.name for w in graph.costlens.workloads]
+        assert "payments" in wl_names
+        # Recommendations: nat should be idle
+        assert len(graph.costlens.recommendations) >= 1
+        assert any(r.resource_id == nat.id for r in graph.costlens.recommendations)
+        # JSON serialization works
+        json_str = graph.model_dump_json()
+        parsed = json.loads(json_str)
+        assert "costlens" in parsed
+        assert parsed["costlens"]["workloads"] is not None
 
 
 class TestEgressEstimator:
