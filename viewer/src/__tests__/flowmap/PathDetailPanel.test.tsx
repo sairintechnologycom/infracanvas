@@ -68,4 +68,62 @@ describe('PathDetailPanel', () => {
     fireEvent.click(screen.getByLabelText('Close details'));
     expect(useStore.getState().selectedNode).toBeNull();
   });
+
+  // CPC-03: Cost tab tests
+
+  test('PDP-COST-01: Cost tab absent when monthly_usd is 0', () => {
+    useStore.setState({
+      selectedNode: _node({ cost: { monthly_usd: 0, currency: 'USD', basis: '' } }),
+    });
+    render(<PathDetailPanel />);
+    expect(screen.queryByRole('button', { name: /Cost/i })).toBeNull();
+  });
+
+  test('PDP-COST-02: Cost tab appears when monthly_usd > 0', () => {
+    useStore.setState({
+      selectedNode: _node({ cost: { monthly_usd: 42.5, currency: 'USD', basis: 'AWS egress rate' } }),
+    });
+    render(<PathDetailPanel />);
+    expect(screen.getByRole('button', { name: /Cost/i })).toBeInTheDocument();
+  });
+
+  test('PDP-COST-03: Cost tab shows monthly cost and basis on click', () => {
+    useStore.setState({
+      selectedNode: _node({ cost: { monthly_usd: 42.5, currency: 'USD', basis: 'AWS egress rate' } }),
+    });
+    render(<PathDetailPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Cost/i }));
+    expect(screen.getByText('$42.50')).toBeInTheDocument();
+    expect(screen.getByText('AWS egress rate')).toBeInTheDocument();
+  });
+
+  test('PDP-COST-04: disclaimer shown when basis contains "no flow data"', () => {
+    useStore.setState({
+      selectedNode: _node({
+        cost: {
+          monthly_usd: 18.0,
+          currency: 'USD',
+          basis: 'assumed 100 GB/mo — no flow data available',
+        },
+      }),
+    });
+    render(<PathDetailPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Cost/i }));
+    expect(
+      screen.getByText(/Estimate based on assumed transfer volume/i)
+    ).toBeInTheDocument();
+  });
+
+  test('PDP-COST-05: no disclaimer when basis does not contain "no flow data"', () => {
+    useStore.setState({
+      selectedNode: _node({
+        cost: { monthly_usd: 12.0, currency: 'USD', basis: 'AWS us-east-1 egress 0.09/GB' },
+      }),
+    });
+    render(<PathDetailPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Cost/i }));
+    expect(
+      screen.queryByText(/Estimate based on assumed transfer volume/i)
+    ).toBeNull();
+  });
 });
