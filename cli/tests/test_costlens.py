@@ -4,8 +4,8 @@ import pytest
 
 from infracanvas.cost.allocator import SharedCostAllocator
 from infracanvas.cost.idle import IdleDetector  # noqa: F401  (RED — Plan 03)
-from infracanvas.cost.egress import EgressEstimator  # noqa: F401  (RED — Plan 04)
-from infracanvas.graph.models import CostEstimate, ResourceGraph, ResourceNode
+from infracanvas.cost.egress import EgressEstimator
+from infracanvas.graph.models import CostEstimate, NetworkPath, ResourceGraph, ResourceNode
 
 
 def _node(
@@ -316,17 +316,43 @@ class TestIdleDetector:
 
 
 class TestEgressEstimator:
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_inter_region_aws_rate(self):
-        """CPC-C-1: Inter-region AWS egress path (us-east-1 → us-west-2) uses correct $/GB rate"""
-        pytest.fail("not implemented")
+        """CPC-C-1: Inter-region path AWS us-east-1 → eu-west-1 → correct per-GB rate."""
+        src = _node("aws_instance", "web", attrs={"region": "us-east-1"})
+        dst = _node("aws_instance", "api", attrs={"region": "eu-west-1"})
+        path = NetworkPath(
+            id="p1", source_node_id=src.id, dest_node_id=dst.id,
+            direction="forward", hops=[], evidence={},
+        )
+        graph = ResourceGraph(nodes=[src, dst], edges=[], network_paths=[path])
+        graph = EgressEstimator().estimate(graph)
+        assert graph.network_paths[0].path_cost is not None
+        assert graph.network_paths[0].path_cost.rate_per_gb == 0.02
+        assert abs(graph.network_paths[0].path_cost.estimated_monthly_usd - 2.0) < 0.001
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_cross_cloud_rate(self):
-        """CPC-C-2: Cross-cloud egress path (AWS → Azure) uses correct cross-cloud $/GB rate"""
-        pytest.fail("not implemented")
+        """CPC-C-2: Cross-cloud path (AWS → Azure) → CROSS_CLOUD_EGRESS rate."""
+        src = _node("aws_ec2_transit_gateway", "tgw", attrs={"region": "us-east-1"})
+        dst = _node("azurerm_express_route_circuit", "er", attrs={"location": "East US"}, provider="azurerm")
+        path = NetworkPath(
+            id="p2", source_node_id=src.id, dest_node_id=dst.id,
+            direction="forward", hops=[], evidence={},
+        )
+        graph = ResourceGraph(nodes=[src, dst], edges=[], network_paths=[path])
+        graph = EgressEstimator().estimate(graph)
+        pc = graph.network_paths[0].path_cost
+        assert pc is not None
+        assert pc.rate_per_gb == 0.09
+        assert "100 GB/mo" in pc.basis
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_no_region_data_graceful(self):
-        """CPC-C-3: Missing region data returns zero cost gracefully (no exception)"""
-        pytest.fail("not implemented")
+        """CPC-C-3: Path with no region data → path_cost is None."""
+        src = _node("aws_instance", "web", attrs={})  # no region attribute
+        dst = _node("aws_instance", "api", attrs={})
+        path = NetworkPath(
+            id="p3", source_node_id=src.id, dest_node_id=dst.id,
+            direction="forward", hops=[], evidence={},
+        )
+        graph = ResourceGraph(nodes=[src, dst], edges=[], network_paths=[path])
+        graph = EgressEstimator().estimate(graph)
+        assert graph.network_paths[0].path_cost is None
