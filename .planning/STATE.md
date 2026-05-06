@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-05T13:20:00.000Z"
-last_activity: 2026-05-05 -- Phase 8 complete (6/6 plans, 3 waves — PHASE 8 CLOSED). Wave 1: 08-01 migration 009 + ORM (slack_webhook_url + team_id_for_installation SECURITY DEFINER). Wave 1: 08-02 POST /v1/webhooks/github HMAC handler (7 tests). Wave 1: 08-03 Slack alert block in scan_repo (5 tests). Wave 2: 08-04 PATCH /v1/integrations/slack endpoint with SSRF guard + RLS GUC (3 tests). Wave 3 parallel: 08-05 Auto-scan source badge in ScansTable/MetadataHeader (4 tests, suite 233/233); 08-06 Slack proxy route + integrations form wiring (4 tests). All 22 new tests green. Code review: 0 critical, 5 warnings, 4 info. Verification: 9/9 automated must-haves passed; 2 human UAT items pending live infrastructure smoke (SC-1 30s timing, SC-3 Slack delivery). Phase 9 (CostLens) next.
+last_updated: "2026-05-06T00:45:00.000Z"
+last_activity: 2026-05-06 -- Phase 9 (CostLens) planned (7 plans, 3 waves — READY TO EXECUTE). Wave 0: 09-01 test stubs + shadcn badge/tooltip install. Wave 1 (parallel): 09-02 Pydantic models + SharedCostAllocator (CLA-01..04), 09-03 IdleDetector + scan pipeline wiring (CLA-05, CLA-06), 09-04 EgressEstimator + cross-cloud egress rates (CPC-01). Wave 2 (parallel): 09-05 Viewer CostLens tab activation + CostLensPanel (CLA-05, CLA-06), 09-06 Dashboard ScanDetailTabs + CostTab + WorkloadTable (CLA-06), 09-07 FlowMap PathDetailPanel Cost tab + path sorting (CPC-03). CPC-02 deferred to Phase 12. Verification: PASSED (1 blocker fixed — CPC-02 moved from requirements to deferred field). Nyquist: compliant (09-VALIDATION.md approved 2026-05-06). UI-SPEC: approved 2026-05-05.
 progress:
   total_phases: 19
   completed_phases: 14
-  total_plans: 108
+  total_plans: 115
   completed_plans: 98
   percent: 91
 ---
