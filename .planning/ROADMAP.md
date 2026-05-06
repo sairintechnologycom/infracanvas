@@ -59,7 +59,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 11/11 | Complete | 2026-05-05 |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 0/TBD | Not planned | - |
-| 9. CostLens | v1.1 | 0/TBD | Not planned | - |
+| 9. CostLens | v1.1 | 0/7 | Planned | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
 | 11. Firewall Integration | v1.1 | 0/TBD | Not planned | - |
 | 12. Path Computation + Asymmetry | v1.1 | 0/TBD | Not planned | - |
@@ -289,13 +289,26 @@ Plans:
 ### Phase 9: CostLens
 
 **Goal:** Shared-infrastructure cost allocation + per-path cross-cloud data transfer cost.
-**Requirements:** CLA-01, CLA-02, CLA-03, CLA-04, CLA-05, CLA-06, CPC-01, CPC-02, CPC-03
+**Requirements:** CLA-01, CLA-02, CLA-03, CLA-04, CLA-05, CLA-06, CPC-01, CPC-02 (deferred Phase 12), CPC-03
 **Depends on:** Phase 7 (dashboard panel)
 **Success criteria:**
 1. TGW, ExpressRoute, Azure Firewall, NAT GW, VPC Endpoint costs split by workload tag
-2. Per-path cross-cloud data transfer cost visible in FlowMap
-3. Idle/oversized recommendations listed in dashboard
+2. Per-path cross-cloud data transfer cost visible in FlowMap PathDetailPanel
+3. Idle/oversized recommendations listed in viewer and dashboard
 4. Allocation percentages sum to 100% per shared resource
+5. CostLens tab active in viewer HTML report (not coming-soon)
+6. Dashboard scan detail page shows 'Cost' tab with WorkloadTable
+
+**Plans:** 7 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Wave 0: Test stubs + shadcn badge/tooltip install
+- [ ] 09-02-PLAN.md — Wave 1: Pydantic models + config + FLAT_MONTHLY + SharedCostAllocator (CLA-01..04)
+- [ ] 09-03-PLAN.md — Wave 1: IdleDetector + main.py wiring (CLA-05, CLA-06 data)
+- [ ] 09-04-PLAN.md — Wave 1: EgressEstimator + main.py wiring (CPC-01)
+- [ ] 09-05-PLAN.md — Wave 2: Viewer CostLensPanel + tab activation + TabBar test fixes (CLA-05, CLA-06 viewer)
+- [ ] 09-06-PLAN.md — Wave 2: Dashboard Cost tab + WorkloadTable + ScanDetailTabs (CLA-06 dashboard)
+- [ ] 09-07-PLAN.md — Wave 2: FlowMap PathDetailPanel cost annotation (CPC-03)
 
 ### Phase 10: DC Agent Core
 
