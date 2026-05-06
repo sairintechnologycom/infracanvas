@@ -306,8 +306,8 @@ Plans:
 - [ ] 09-02-PLAN.md — Wave 1: Pydantic models + config + FLAT_MONTHLY + SharedCostAllocator (CLA-01..04)
 - [ ] 09-03-PLAN.md — Wave 1: IdleDetector + main.py wiring (CLA-05, CLA-06 data)
 - [ ] 09-04-PLAN.md — Wave 1: EgressEstimator + main.py wiring (CPC-01)
-- [ ] 09-05-PLAN.md — Wave 2: Viewer CostLensPanel + tab activation + TabBar test fixes (CLA-05, CLA-06 viewer)
-- [ ] 09-06-PLAN.md — Wave 2: Dashboard Cost tab + WorkloadTable + ScanDetailTabs (CLA-06 dashboard)
+- [x] 09-05-PLAN.md — Wave 2: Viewer CostLensPanel + tab activation + TabBar test fixes (CLA-05, CLA-06 viewer) — COMPLETE 2026-05-06
+- [x] 09-06-PLAN.md — Wave 2: Dashboard Cost tab + WorkloadTable + ScanDetailTabs (CLA-06 dashboard) — COMPLETE 2026-05-06
 - [ ] 09-07-PLAN.md — Wave 2: FlowMap PathDetailPanel cost annotation (CPC-03)
 
 ### Phase 10: DC Agent Core
