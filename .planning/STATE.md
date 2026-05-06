@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: in_progress
-last_updated: "2026-05-06T06:22:00.000Z"
-last_activity: 2026-05-06 -- Phase 9 (CostLens) EXECUTION STARTED (7 plans, 3 waves). Wave 1 forced sequential (test_costlens.py + models.py + main.py overlap across 09-02/03/04). Wave 2 runs 09-05 first then 09-06+09-07 parallel. Wave 0: 09-01 test stubs + shadcn badge/tooltip install. Wave 1 (parallel): 09-02 Pydantic models + SharedCostAllocator (CLA-01..04), 09-03 IdleDetector + scan pipeline wiring (CLA-05, CLA-06), 09-04 EgressEstimator + cross-cloud egress rates (CPC-01). Wave 2 (parallel): 09-05 Viewer CostLens tab activation + CostLensPanel (CLA-05, CLA-06), 09-06 Dashboard ScanDetailTabs + CostTab + WorkloadTable (CLA-06), 09-07 FlowMap PathDetailPanel Cost tab + path sorting (CPC-03). CPC-02 deferred to Phase 12. Verification: PASSED (1 blocker fixed — CPC-02 moved from requirements to deferred field). Nyquist: compliant (09-VALIDATION.md approved 2026-05-06). UI-SPEC: approved 2026-05-05.
+status: ready
+last_updated: "2026-05-06T12:00:00.000Z"
+last_activity: 2026-05-06 -- Phase 9 (CostLens) COMPLETE — verification passed 7/7, 4 code-review criticals fixed (CR-01 scan pipeline, CR-02 same-region egress, CR-03 azurerm_firewall idle, CR-04 Fragment key). 365 CLI + 156 viewer + 236 dashboard tests pass. Phase 10 (DC Agent Core) next. Phase 9 EXECUTION STARTED (7 plans, 3 waves). Wave 1 forced sequential (test_costlens.py + models.py + main.py overlap across 09-02/03/04). Wave 2 runs 09-05 first then 09-06+09-07 parallel. Wave 0: 09-01 test stubs + shadcn badge/tooltip install. Wave 1 (parallel): 09-02 Pydantic models + SharedCostAllocator (CLA-01..04), 09-03 IdleDetector + scan pipeline wiring (CLA-05, CLA-06), 09-04 EgressEstimator + cross-cloud egress rates (CPC-01). Wave 2 (parallel): 09-05 Viewer CostLens tab activation + CostLensPanel (CLA-05, CLA-06), 09-06 Dashboard ScanDetailTabs + CostTab + WorkloadTable (CLA-06), 09-07 FlowMap PathDetailPanel Cost tab + path sorting (CPC-03). CPC-02 deferred to Phase 12. Verification: PASSED (1 blocker fixed — CPC-02 moved from requirements to deferred field). Nyquist: compliant (09-VALIDATION.md approved 2026-05-06). UI-SPEC: approved 2026-05-05.
 progress:
   total_phases: 19
   completed_phases: 14

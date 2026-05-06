@@ -32,7 +32,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 7.2: UI Contract Remediation — Live** (INSERTED) — closed 14 D-NN defects; LIVE re-audit 21/24 (was 10/24, +11) (2026-05-03)
 - [x] **Phase 7.5: GitHub Repo Connector** (INSERTED) — OAuth, browse repos/branches, clone + on-demand scan (prereq for Phase 8) — completed 2026-05-05
 - [x] **Phase 8: GitHub Webhook + Auto-scan** — push webhook, scan worker, Slack alert on Critical — completed 2026-05-05
-- [ ] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations
+- [x] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations — COMPLETE 2026-05-06
 - [ ] **Phase 10: DC Agent Core** — Go agent, NETCONF/SSH, NetFlow collector, encrypted push, CAB security packet
 - [ ] **Phase 11: Firewall Integration** — Cisco ASA REST/SSH + FMC + Checkpoint Management API
 - [ ] **Phase 12: Path Computation + Asymmetric Routing** — forward/return paths, NetFlow correlation, asymmetry detector + root cause classifier, NET-010, FMV-02, NFN-02
@@ -302,13 +302,13 @@ Plans:
 **Plans:** 7 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Wave 0: Test stubs + shadcn badge/tooltip install
-- [ ] 09-02-PLAN.md — Wave 1: Pydantic models + config + FLAT_MONTHLY + SharedCostAllocator (CLA-01..04)
-- [ ] 09-03-PLAN.md — Wave 1: IdleDetector + main.py wiring (CLA-05, CLA-06 data)
-- [ ] 09-04-PLAN.md — Wave 1: EgressEstimator + main.py wiring (CPC-01)
+- [x] 09-01-PLAN.md — Wave 0: Test stubs + shadcn badge/tooltip install — COMPLETE 2026-05-06
+- [x] 09-02-PLAN.md — Wave 1: Pydantic models + config + FLAT_MONTHLY + SharedCostAllocator (CLA-01..04) — COMPLETE 2026-05-06
+- [x] 09-03-PLAN.md — Wave 1: IdleDetector + main.py wiring (CLA-05, CLA-06 data) — COMPLETE 2026-05-06
+- [x] 09-04-PLAN.md — Wave 1: EgressEstimator + main.py wiring (CPC-01) — COMPLETE 2026-05-06
 - [x] 09-05-PLAN.md — Wave 2: Viewer CostLensPanel + tab activation + TabBar test fixes (CLA-05, CLA-06 viewer) — COMPLETE 2026-05-06
 - [x] 09-06-PLAN.md — Wave 2: Dashboard Cost tab + WorkloadTable + ScanDetailTabs (CLA-06 dashboard) — COMPLETE 2026-05-06
-- [ ] 09-07-PLAN.md — Wave 2: FlowMap PathDetailPanel cost annotation (CPC-03)
+- [x] 09-07-PLAN.md — Wave 2: FlowMap PathDetailPanel cost annotation (CPC-03) — COMPLETE 2026-05-06
 
 ### Phase 10: DC Agent Core
 
