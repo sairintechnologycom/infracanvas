@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { X, Network, FileText, Shield, Code, List } from 'lucide-react';
+import { X, Network, FileText, Shield, Code, List, DollarSign } from 'lucide-react';
 import { FindingCard } from '../FindingCard';
 import { useViewerStoreOrSingleton } from '../../store';
 import type { Finding, ResourceNode } from '../../types';
 
-type Tab = 'overview' | 'findings' | 'attributes' | 'routes';
+type Tab = 'overview' | 'findings' | 'attributes' | 'routes' | 'cost';
 
 const ROUTES_ELIGIBLE_TYPES = new Set([
   'aws_ec2_transit_gateway_route_table',
@@ -57,11 +57,13 @@ export function PathDetailPanel() {
   }
 
   const hasRoutes = ROUTES_ELIGIBLE_TYPES.has(node.type);
+  const hasCost = node.cost.monthly_usd > 0;
   const tabs: Array<{ id: Tab; label: string; icon: typeof FileText }> = [
     { id: 'overview', label: 'Overview', icon: FileText },
     { id: 'findings', label: `Findings (${node.findings.length})`, icon: Shield },
     { id: 'attributes', label: 'Attributes', icon: Code },
     ...(hasRoutes ? [{ id: 'routes' as const, label: 'Routes', icon: List }] : []),
+    ...(hasCost ? [{ id: 'cost' as const, label: 'Cost', icon: DollarSign }] : []),
   ];
 
   const color = '#3B82F6'; // reuse forward-blue accent
@@ -128,6 +130,7 @@ export function PathDetailPanel() {
         {activeTab === 'routes' && hasRoutes && (
           <RoutesTab routes={(node.attributes.routes as unknown[] | undefined) ?? []} />
         )}
+        {activeTab === 'cost' && hasCost && <CostTab node={node} />}
       </div>
     </div>
   );
@@ -265,6 +268,21 @@ function RoutesTab({ routes }: { routes: unknown[] }) {
         })}
       </tbody>
     </table>
+  );
+}
+
+function CostTab({ node }: { node: ResourceNode }) {
+  const pathCost = node.cost;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 11, color: '#94A3B8' }}>
+      <Row label="Monthly Cost" value={`$${pathCost.monthly_usd.toFixed(2)}`} />
+      <Row label="Basis" value={pathCost.basis || '—'} />
+      {pathCost.basis?.includes('no flow data') && (
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
+          Estimate based on assumed transfer volume — enable flow logs for actuals.
+        </div>
+      )}
+    </div>
   );
 }
 
