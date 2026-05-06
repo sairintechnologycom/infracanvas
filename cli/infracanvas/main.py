@@ -689,12 +689,15 @@ def score(
 
     # Phase 9: CostLens allocation pipeline
     from infracanvas.cost.allocator import SharedCostAllocator  # noqa: PLC0415
+    from infracanvas.cost.egress import EgressEstimator  # noqa: PLC0415
     from infracanvas.cost.idle import IdleDetector  # noqa: PLC0415
     try:
         _allocator = SharedCostAllocator(workload_tag_key=config.costlens.workload_tag_key)
         graph = _allocator.allocate(graph)
         _detector = IdleDetector()
         graph = _detector.detect(graph)
+        _egress = EgressEstimator()
+        graph = _egress.estimate(graph)
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Warning:[/yellow] CostLens allocation failed: {exc}")
 
@@ -809,12 +812,15 @@ def plan(
 
     # Phase 9: CostLens allocation pipeline
     from infracanvas.cost.allocator import SharedCostAllocator  # noqa: PLC0415
+    from infracanvas.cost.egress import EgressEstimator  # noqa: PLC0415
     from infracanvas.cost.idle import IdleDetector  # noqa: PLC0415
     try:
         _allocator = SharedCostAllocator(workload_tag_key=config.costlens.workload_tag_key)
         graph = _allocator.allocate(graph)
         _detector = IdleDetector()
         graph = _detector.detect(graph)
+        _egress = EgressEstimator()
+        graph = _egress.estimate(graph)
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Warning:[/yellow] CostLens allocation failed: {exc}")
 
