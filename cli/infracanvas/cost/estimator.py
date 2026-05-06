@@ -41,6 +41,11 @@ FLAT_MONTHLY: dict[str, float] = {
     "aws_lb": 0.0225 * HOURS_PER_MONTH,             # $16.43
     "aws_eks_cluster": 0.10 * HOURS_PER_MONTH,      # $73.00
     "aws_kms_key": 1.00,                             # $1.00
+    # Phase 9: CostLens shared resources
+    "aws_ec2_transit_gateway": 0.05 * HOURS_PER_MONTH,    # $36.50/mo TGW hourly charge
+    "aws_vpc_endpoint": 0.01 * HOURS_PER_MONTH,           # $7.30/mo Interface endpoint/hr
+    "azurerm_express_route_circuit": 55.00,                # $55.00/mo flat (Standard, 50Mbps)
+    "azurerm_firewall": 1.25 * HOURS_PER_MONTH,           # $912.50/mo Premium tier
 }
 
 # Usage-based resources — $0 at provisioning time
