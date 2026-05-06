@@ -5,6 +5,9 @@ export type {
   Finding,
   Severity,
   DriftStatus,
+  CostLensData,       // Phase 9 addition
+  WorkloadCost,       // Phase 9 addition
+  IdleRecommendation, // Phase 9 addition
 } from '@infracanvas/viewer'
 
 // ── Scan API response types (mirror backend Pydantic schemas) ────────────────
