@@ -59,7 +59,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 7.1. Phase 7 UI Contract Remediation (INSERTED) | v1.1 | 0/9 | Planned | - |
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 11/11 | Complete | 2026-05-05 |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 6/6 | Complete | 2026-05-05 |
-| 9. CostLens | v1.1 | 3/7 | In progress | - |
+| 9. CostLens | v1.1 | 4/7 | In progress | - |
 | 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
 | 11. Firewall Integration | v1.1 | 0/TBD | Not planned | - |
 | 12. Path Computation + Asymmetry | v1.1 | 0/TBD | Not planned | - |
