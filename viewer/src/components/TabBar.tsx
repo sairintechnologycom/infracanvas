@@ -7,7 +7,6 @@ interface TabDef {
   id: TabId;
   label: string;
   beta?: boolean;
-  soon?: boolean;
   tooltip: string;
 }
 
@@ -33,8 +32,7 @@ const TABS: TabDef[] = [
   {
     id: 'costlens',
     label: 'CostLens',
-    soon: true,
-    tooltip: 'Shared infrastructure cost allocation — coming in Phase 9',
+    tooltip: 'Shared infrastructure cost allocation — press 3',
   },
 ];
 
@@ -52,9 +50,9 @@ export function TabBar() {
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const navigable = TABS.filter((t) => !t.soon);
+    const navigable = TABS;
     const navIdx = navigable.findIndex((t) => t.id === TABS[index].id);
-    if (navIdx === -1) return; // "soon" tab is not keyboard-navigable
+    if (navIdx === -1) return;
     const last = navigable.length - 1;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
@@ -94,7 +92,6 @@ export function TabBar() {
     >
       {TABS.map((tab, index) => {
         const isActive = activeTab === tab.id;
-        const isSoon = Boolean(tab.soon);
         return (
           <button
             key={tab.id}
@@ -103,13 +100,11 @@ export function TabBar() {
             }}
             role="tab"
             aria-selected={isActive}
-            aria-disabled={isSoon || undefined}
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
-            tabIndex={isSoon ? -1 : isActive ? 0 : -1}
+            tabIndex={isActive ? 0 : -1}
             title={tab.tooltip}
             onClick={() => {
-              if (isSoon) return;
               setActiveTab(tab.id);
             }}
             onKeyDown={(e) => handleKey(e, index)}
@@ -118,11 +113,11 @@ export function TabBar() {
               padding: '0 16px',
               border: 'none',
               background: isActive ? 'rgba(59,130,246,0.08)' : 'transparent',
-              color: isSoon ? '#475569' : isActive ? '#F1F5F9' : '#64748B',
+              color: isActive ? '#F1F5F9' : '#64748B',
               borderBottom: isActive ? '2px solid #3B82F6' : '2px solid transparent',
               fontSize: 12,
               fontWeight: isActive ? 700 : 500,
-              cursor: isSoon ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
               transition: 'color 0.12s, background 0.12s',
               display: 'flex',
               alignItems: 'center',
@@ -131,13 +126,13 @@ export function TabBar() {
               outlineOffset: 2,
             }}
             onMouseEnter={(e) => {
-              if (!isActive && !isSoon) {
+              if (!isActive) {
                 e.currentTarget.style.color = '#94A3B8';
                 e.currentTarget.style.background = 'rgba(45,55,72,0.3)';
               }
             }}
             onMouseLeave={(e) => {
-              if (!isActive && !isSoon) {
+              if (!isActive) {
                 e.currentTarget.style.color = '#64748B';
                 e.currentTarget.style.background = 'transparent';
               }
@@ -158,22 +153,6 @@ export function TabBar() {
                 }}
               >
                 BETA
-              </span>
-            )}
-            {tab.soon && (
-              <span
-                aria-label="coming soon"
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: '1px 6px',
-                  borderRadius: 4,
-                  background: 'rgba(100,116,139,0.12)',
-                  color: '#64748B',
-                  lineHeight: 1.4,
-                }}
-              >
-                SOON
               </span>
             )}
           </button>

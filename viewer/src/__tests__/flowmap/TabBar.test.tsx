@@ -26,9 +26,9 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(screen.getByText('BETA')).toBeInTheDocument();
   });
 
-  test('CostLens tab carries SOON label', () => {
+  test('CostLens tab does not carry SOON label (tab is active in Phase 9)', () => {
     render(<TabBar />);
-    expect(screen.getByText('SOON')).toBeInTheDocument();
+    expect(screen.queryByText('SOON')).toBeNull();
   });
 
   test('clicking FlowMap activates it', () => {
@@ -39,6 +39,14 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(flowmapTab.getAttribute('aria-selected')).toBe('true');
   });
 
+  test('clicking CostLens activates it', () => {
+    render(<TabBar />);
+    const costlensTab = screen.getByRole('tab', { name: /costlens/i });
+    fireEvent.click(costlensTab);
+    expect(useStore.getState().activeTab).toBe('costlens');
+    expect(costlensTab.getAttribute('aria-selected')).toBe('true');
+  });
+
   test('ArrowRight from Canvas cycles to FlowMap', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
@@ -47,20 +55,29 @@ describe('TabBar (ARIA + keyboard)', () => {
     expect(useStore.getState().activeTab).toBe('flowmap');
   });
 
-  test('ArrowLeft from Canvas wraps to FlowMap (last navigable, skipping CostLens)', () => {
+  test('CostLens tab activates with ArrowRight from FlowMap', () => {
+    useStore.setState({ activeTab: 'flowmap' });
+    render(<TabBar />);
+    const flowmapTab = screen.getByRole('tab', { name: /flowmap/i });
+    flowmapTab.focus();
+    fireEvent.keyDown(flowmapTab, { key: 'ArrowRight' });
+    expect(useStore.getState().activeTab).toBe('costlens');
+  });
+
+  test('ArrowLeft from Canvas wraps to CostLens (last navigable tab)', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     canvasTab.focus();
     fireEvent.keyDown(canvasTab, { key: 'ArrowLeft' });
-    expect(useStore.getState().activeTab).toBe('flowmap');
+    expect(useStore.getState().activeTab).toBe('costlens');
   });
 
-  test('End jumps to last navigable tab (FlowMap, not CostLens)', () => {
+  test('End jumps to last navigable tab (CostLens)', () => {
     render(<TabBar />);
     const canvasTab = screen.getByRole('tab', { name: /canvas/i });
     canvasTab.focus();
     fireEvent.keyDown(canvasTab, { key: 'End' });
-    expect(useStore.getState().activeTab).toBe('flowmap');
+    expect(useStore.getState().activeTab).toBe('costlens');
   });
 
   test('Home jumps to first tab', () => {
@@ -115,33 +132,33 @@ describe('TabBar — FlowMap always-on (hasFlowMap=false shows empty state, not 
   });
 });
 
-describe('TabBar — CostLens "soon" tab is non-interactive', () => {
+describe('TabBar — CostLens tab is fully interactive (Phase 9 activation)', () => {
   beforeEach(() => {
     useStore.setState({ activeTab: 'canvas', hasFlowMap: true });
   });
 
-  test('CostLens tab has aria-disabled=true', () => {
+  test('CostLens tab is NOT aria-disabled', () => {
     render(<TabBar />);
     const costlensTab = screen.getByRole('tab', { name: /costlens/i });
-    expect(costlensTab.getAttribute('aria-disabled')).toBe('true');
+    expect(costlensTab.getAttribute('aria-disabled')).toBeNull();
   });
 
-  test('clicking CostLens does not change activeTab', () => {
+  test('clicking CostLens changes activeTab to costlens', () => {
     render(<TabBar />);
     const costlensTab = screen.getByRole('tab', { name: /costlens/i });
     fireEvent.click(costlensTab);
-    expect(useStore.getState().activeTab).toBe('canvas');
+    expect(useStore.getState().activeTab).toBe('costlens');
   });
 
-  test('CostLens tab has tabIndex=-1', () => {
+  test('CostLens tab has pointer cursor', () => {
     render(<TabBar />);
     const costlensTab = screen.getByRole('tab', { name: /costlens/i });
-    expect(costlensTab.getAttribute('tabindex')).toBe('-1');
+    expect(costlensTab.style.cursor).toBe('pointer');
   });
 
-  test('CostLens tab has not-allowed cursor', () => {
+  test('CostLens tab tooltip mentions press 3', () => {
     render(<TabBar />);
     const costlensTab = screen.getByRole('tab', { name: /costlens/i });
-    expect(costlensTab.style.cursor).toBe('not-allowed');
+    expect(costlensTab.getAttribute('title')).toContain('press 3');
   });
 });

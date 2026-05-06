@@ -10,6 +10,9 @@ import { FlowMapEmptyState } from './components/flowmap/FlowMapEmptyState';
 
 const FlowMapCanvas = lazy(() =>
   import('./components/flowmap/FlowMapCanvas').then((m) => ({ default: m.FlowMapCanvas })),
+)
+const CostLensPanel = lazy(() =>
+  import('./components/costlens/CostLensPanel').then((m) => ({ default: m.CostLensPanel })),
 );
 const FlowMapFilterPanel = lazy(() =>
   import('./components/flowmap/FlowMapFilterPanel').then((m) => ({
@@ -24,6 +27,7 @@ export default function App() {
   const activeTab = useViewerStoreOrSingleton((s) => s.activeTab);
   const setActiveTab = useViewerStoreOrSingleton((s) => s.setActiveTab);
   const hasFlowMap = useViewerStoreOrSingleton((s) => s.hasFlowMap);
+  const graph = useViewerStoreOrSingleton((s) => s.graph);
 
   // Hash init on mount + hashchange listener.
   // Unknown hashes silently fall through to 'canvas'.
@@ -32,6 +36,8 @@ export default function App() {
       const hash = window.location.hash.replace(/^#/, '');
       if (hash === 'flowmap') {
         setActiveTab('flowmap');
+      } else if (hash === 'costlens') {
+        setActiveTab('costlens');
       } else {
         setActiveTab('canvas');
       }
@@ -83,11 +89,18 @@ export default function App() {
         setActiveTab('flowmap');
         return;
       }
+
+      // '3' jumps to CostLens — always navigable; shows empty state if no data
+      if (e.key === '3' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setActiveTab('costlens');
+        return;
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [activeTab, setActiveTab]);
 
+  const isCostLens = activeTab === 'costlens';
   const isFlowMap = activeTab === 'flowmap';
 
   return (
@@ -101,7 +114,11 @@ export default function App() {
           id={`panel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
         >
-          {isFlowMap ? (
+          {isCostLens ? (
+            <Suspense fallback={<div className="flex-1" />}>
+              <CostLensPanel data={graph?.costlens ?? null} />
+            </Suspense>
+          ) : isFlowMap ? (
             hasFlowMap ? (
               <Suspense fallback={<div className="flex-1" />}>
                 <FlowMapFilterPanel />
