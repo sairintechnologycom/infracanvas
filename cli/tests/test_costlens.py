@@ -222,34 +222,63 @@ class TestSharedAllocator:
 
 
 class TestIdleDetector:
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_idle_nat_gateway(self):
-        """CLA-C-10: NAT gateway with no attached subnets is flagged as idle"""
-        pytest.fail("not implemented")
+        """CLA-C-10: NAT GW with no aws_route edge targeting it → IdleRecommendation generated."""
+        nat = _node("aws_nat_gateway", "main", monthly_usd=32.85)
+        graph = _graph([nat], [])
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+        assert len(graph.costlens.recommendations) == 1
+        rec = graph.costlens.recommendations[0]
+        assert rec.resource_id == nat.id
+        assert rec.monthly_waste_usd == 32.85
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_idle_tgw(self):
-        """CLA-C-11: Transit gateway with zero attachments is flagged as idle"""
-        pytest.fail("not implemented")
+        """CLA-C-11: TGW with no aws_ec2_transit_gateway_vpc_attachment child → recommendation."""
+        tgw = _node("aws_ec2_transit_gateway", "main", monthly_usd=36.50)
+        graph = _graph([tgw], [])
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+        assert len(graph.costlens.recommendations) == 1
+        rec = graph.costlens.recommendations[0]
+        assert rec.resource_id == tgw.id
+        assert rec.monthly_waste_usd == 36.50
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_idle_express_route(self):
-        """CLA-C-12: Azure ExpressRoute circuit with no peering links is flagged as idle"""
-        pytest.fail("not implemented")
+        """CLA-C-12: Azure ExpressRoute with no gateway_connection child → recommendation."""
+        er = _node("azurerm_express_route_circuit", "main", monthly_usd=55.0, provider="azure")
+        graph = _graph([er], [])
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+        assert len(graph.costlens.recommendations) == 1
+        rec = graph.costlens.recommendations[0]
+        assert rec.resource_id == er.id
+        assert rec.monthly_waste_usd == 55.0
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_idle_vpc_endpoint(self):
-        """CLA-C-13: VPC endpoint with no associated services is flagged as idle"""
-        pytest.fail("not implemented")
+        """CLA-C-13: VPC endpoint with no aws_route_table edge targeting it → recommendation."""
+        ep = _node("aws_vpc_endpoint", "main", monthly_usd=7.30)
+        graph = _graph([ep], [])
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+        assert len(graph.costlens.recommendations) == 1
+        rec = graph.costlens.recommendations[0]
+        assert rec.resource_id == ep.id
+        assert rec.monthly_waste_usd == 7.30
 
-    @pytest.mark.xfail(reason="not implemented — stub")
     def test_non_idle_nat_gateway(self):
-        """CLA-C-14: NAT gateway with attached subnets is NOT flagged as idle"""
-        pytest.fail("not implemented")
+        """CLA-C-14: NAT GW WITH a valid aws_route edge targeting it → NO recommendation."""
+        nat = _node("aws_nat_gateway", "main", monthly_usd=32.85)
+        route = _node("aws_route", "main_route")
+        # route → nat (aws_route has an edge targeting the NAT GW)
+        graph = _graph([nat, route], [(route.id, nat.id)])
+        graph = SharedCostAllocator().allocate(graph)
+        graph = IdleDetector().detect(graph)
+        assert len(graph.costlens.recommendations) == 0
 
-    @pytest.mark.xfail(reason="not implemented — stub")
+    @pytest.mark.xfail(reason="not implemented — stub: Task 2 wires main.py")
     def test_integration_full_graph(self):
-        """CLA-C-15: Full graph with mixed idle/non-idle resources returns correct idle list"""
+        """CLA-C-15: Full graph scan produces valid CostLensData JSON block."""
         pytest.fail("not implemented")
 
 
