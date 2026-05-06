@@ -50,7 +50,16 @@ export type {
   DCCollectorReading,
   DCSite,
   ResourceGraph,
+  // Phase 9: CostLens types
+  CostLensData,
+  WorkloadCost,
+  CostLineItem,
+  IdleRecommendation,
+  PathCost,
 } from './types'
+
+// Phase 9: CostLens component (exported after component creation in Task 2)
+export { CostLensPanel } from './components/costlens/CostLensPanel'
 
 // ===== Store API (D-11 — factory + Context Provider + hook) =====
 export {

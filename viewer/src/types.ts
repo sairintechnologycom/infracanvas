@@ -106,6 +106,50 @@ export interface NetworkPath {
   direction: 'forward' | 'return';
   hops: PathHop[];
   evidence: Record<string, unknown>;
+  path_cost?: PathCost;
+}
+
+// Phase 9: CostLens types (mirror of cli/infracanvas/graph/models.py CostLensData)
+
+export interface CostLineItem {
+  resource_id: string
+  resource_type: string
+  label: string
+  monthly_usd: number
+  share_pct: number  // 0.0 for dedicated; allocation % for shared
+}
+
+export interface WorkloadCost {
+  name: string
+  total_monthly_usd: number
+  line_items: CostLineItem[]
+}
+
+export interface SharedResourceSummary {
+  resource_id: string
+  resource_type: string
+  monthly_usd: number
+  workload_count: number
+}
+
+export interface IdleRecommendation {
+  resource_id: string
+  resource_type: string
+  description: string
+  monthly_waste_usd: number
+}
+
+export interface CostLensData {
+  workloads: WorkloadCost[]
+  shared_resources: SharedResourceSummary[]
+  recommendations: IdleRecommendation[]
+}
+
+export interface PathCost {
+  estimated_monthly_usd: number
+  rate_per_gb: number
+  assumed_gb: number
+  basis: string
 }
 
 // FDM-02: DC collector models (populated in Phase 3b)
@@ -140,6 +184,8 @@ export interface ResourceGraph {
   // FlowMap tab's enabled state in the viewer. Exact shape is defined by the
   // CLI's --with-flowmap export; the viewer only checks existence.
   flowmap?: unknown;
+  // Phase 9: CostLens allocation data (populated when --with-costlens CLI flag used)
+  costlens?: CostLensData;
 }
 
 declare global {
