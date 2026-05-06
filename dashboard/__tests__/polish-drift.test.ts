@@ -90,7 +90,9 @@ describe('Polish drift gates (RMD-06)', () => {
       p.endsWith('/components/home/ScoreCard.tsx') ||
       p.endsWith('/components/home/RecentScansTable.tsx') ||
       p.endsWith('/components/home/TopFindings.tsx') ||
-      p.endsWith('/components/share/ShareModal.tsx')
+      p.endsWith('/components/share/ShareModal.tsx') ||
+      // Phase 9 CostLens: amber-600 for idle waste amounts (semantic, not decorative — UI-SPEC §"Dashboard — Cost tab")
+      p.endsWith('/components/scans/IdleRecommendationsList.tsx')
     expect(findHits(/\btext-amber-600\b/).filter((p) => !allowed(p))).toEqual([])
   })
 

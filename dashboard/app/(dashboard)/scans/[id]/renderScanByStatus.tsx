@@ -1,6 +1,6 @@
 import type { ScanGetResp } from '@/lib/types'
 import { ScanPendingClient } from '@/components/scans/ScanPendingClient'
-import { ScanViewerClient } from '@/components/scans/ScanViewerClient'
+import { ScanDetailTabs } from './ScanDetailTabs'
 
 /**
  * Pure helper: pick which client component to render given a scan row.
@@ -14,7 +14,7 @@ import { ScanViewerClient } from '@/components/scans/ScanViewerClient'
  * server-side import chain.
  *
  *   pending | failed   → <ScanPendingClient> (Plan 10 polling shell)
- *   ready  + URL set   → <ScanViewerClient>  (existing Phase 7 D-08 path)
+ *   ready  + URL set   → <ScanDetailTabs>    (Phase 9 Plan 06 — Viewer + Cost tabs)
  *   ready  + URL null  → <ScanPendingClient> (defensive — should not
  *                        happen per Plan 05 invariant; renders
  *                        "Loading scan…" rather than crash viewer)
@@ -25,7 +25,7 @@ export function renderScanByStatus(scan: ScanGetResp): React.ReactNode {
   }
   if (scan.status === 'ready' && scan.presigned_get_url) {
     return (
-      <ScanViewerClient
+      <ScanDetailTabs
         scanId={scan.id}
         initialPresignedUrl={scan.presigned_get_url}
       />

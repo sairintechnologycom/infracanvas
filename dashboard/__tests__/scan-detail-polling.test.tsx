@@ -22,8 +22,9 @@ vi.mock('@/components/scans/ScanPendingClient', () => ({
   ),
 }))
 
-vi.mock('@/components/scans/ScanViewerClient', () => ({
-  ScanViewerClient: ({
+// ScanDetailTabs replaced ScanViewerClient in renderScanByStatus (Phase 9 Plan 06)
+vi.mock('@/app/(dashboard)/scans/[id]/ScanDetailTabs', () => ({
+  ScanDetailTabs: ({
     scanId,
     initialPresignedUrl,
   }: {

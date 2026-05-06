@@ -32,9 +32,12 @@ describe('WorkloadTable', () => {
     render(<WorkloadTable workloads={mockWorkloads} />)
     const btn = screen.getByLabelText('View cost breakdown for payments')
     expect(btn.getAttribute('aria-expanded')).toBe('false')
+    // detail row is not rendered before expansion
+    expect(screen.queryByText('$18.25 (50%)')).toBeNull()
     fireEvent.click(btn)
     expect(btn.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByText('TGW')).toBeTruthy()
+    // expanded detail row shows the line item amount (unique to expanded state)
+    expect(screen.getByText('$18.25 (50%)')).toBeTruthy()
   })
 
   it('renders empty state when no workloads', () => {
