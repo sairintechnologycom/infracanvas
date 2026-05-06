@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: in_progress
-last_updated: "2026-05-06T02:30:00.000Z"
+last_updated: "2026-05-06T05:59:00.000Z"
 last_activity: 2026-05-06 -- Phase 9 (CostLens) EXECUTION STARTED (7 plans, 3 waves). Wave 1 forced sequential (test_costlens.py + models.py + main.py overlap across 09-02/03/04). Wave 2 runs 09-05 first then 09-06+09-07 parallel. Wave 0: 09-01 test stubs + shadcn badge/tooltip install. Wave 1 (parallel): 09-02 Pydantic models + SharedCostAllocator (CLA-01..04), 09-03 IdleDetector + scan pipeline wiring (CLA-05, CLA-06), 09-04 EgressEstimator + cross-cloud egress rates (CPC-01). Wave 2 (parallel): 09-05 Viewer CostLens tab activation + CostLensPanel (CLA-05, CLA-06), 09-06 Dashboard ScanDetailTabs + CostTab + WorkloadTable (CLA-06), 09-07 FlowMap PathDetailPanel Cost tab + path sorting (CPC-03). CPC-02 deferred to Phase 12. Verification: PASSED (1 blocker fixed — CPC-02 moved from requirements to deferred field). Nyquist: compliant (09-VALIDATION.md approved 2026-05-06). UI-SPEC: approved 2026-05-05.
 progress:
   total_phases: 19
   completed_phases: 14
   total_plans: 115
-  completed_plans: 101
+  completed_plans: 102
   percent: 88
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 Milestone: v1.1 — started 2026-04-20
 Phase: 9 — CostLens (7 plans, 3 waves — execution started 2026-05-06)
-Plan: 09-04 complete (Wave 1 third plan — EgressEstimator + CPC-01)
-Status: Phase 9 Plan 04 CLOSED on 2026-05-06 — Wave 1 Plan 04 delivered: EgressEstimator with static AWS/Azure/cross-cloud pricing tables; NetworkPath.path_cost populated for paths with region data; path_cost=None for missing regions (graceful skip); BASIS_NOTE disclaimer on all PathCost entries; wired into main.py at both score() and plan() callsites. CPC-C-1..3 all GREEN. 365 passed (was 362+3 xfailed). Plan 09-05 unblocked (Wave 2: viewer CostLens tab activation).
-Last activity: 2026-05-06 -- Phase 9 Plan 04 closed (Wave 1: EgressEstimator CPC-01, 3 commits: b4c19c1 test RED CPC-C-1..3, 7b2d9b4 feat EgressEstimator GREEN, b0cf9a6 feat main.py wiring). CPC-C-1..3 all GREEN. 365 passed. Plan 09-05 unblocked.
+Plan: 09-05 complete (Wave 2 first plan — Viewer CostLens tab activation + CostLensPanel)
+Status: Phase 9 Plan 05 CLOSED on 2026-05-06 — CostLens tab activated in viewer (no SOON label, aria-disabled removed); '3' key binding + #costlens hash routing; three-way render branch (isCostLens/isFlowMap/canvas); CostLensPanel (empty state + WorkloadCard grid + IdleRecommendations); 151/151 viewer tests pass (was 143 + 6 todo); TabBar tests updated (removed SOON describe block, added CostLens interactive describe). Plan 09-06 unblocked (Dashboard ScanDetailTabs + CostTab).
+Last activity: 2026-05-06 -- Phase 9 Plan 05 closed (Wave 2: viewer CostLens tab, 2 commits: 7320e6a feat types CostLensData, d598945 feat CostLensPanel + tab activation + test fixes). 151/151 tests pass. Plans 09-06 + 09-07 (Wave 2 parallel) unblocked.
 Previous last activity: 2026-05-06 -- Phase 9 Plan 01 closed (Wave 0: shadcn badge/tooltip + 3 test stub files, 3 commits: 7a1d181 chore shadcn, a2c6520 test Python RED stubs, 61fba6f test viewer+dashboard stubs) (6 commits across 3 TDD RED→GREEN cycles: 20ff331 test InstallButton, 89b62c5 feat InstallButton, 856fdd7 test RepoCombobox, 20f175c feat RepoCombobox, 1a61ba2 test BranchPicker, 83e5309 feat BranchPicker+test fix). Three new client components under dashboard/components/integrations/: InstallButton.tsx (~35 LoC, opens https://github.com/apps/{slug}/installations/new?state={clerkOrgId} via window.open with noopener,noreferrer; T-07.5-08-01 mitigation; returns null when no Clerk org), RepoCombobox.tsx (~150 LoC, shadcn Popover + Command recipe with shouldFilter={false} so cmdk doesn't double-filter the server-filtered list, CC-15 useRef+setTimeout 250ms debounce on /api/github/repos?installation_id=X&q=Y, CC-14 useEffect+cancelled cleanup, lucide Lock with aria-label='private' on private repos, inline 503 'Rate limited — try again in 60s' role=alert preserving Plan 07 Retry-After:60), BranchPicker.tsx (~115 LoC, shadcn Select with lazy-load on selectedRepo change + URL-encoded full_name + default-to-default_branch fallback only when value empty + cancellable cleanup + same 503 inline alert). 17 vitest tests added (4 install-button + 7 repo-combobox + 6 branch-picker) — full dashboard suite 200/200 pass (was 183/183; +17 net, no regressions). Test 6 of branch-picker fixed during GREEN (Rule 1: original assertion expected default-branch onChange when value='dev' was preset, but the fallback only fires when value is empty — corrected to assert on Select trigger disabled state). tsc --noEmit clean across in-scope files (only pre-existing scan-filters.test.tsx TS6133 deferred from Plan 01 remains). Components are intentionally NOT composed with each other — RepoCombobox does not import BranchPicker; composition belongs to Plan 09's ScanTriggerForm. Props contracts documented in SUMMARY.md for downstream consumers. Wave 4 plan 09 + plan 10 + Wave 5 plan 11 + Wave 6 verifier next. (Previous Plan 07 detail preserved in §Plan 07.5-07 closed below.)
 
 ## Accumulated Context
@@ -119,6 +119,9 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 - Plan 07.5-11: Phase 7.5 sign-off frontmatter pattern — `status: passed` + `signed_off: 2026-05-05` recorded in PHASE-VERIFICATION.md frontmatter as the canonical machine-readable phase-close marker. Future audits read the frontmatter not the prose; if a regression is suspected against GH-01..GH-05 the response is to re-run Section 1 + Section 3 commands and append a NEW sign-off block to a separate audit file, NOT to edit this PHASE-VERIFICATION.md in place.
 - Plan 07.5-11: Manual smoke pre-flight (P1–P5: GitHub App registration via interactive github.com/settings/apps/new UI + private key generation + Fly secrets `flyctl secrets set GITHUB_APP_*` + Vercel `NEXT_PUBLIC_GITHUB_APP_SLUG`) is documented as one-time-per-env in 07.5-MANUAL-SMOKE.md — operator pre-flight is required for any new dev environment because the GitHub App register UI is interactive and the private key never leaves the operator's clipboard. Subsequent smoke runs after pre-flight skip directly to S1.
 - Plan 07.5-11: GH-01..GH-05 are phase-internal requirement IDs (live in 07.5-CONTEXT.md and PLAN frontmatters only) — NOT promoted to .planning/REQUIREMENTS.md because the global requirements taxonomy already covers GitHub integration via the WBH-* category (Phase 8). Phase-internal IDs stay scoped to the phase artifacts to avoid double-bookkeeping; the cross-link between phase-internal and global IDs is the Section 2 traceability matrix in PHASE-VERIFICATION.md.
+- Plan 09-05: Removed all dead `soon` render code from TabBar.tsx (TabDef.soon? field, isSoon variable, !t.soon filter, SOON badge block) rather than leaving it as dead code — keeps the component clean for future tabs. No `soon` property will exist in TabBar until a new tab is introduced.
+- Plan 09-05: CostLensPanel test import path is `../../components/...` (not `../../../`) — test file is at `src/__tests__/costlens/`, so `../../` reaches `src/` correctly.
+- Plan 09-05: Three-way render branch order is `isCostLens → isFlowMap → canvas` (matches tab order left-to-right and is easy to extend for a fourth tab by adding another `else if`).
 
 ### Pending Todos
 
