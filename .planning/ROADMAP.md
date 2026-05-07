@@ -60,7 +60,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 7.5. GitHub Repo Connector (INSERTED) | v1.1 | 11/11 | Complete | 2026-05-05 |
 | 8. GitHub Webhook + Auto-scan | v1.1 | 6/6 | Complete | 2026-05-05 |
 | 9. CostLens | v1.1 | 7/7 | Complete | 2026-05-06 |
-| 10. DC Agent Core | v1.1 | 0/TBD | Not planned | - |
+| 10. DC Agent Core | v1.1 | 0/9 | Planned | - |
 | 11. Firewall Integration | v1.1 | 0/TBD | Not planned | - |
 | 12. Path Computation + Asymmetry | v1.1 | 0/TBD | Not planned | - |
 | 13. Team Tier Launch | v1.1 | 0/TBD | Not planned | - |
@@ -322,6 +322,19 @@ Plans:
 4. Encrypted push to cloud backend authenticates and stores readings
 5. Daemon timing: routes 5 min, BGP 1 min, NetFlow 30 s (all observed)
 6. CAB security-review packet complete (architecture diagram, data flow, threat model, SBOM)
+
+**Plans:** 9 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Wave 0: Go module scaffold + 7 Go test stubs + backend pytest stubs (Nyquist scaffold)
+- [ ] 10-02-PLAN.md — Wave 1: Backend dc_sites migration + require_site_token auth + POST /v1/sites + POST /v1/agent/{routes,flows} + flip 8 backend test stubs (DCA-05 backend)
+- [ ] 10-03-PLAN.md — Wave 1: Go agent cobra CLI + config loader + daemon ticker loop (DCA-01, DCA-06)
+- [ ] 10-04-PLAN.md — Wave 2: NETCONF collector with Dialer/Session abstraction + subtree-filter XML parser (DCA-02)
+- [ ] 10-05-PLAN.md — Wave 2: SSH CLI fallback + IOS-XE show-ip-route parser + config-import fallback (DCA-03, DCA-07)
+- [ ] 10-06-PLAN.md — Wave 2: NetFlow UDP listener + ring buffer + per-sampler template cache (DCA-04)
+- [ ] 10-07-PLAN.md — Wave 3: Push client (Bearer + retry-twice-then-drop) + goflow2/v2 production decoder + main.go end-to-end wiring (DCA-04, DCA-05, DCA-06)
+- [ ] 10-08-PLAN.md — Wave 3: GHA test-agent + build-agent matrix (linux/amd64, darwin/arm64) + create-release wiring + manual smoke checkpoint (DCA-08)
+- [ ] 10-09-PLAN.md — Wave 4: CAB security packet (architecture, dataflow, STRIDE threat model, SBOM, known limitations, operator runbook) + manual review checkpoint (DCA-09)
 
 ### Phase 11: Firewall Integration
 
