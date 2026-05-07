@@ -1,0 +1,30 @@
+# InfraCanvas DC Agent — example configuration
+#
+# IMPORTANT: this file contains plaintext device credentials. After editing, run:
+#     chmod 600 /etc/infracanvas/agent.yaml
+# The agent process must be the only reader. See agent/docs/cab/threat-model.md
+# for the rationale (10-CONTEXT.md D-05; CAB packet DCA-09).
+
+# One-time site token issued by `POST /v1/sites` (dashboard or admin).
+# Treat like a long-lived bearer secret. Revoke by deleting the dc_sites row.
+site_token: "ic_site_REPLACE_ME"
+
+# InfraCanvas SaaS backend (default production endpoint).
+backend_url: "https://api.infracanvas.dev"
+
+devices:
+  - host: "192.168.1.1"
+    port: 830
+    protocol: netconf            # netconf | ssh | config-import
+    username: "infracanvas-ro"
+    password: "REPLACE_ME"
+
+  - host: "192.168.1.2"
+    port: 22
+    protocol: ssh
+    username: "infracanvas-ro"
+    password: "REPLACE_ME"
+
+  - host: "sw-core-01"
+    protocol: config-import
+    config_file: "/etc/infracanvas/sw-core-01-routes.yaml"
