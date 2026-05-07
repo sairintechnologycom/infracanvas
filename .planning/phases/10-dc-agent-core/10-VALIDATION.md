@@ -2,9 +2,10 @@
 phase: 10
 slug: dc-agent-core
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-07
+wave_0_signed_off: 2026-05-07
 ---
 
 # Phase 10 — Validation Strategy
@@ -48,15 +49,15 @@ created: 2026-05-07
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 10-01-01 | 01 | 0 | DCA-01 | — | N/A | unit stub | `cd agent && go test ./cmd/... -run TestDaemonStartStop -timeout 10s` | ❌ W0 | ⬜ pending |
-| 10-01-02 | 01 | 0 | DCA-02 | — | N/A | unit stub | `cd agent && go test ./internal/netconf/... -run TestNetconfCollector` | ❌ W0 | ⬜ pending |
-| 10-01-03 | 01 | 0 | DCA-03 | — | N/A | unit stub | `cd agent && go test ./internal/ssh/... -run TestSSHCollector` | ❌ W0 | ⬜ pending |
-| 10-01-04 | 01 | 0 | DCA-04 | — | N/A | unit stub | `cd agent && go test ./internal/netflow/... -run TestNetFlowListener` | ❌ W0 | ⬜ pending |
-| 10-01-05 | 01 | 0 | DCA-05 | T-10-push | Bearer header enforced; 401 on bad token | unit stub | `cd agent && go test ./internal/push/... -run TestPushClient` | ❌ W0 | ⬜ pending |
-| 10-01-06 | 01 | 0 | DCA-05 | T-10-backend | 401 on bad site token; 200 on valid | integration stub | `cd backend && pytest tests/test_agent.py -x -q` | ❌ W0 | ⬜ pending |
-| 10-02-01 | 02 | 1 | DCA-01 | — | N/A | unit | `cd agent && go test ./cmd/... -run TestDaemonStartStop` | ❌ W0 | ⬜ pending |
-| 10-02-02 | 02 | 1 | DCA-06 | — | N/A | unit | `cd agent && go test ./cmd/... -run TestTickerIntervals` | ❌ W0 | ⬜ pending |
-| 10-02-03 | 02 | 1 | DCA-07 | — | N/A | unit | `cd agent && go test ./internal/config/... -run TestConfigImport` | ❌ W0 | ⬜ pending |
+| 10-01-01 | 01 | 0 | DCA-01 | — | N/A | unit stub | `cd agent && go test ./cmd/... -run TestDaemonStartStop -timeout 10s` | ✅ 7954f8a | ✅ green |
+| 10-01-02 | 01 | 0 | DCA-02 | — | N/A | unit stub | `cd agent && go test ./internal/netconf/... -run TestNetconfCollector` | ✅ 7954f8a | ✅ green |
+| 10-01-03 | 01 | 0 | DCA-03 | — | N/A | unit stub | `cd agent && go test ./internal/ssh/... -run TestSSHCollector` | ✅ 7954f8a | ✅ green |
+| 10-01-04 | 01 | 0 | DCA-04 | — | N/A | unit stub | `cd agent && go test ./internal/netflow/... -run TestNetFlowListener` | ✅ 7954f8a | ✅ green |
+| 10-01-05 | 01 | 0 | DCA-05 | T-10-push | Bearer header enforced; 401 on bad token | unit stub | `cd agent && go test ./internal/push/... -run TestPushClient` | ✅ 7954f8a | ✅ green |
+| 10-01-06 | 01 | 0 | DCA-05 | T-10-backend | 401 on bad site token; 200 on valid | integration stub | `cd backend && pytest tests/test_agent.py -x -q` | ✅ 67198ab | ✅ green |
+| 10-02-01 | 02 | 1 | DCA-01 | — | N/A | unit | `cd agent && go test ./cmd/... -run TestDaemonStartStop` | ✅ 7954f8a | ⬜ pending |
+| 10-02-02 | 02 | 1 | DCA-06 | — | N/A | unit | `cd agent && go test ./cmd/... -run TestTickerIntervals` | ✅ 7954f8a | ⬜ pending |
+| 10-02-03 | 02 | 1 | DCA-07 | — | N/A | unit | `cd agent && go test ./internal/config/... -run TestConfigImport` | ✅ 7954f8a | ⬜ pending |
 | 10-03-01 | 03 | 1 | DCA-02 | T-10-mitm | InsecureIgnoreHostKey documented in CAB | unit (mock) | `cd agent && go test ./internal/netconf/... -run TestNetconfCollector` | ❌ W0 | ⬜ pending |
 | 10-04-01 | 04 | 1 | DCA-03 | T-10-mitm | terminal length 0 sent; PTY allocated | unit (mock) | `cd agent && go test ./internal/ssh/... -run TestSSHCollector` | ❌ W0 | ⬜ pending |
 | 10-05-01 | 05 | 1 | DCA-04 | T-10-dos | decode error continues loop; no crash | unit | `cd agent && go test ./internal/netflow/... -run TestNetFlowListener` | ❌ W0 | ⬜ pending |
@@ -72,14 +73,14 @@ created: 2026-05-07
 
 ## Wave 0 Requirements
 
-- [ ] `agent/internal/netconf/collector_test.go` — mock NETCONF interface injection — covers DCA-02
-- [ ] `agent/internal/ssh/collector_test.go` — mock SSH server (golang.org/x/crypto/ssh test server) — covers DCA-03
-- [ ] `agent/internal/netflow/listener_test.go` — UDP test packet sender — covers DCA-04
-- [ ] `agent/internal/netflow/buffer_test.go` — ring buffer race test — covers DCA-04
-- [ ] `agent/internal/push/client_test.go` — `httptest.Server` 2xx/5xx stubs — covers DCA-05
-- [ ] `backend/tests/test_agent.py` — pytest for `/v1/sites`, `/v1/agent/routes`, `/v1/agent/flows` — covers DCA-05 backend
-- [ ] `agent/cmd/infracanvas-agent/main_test.go` — daemon start/stop + ticker interval — covers DCA-01, DCA-06
-- [ ] `agent/internal/config/config_test.go` — YAML parse + config-import mode — covers DCA-07
+- [x] `agent/internal/netconf/collector_test.go` — mock NETCONF interface injection — covers DCA-02 (Plan 10-01: 7954f8a)
+- [x] `agent/internal/ssh/collector_test.go` — mock SSH server (golang.org/x/crypto/ssh test server) — covers DCA-03 (Plan 10-01: 7954f8a)
+- [x] `agent/internal/netflow/listener_test.go` — UDP test packet sender — covers DCA-04 (Plan 10-01: 7954f8a)
+- [x] `agent/internal/netflow/buffer_test.go` — ring buffer race test — covers DCA-04 (Plan 10-01: 7954f8a)
+- [x] `agent/internal/push/client_test.go` — `httptest.Server` 2xx/5xx stubs — covers DCA-05 (Plan 10-01: 7954f8a)
+- [x] `backend/tests/test_agent.py` — pytest for `/v1/sites`, `/v1/agent/routes`, `/v1/agent/flows` — covers DCA-05 backend (Plan 10-01: 67198ab)
+- [x] `agent/cmd/infracanvas-agent/main_test.go` — daemon start/stop + ticker interval — covers DCA-01, DCA-06 (Plan 10-01: 7954f8a)
+- [x] `agent/internal/config/config_test.go` — YAML parse + config-import mode — covers DCA-07 (Plan 10-01: 7954f8a)
 
 *Note: Go agent test files are created empty (compile-only stubs) in Wave 0, then filled RED→GREEN in subsequent waves per TDD discipline.*
 
@@ -97,11 +98,11 @@ created: 2026-05-07
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** Wave 0 signed off 2026-05-07 (Plan 10-01 execution)
