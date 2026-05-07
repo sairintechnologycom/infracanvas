@@ -164,3 +164,29 @@ class GithubInstallation(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     installed_by_user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class DCSite(Base):
+    """DC Agent site row (Phase 10 DCA-05).
+
+    Stores the SHA-256 lookup hash of the site-token — the plaintext token
+    is returned ONCE at creation time and never stored (same pattern as
+    share_links.token_lookup_hash, migration 006). RLS team_isolation policy
+    (migration 010) scopes all access to the owning team.
+    """
+
+    __tablename__ = "dc_sites"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    token_lookup_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
