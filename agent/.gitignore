@@ -1,0 +1,7 @@
+# Binaries
+/infracanvas-agent
+/infracanvas-agent-*
+# Local config (D-05: chmod 600 secrets)
+/agent.yaml
+# Test artifacts
+/coverage.out
