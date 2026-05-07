@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: ready
-last_updated: "2026-05-06T12:00:00.000Z"
-last_activity: 2026-05-06 -- Phase 9 (CostLens) COMPLETE — verification passed 7/7, 4 code-review criticals fixed (CR-01 scan pipeline, CR-02 same-region egress, CR-03 azurerm_firewall idle, CR-04 Fragment key). 365 CLI + 156 viewer + 236 dashboard tests pass. Phase 10 (DC Agent Core) next. Phase 9 EXECUTION STARTED (7 plans, 3 waves). Wave 1 forced sequential (test_costlens.py + models.py + main.py overlap across 09-02/03/04). Wave 2 runs 09-05 first then 09-06+09-07 parallel. Wave 0: 09-01 test stubs + shadcn badge/tooltip install. Wave 1 (parallel): 09-02 Pydantic models + SharedCostAllocator (CLA-01..04), 09-03 IdleDetector + scan pipeline wiring (CLA-05, CLA-06), 09-04 EgressEstimator + cross-cloud egress rates (CPC-01). Wave 2 (parallel): 09-05 Viewer CostLens tab activation + CostLensPanel (CLA-05, CLA-06), 09-06 Dashboard ScanDetailTabs + CostTab + WorkloadTable (CLA-06), 09-07 FlowMap PathDetailPanel Cost tab + path sorting (CPC-03). CPC-02 deferred to Phase 12. Verification: PASSED (1 blocker fixed — CPC-02 moved from requirements to deferred field). Nyquist: compliant (09-VALIDATION.md approved 2026-05-06). UI-SPEC: approved 2026-05-05.
+last_updated: "2026-05-07T00:00:00.000Z"
+last_activity: 2026-05-07 -- Phase 10 (DC Agent Core) PLANNED — 9 plans in 5 waves, verification PASSED (2 blockers fixed: goflow2 decoder nil-return, RESEARCH.md open questions). Wave 0: 10-01 Go module scaffold + Nyquist test stubs. Wave 1 (parallel): 10-02 Backend dc_sites migration + site-token auth, 10-03 cobra CLI + config loader + daemon tickers. Wave 2 (parallel): 10-04 NETCONF collector, 10-06 NetFlow UDP listener + ring buffer, 10-08 GHA CI + cross-compile matrix. Wave 3 (parallel): 10-05 SSH collector + config-import fallback, 10-07 Push client + goflow2/v2 decoder + main.go wiring. Wave 4: 10-09 CAB security packet. Research: nemith.io/netconf v0.0.4 (NETCONF), goflow2/v2 v2.2.6 (NetFlow), CGO_ENABLED=0 ubuntu-latest cross-compile. Status: Ready to execute.
 progress:
   total_phases: 19
   completed_phases: 14
-  total_plans: 115
+  total_plans: 124
   completed_plans: 104
-  percent: 89
+  percent: 84
 ---
 
 # Project State
@@ -158,7 +158,7 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 Last session: 2026-05-07T00:00:00.000Z
 Milestone: v1.1 in flight
-Resume: Phase 10 context gathered 2026-05-07. Run `/gsd-plan-phase 10` next. Key decisions locked: Go agent in agent/ subfolder (monorepo, shared semver tag); standard Go layout cmd/+internal/; dashboard-generated site token (Authorization: Bearer, backend-only in Phase 10, no dashboard UI yet); device creds plaintext in agent.yaml chmod 600 with devices[] array; in-memory ring buffer for NetFlow (~5min capacity, retry-twice-then-drop), JSON push format. Dashboard UI for site tokens deferred to Phase 11+.
+Resume: Phase 10 (DC Agent Core) PLANNED 2026-05-07 — 9 plans ready to execute. Run `/gsd-execute-phase 10` next. Wave 0 first (10-01: Go module scaffold + Nyquist stubs). Waves 1–4 follow. Key libraries: nemith.io/netconf v0.0.4, goflow2/v2 v2.2.6, cobra v1.10.2, zap v1.28.0. Backend migration: down_revision=009_slack_webhook_url. CGO_ENABLED=0 for cross-compile.
 
 **Plan 07.5-11 closed:** 2026-05-05T07:01Z (2 commits: bbfa0c7 docs Task 1 — wrote 07.5-PHASE-VERIFICATION.md (Sections 1 per-VALIDATION.md row commands + 2 GH-01..GH-05 traceability matrix with file:line + 3 T1–T9 cross-cutting grep invariants all green at write time) and 07.5-MANUAL-SMOKE.md (263-line operator checklist: P1–P5 pre-flight + S1–S16 smoke). Task 2 was the checkpoint:human-verify gate (gate=blocking) — operator walked the 16-step checklist against a real InfraCanvas DEV App installation + sandbox Terraform fixture and resumed with single-word verdict "approved" on 2026-05-05. Task 3 (this commit) flipped PHASE-VERIFICATION.md frontmatter to status=passed + signed_off=2026-05-05, checked all 6 Section 4 sign-off boxes, dated the summary sentence, wrote 07.5-11-SUMMARY.md with the recap of plans 01–10 (backend pipeline + dashboard surface + verification gates), advanced this STATE.md and ROADMAP.md (plan 07.5-11 + Phase 7.5 progress row both flipped to complete with completion date 2026-05-05). Phase 7.5 net delivery summary: backend (4 routes /v1/github/* + 1 worker scan_repo @broker.task + 2 sibling helpers finalize_scan/fire_scan_meter_or_502 + 1 R2 helper put_bytes + 2 alembic migrations 007/008); dashboard (4 proxy routes app/api/github/* + app/api/scans/from-github + app/api/scan-status + 4 client components InstallButton/RepoCombobox/BranchPicker/ScanTriggerForm + 1 polling shell ScanPendingClient + 1 status-gate helper renderScanByStatus + 1 page rewrite /settings/integrations + lib/types.ts extensions); verification gates (PHASE-VERIFICATION.md + MANUAL-SMOKE.md); test counts at phase close — backend ≈100+ green; dashboard 225/225 green (+42 from phase start). Phase 8 (push-webhook + auto-scan + Slack alert on Critical) unblocked.
 

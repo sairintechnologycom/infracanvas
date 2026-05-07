@@ -648,22 +648,25 @@ func pushWithRetry(ctx context.Context, url, token string, payload []byte, log *
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **IOS-XE NETCONF XPath vs Subtree filter**
    - What we know: IOS-XE supports both XPath and subtree filters per RFC 6241; `nemith.io/netconf` `rpc.Filter` supports both via `Type: "xpath"` or `Type: "subtree"`.
    - What's unclear: Exact YANG model path for routing table varies between `ietf-routing` (RFC 8349) and Cisco native `Cisco-IOS-XE-route-oper` YANG model depending on IOS-XE release.
    - Recommendation: Implement subtree filter as the primary path (simpler, no namespace issues); add XPath as an optional config flag. Validate against a CSR1000v or DevNet sandbox before marking DCA-02 complete.
+   - **RESOLVED:** Use subtree filter (Plan 10-04, Pitfall 1 — avoids YANG namespace version sensitivity).
 
 2. **BGP neighbor state YANG path**
    - What we know: IOS-XE supports `Cisco-IOS-XE-bgp-oper` YANG model for BGP operational state.
    - What's unclear: Whether `ietf-bgp` or the Cisco-native YANG model is more reliable across IOS-XE versions in the field.
    - Recommendation: Use `Cisco-IOS-XE-bgp-oper` (native); it is more complete and avoids version gaps in `ietf-bgp` support.
+   - **RESOLVED:** BGP collection deferred to Phase 11 per CONTEXT.md deferred list.
 
 3. **`POST /v1/sites` — admin-only or team-owner-only?**
    - What we know: CONTEXT.md D-03 says "admin endpoint or CLI seed command". Phase 10 ships backend endpoint only, no dashboard UI.
    - What's unclear: Should this endpoint use `require_role("owner")` (restricting to team owners only) or be further protected by a separate `INFRACANVAS_ADMIN_KEY` header for ops-only access?
    - Recommendation: Use `require_role("owner")` consistent with other team-management routes. The ops-only flag can be added in Phase 11 if needed.
+   - **RESOLVED:** require_role("owner") (Plan 10-02 Task 1) — simplest approach, consistent with existing admin controls.
 
 ---
 
