@@ -333,7 +333,7 @@ Plans:
 - [ ] 10-05-PLAN.md — Wave 2: SSH CLI fallback + IOS-XE show-ip-route parser + config-import fallback (DCA-03, DCA-07)
 - [ ] 10-06-PLAN.md — Wave 2: NetFlow UDP listener + ring buffer + per-sampler template cache (DCA-04)
 - [ ] 10-07-PLAN.md — Wave 3: Push client (Bearer + retry-twice-then-drop) + goflow2/v2 production decoder + main.go end-to-end wiring (DCA-04, DCA-05, DCA-06)
-- [ ] 10-08-PLAN.md — Wave 3: GHA test-agent + build-agent matrix (linux/amd64, darwin/arm64) + create-release wiring + manual smoke checkpoint (DCA-08)
+- [~] 10-08-PLAN.md — Wave 3: GHA test-agent + build-agent matrix (linux/amd64, darwin/arm64) + create-release wiring + manual smoke checkpoint (DCA-08) [2/3 tasks — paused at Task 3 checkpoint:human-verify]
 - [ ] 10-09-PLAN.md — Wave 4: CAB security packet (architecture, dataflow, STRIDE threat model, SBOM, known limitations, operator runbook) + manual review checkpoint (DCA-09)
 
 ### Phase 11: Firewall Integration

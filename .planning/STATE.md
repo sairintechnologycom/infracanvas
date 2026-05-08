@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: ready
-last_updated: "2026-05-07T00:00:00.000Z"
-last_activity: 2026-05-07 -- Phase 10 (DC Agent Core) PLANNED — 9 plans in 5 waves, verification PASSED (2 blockers fixed: goflow2 decoder nil-return, RESEARCH.md open questions). Wave 0: 10-01 Go module scaffold + Nyquist test stubs. Wave 1 (parallel): 10-02 Backend dc_sites migration + site-token auth, 10-03 cobra CLI + config loader + daemon tickers. Wave 2 (parallel): 10-04 NETCONF collector, 10-06 NetFlow UDP listener + ring buffer, 10-08 GHA CI + cross-compile matrix. Wave 3 (parallel): 10-05 SSH collector + config-import fallback, 10-07 Push client + goflow2/v2 decoder + main.go wiring. Wave 4: 10-09 CAB security packet. Research: nemith.io/netconf v0.0.4 (NETCONF), goflow2/v2 v2.2.6 (NetFlow), CGO_ENABLED=0 ubuntu-latest cross-compile. Status: Ready to execute.
+status: completed
+last_updated: "2026-05-08T07:03:15Z"
+last_activity: "2026-05-08 -- Phase 10 Plan 08 (GHA CI + Cross-Compile Matrix) 2/3 tasks complete — test-agent job added to ci.yml (9326070), build-agent matrix + create-release wiring added to release.yml (39a6b96), agent/Makefile created; STOPPED at Task 3 checkpoint:human-verify (push test tag v0.0.0-test10 to verify release artifacts)."
 progress:
   total_phases: 19
-  completed_phases: 14
-  total_plans: 124
-  completed_plans: 104
-  percent: 84
+  completed_phases: 15
+  total_plans: 114
+  completed_plans: 111
+  percent: 97
 ---
 
 # Project State
