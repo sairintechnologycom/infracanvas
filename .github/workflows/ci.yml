@@ -48,6 +48,38 @@ jobs:
       - name: Build
         run: cd viewer && npm run build
 
+  test-agent:
+    name: Test agent (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: agent/go.sum
+
+      - name: Verify go.sum is current
+        working-directory: agent
+        run: |
+          go mod download
+          go mod verify
+
+      - name: go vet
+        working-directory: agent
+        run: go vet ./...
+
+      - name: go test -race
+        working-directory: agent
+        run: go test ./... -race -count=1 -timeout 180s
+
+      - name: go build (smoke)
+        working-directory: agent
+        env:
+          CGO_ENABLED: 0
+        run: go build ./...
+
   lint:
     runs-on: ubuntu-latest
     steps:
