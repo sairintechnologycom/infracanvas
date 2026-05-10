@@ -1,0 +1,341 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:adafc8b4-1a97-4f54-adb6-5662f5ab8103",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-05-10T10:42:27+05:30",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cyclonedx-gomod",
+        "version": "v1.10.0",
+        "hashes": [
+          {
+            "alg": "MD5",
+            "content": "d05172ba61ed83df86ee3ca3d99e0062"
+          },
+          {
+            "alg": "SHA-1",
+            "content": "de5a15ea5faaab7c5eb544e8ea09e687ebde5a1a"
+          },
+          {
+            "alg": "SHA-256",
+            "content": "4ffb12705ef73b5afcb45f8de68f7cd23ece11cb5cbfe3a3aff6e836e2f830cc"
+          },
+          {
+            "alg": "SHA-384",
+            "content": "8792157de95c827d4bd67ecbc964d217508d073e7b345f3ae7d4aa2fc4cf99d8113a44472cea49b66fa4a9f7e08209cc"
+          },
+          {
+            "alg": "SHA-512",
+            "content": "e0c2b15cca79b3df8ff69b5c2e680b8eff981f83160352eba4817591f41a3481ae1086fe97ee14a8a53ac0d18a745ddb6cea0c279f4e1efbbdf41375a0025b66"
+          }
+        ],
+        "externalReferences": [
+          {
+            "url": "https://github.com/CycloneDX/cyclonedx-gomod",
+            "type": "vcs"
+          },
+          {
+            "url": "https://cyclonedx.org",
+            "type": "website"
+          }
+        ]
+      }
+    ],
+    "component": {
+      "bom-ref": "pkg:golang/github.com/infracanvas/infracanvas/agent@v1.0.1-0.20260419161329-d51d3d5b9c80?type=module#cmd/infracanvas-agent",
+      "type": "application",
+      "name": "github.com/infracanvas/infracanvas/agent",
+      "version": "v1.0.1-0.20260419161329-d51d3d5b9c80",
+      "purl": "pkg:golang/github.com/infracanvas/infracanvas/agent@v1.0.1-0.20260419161329-d51d3d5b9c80?goarch=arm64\u0026goos=darwin\u0026type=module#cmd/infracanvas-agent",
+      "externalReferences": [
+        {
+          "url": "https://github.com/infracanvas/infracanvas/agent",
+          "type": "vcs"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cdx:gomod:build:env:CGO_ENABLED",
+          "value": "1"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOARCH",
+          "value": "arm64"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOOS",
+          "value": "darwin"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOVERSION",
+          "value": "go1.25.2"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:golang/github.com/netsampler/goflow2/v2@v2.2.6?type=module",
+      "type": "library",
+      "name": "github.com/netsampler/goflow2/v2",
+      "version": "v2.2.6",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a66f94132908615fa5189cebba760b35e86842d1e58a9253a77945841a54923d"
+        }
+      ],
+      "purl": "pkg:golang/github.com/netsampler/goflow2/v2@v2.2.6?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "externalReferences": [
+        {
+          "url": "https://github.com/netsampler/goflow2",
+          "type": "vcs"
+        }
+      ],
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/spf13/cobra@v1.10.2?type=module",
+      "type": "library",
+      "name": "github.com/spf13/cobra",
+      "version": "v1.10.2",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0cc4d3a27c799bae4873418ea11636735e9609b1f138ec3ac717b3b8b681a5c5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/spf13/cobra@v1.10.2?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "externalReferences": [
+        {
+          "url": "https://github.com/spf13/cobra",
+          "type": "vcs"
+        }
+      ],
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/spf13/pflag@v1.0.9?type=module",
+      "type": "library",
+      "name": "github.com/spf13/pflag",
+      "version": "v1.0.9",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f5ec5a41a30e0b07df2a28a2624ebf06775406ffa245588d5bee2510c8b43ef6"
+        }
+      ],
+      "purl": "pkg:golang/github.com/spf13/pflag@v1.0.9?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "externalReferences": [
+        {
+          "url": "https://github.com/spf13/pflag",
+          "type": "vcs"
+        }
+      ],
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/go.uber.org/multierr@v1.10.0?type=module",
+      "type": "library",
+      "name": "go.uber.org/multierr",
+      "version": "v1.10.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4b487868dcef7dc16c0b77511758cba1aa2fee845a2aa4460bfa54109db2bcf4"
+        }
+      ],
+      "purl": "pkg:golang/go.uber.org/multierr@v1.10.0?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/go.uber.org/zap@v1.28.0?type=module",
+      "type": "library",
+      "name": "go.uber.org/zap",
+      "version": "v1.28.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "219cda3f516fef7fd3fe904c2e4e15bad3e5dfab8d0be392521dc92c6dc5223a"
+        }
+      ],
+      "purl": "pkg:golang/go.uber.org/zap@v1.28.0?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.50.0?type=module",
+      "type": "library",
+      "name": "golang.org/x/crypto",
+      "version": "v0.50.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ccee3bfc93eb2fabec36420d98ba28fcf1f581cc6996ce740cda2016f0796462"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/crypto@v0.50.0?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-Source-Code"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module",
+      "type": "library",
+      "name": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7f1566fc6cc0cc45aa2c7baf72d23dd4a4bd8613669963a85aed174d8252ec20"
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "externalReferences": [
+        {
+          "url": "https://github.com/go-yaml/yaml",
+          "type": "vcs"
+        }
+      ],
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "bom-ref": "pkg:golang/nemith.io/netconf@v0.0.4?type=module",
+      "type": "library",
+      "name": "nemith.io/netconf",
+      "version": "v0.0.4",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bf58b4e46032a544d846b035830b7a6d9096843783901eec2fb04ef09c243166"
+        }
+      ],
+      "purl": "pkg:golang/nemith.io/netconf@v0.0.4?goarch=arm64\u0026goos=darwin\u0026type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-2-Clause"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:golang/github.com/infracanvas/infracanvas/agent@v1.0.1-0.20260419161329-d51d3d5b9c80?type=module#cmd/infracanvas-agent",
+      "dependsOn": [
+        "pkg:golang/github.com/spf13/cobra@v1.10.2?type=module",
+        "pkg:golang/go.uber.org/zap@v1.28.0?type=module",
+        "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com/netsampler/goflow2/v2@v2.2.6?type=module",
+      "dependsOn": [
+        "pkg:golang/golang.org/x/crypto@v0.50.0?type=module",
+        "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com/spf13/cobra@v1.10.2?type=module",
+      "dependsOn": [
+        "pkg:golang/github.com/spf13/pflag@v1.0.9?type=module"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com/spf13/pflag@v1.0.9?type=module"
+    },
+    {
+      "ref": "pkg:golang/go.uber.org/multierr@v1.10.0?type=module",
+      "dependsOn": [
+        "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module"
+      ]
+    },
+    {
+      "ref": "pkg:golang/go.uber.org/zap@v1.28.0?type=module",
+      "dependsOn": [
+        "pkg:golang/go.uber.org/multierr@v1.10.0?type=module",
+        "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module"
+      ]
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/crypto@v0.50.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1?type=module"
+    },
+    {
+      "ref": "pkg:golang/nemith.io/netconf@v0.0.4?type=module",
+      "dependsOn": [
+        "pkg:golang/golang.org/x/crypto@v0.50.0?type=module"
+      ]
+    }
+  ]
+}
