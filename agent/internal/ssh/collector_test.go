@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/infracanvas/infracanvas/agent/internal/config"
 )
 
 type fakeSession struct {
@@ -44,14 +42,17 @@ B    172.16.0.0/12 [200/0] via 192.168.1.253, 00:01:23
 C    192.168.1.0/24 is directly connected, GigabitEthernet0/0
 `
 
-var sampleDevice = config.Device{
-	Host: "192.0.2.1", Port: 22, Protocol: "ssh", Username: "ro", Password: "secret",
-}
+var (
+	sampleHost = "192.0.2.1"
+	samplePort = 22
+	sampleUser = "ro"
+	samplePass = "secret"
+)
 
 func TestSSHCollector_Happy(t *testing.T) {
 	sess := &fakeSession{out: sampleSSHOutput}
 	c := NewCollector(&fakeDialer{sess: sess})
-	routes, err := c.GetRoutes(context.Background(), sampleDevice)
+	routes, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.NoError(t, err)
 	require.Len(t, routes, 4)
 	require.True(t, sess.closed, "Session.Close must be invoked")
@@ -59,7 +60,7 @@ func TestSSHCollector_Happy(t *testing.T) {
 
 func TestSSHCollector_DialError(t *testing.T) {
 	c := NewCollector(&fakeDialer{dialErr: errors.New("connection refused")})
-	_, err := c.GetRoutes(context.Background(), sampleDevice)
+	_, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ssh: dial")
 }
@@ -67,7 +68,7 @@ func TestSSHCollector_DialError(t *testing.T) {
 func TestSSHCollector_RunError(t *testing.T) {
 	sess := &fakeSession{runErr: errors.New("session closed")}
 	c := NewCollector(&fakeDialer{sess: sess})
-	_, err := c.GetRoutes(context.Background(), sampleDevice)
+	_, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ssh: run")
 	require.True(t, sess.closed, "Session.Close still called on Run error")
@@ -76,8 +77,7 @@ func TestSSHCollector_RunError(t *testing.T) {
 func TestSSHCollector_DefaultPort(t *testing.T) {
 	d := &fakeDialer{sess: &fakeSession{out: ""}}
 	c := NewCollector(d)
-	dev := config.Device{Host: "x", Protocol: "ssh"} // Port omitted
-	_, _ = c.GetRoutes(context.Background(), dev)
+	_, _ = c.GetRoutes(context.Background(), "x", 0, "", "") // port=0 → default 22
 	require.Equal(t, 22, d.capPort, "default port for SSH must be 22")
 }
 

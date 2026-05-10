@@ -19,8 +19,6 @@ import (
 	ncssh "nemith.io/netconf/transport/ssh"
 
 	"nemith.io/netconf/rpc"
-
-	"github.com/infracanvas/infracanvas/agent/internal/config"
 )
 
 // ietfRoutingSubtreeFilter is the routing-state subtree filter for IOS-XE.
@@ -60,21 +58,21 @@ func NewCollector(d Dialer) *Collector {
 
 // GetRoutes dials the device, issues the routing-state subtree get, and
 // returns parsed RouteRecord entries. Empty replies return an empty slice,
-// not an error (RESEARCH Pitfall 1).
-func (c *Collector) GetRoutes(ctx context.Context, dev config.Device) ([]RouteRecord, error) {
-	port := dev.Port
+// not an error (RESEARCH Pitfall 1). Caller passes primitives rather than
+// a config.Device to avoid an internal/config ↔ internal/netconf import cycle.
+func (c *Collector) GetRoutes(ctx context.Context, host string, port int, user, pass string) ([]RouteRecord, error) {
 	if port == 0 {
 		port = 830 // RFC 6242 default NETCONF-over-SSH
 	}
-	sess, err := c.dialer.Dial(ctx, dev.Host, port, dev.Username, dev.Password)
+	sess, err := c.dialer.Dial(ctx, host, port, user, pass)
 	if err != nil {
-		return nil, fmt.Errorf("netconf: dial %s:%d: %w", dev.Host, port, err)
+		return nil, fmt.Errorf("netconf: dial %s:%d: %w", host, port, err)
 	}
 	defer func() { _ = sess.Close() }()
 
 	body, err := sess.GetSubtree(ctx, ietfRoutingSubtreeFilter)
 	if err != nil {
-		return nil, fmt.Errorf("netconf: rpc get %s: %w", dev.Host, err)
+		return nil, fmt.Errorf("netconf: rpc get %s: %w", host, err)
 	}
 	return parseRoutesXML(body)
 }

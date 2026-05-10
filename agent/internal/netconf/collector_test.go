@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/infracanvas/infracanvas/agent/internal/config"
 )
 
 // -------- Fake Dialer / Session --------
@@ -67,15 +65,19 @@ const cannedXML = `<?xml version="1.0"?>
   </data>
 </rpc-reply>`
 
-var sampleDevice = config.Device{
-	Host: "192.0.2.1", Port: 830, Protocol: "netconf",
-	Username: "ro", Password: "secret",
-}
+// sampleDeviceArgs are the (host, port, user, pass) primitives used by the
+// new GetRoutes signature — kept here so each test stays terse.
+var (
+	sampleHost = "192.0.2.1"
+	samplePort = 830
+	sampleUser = "ro"
+	samplePass = "secret"
+)
 
 func TestNetconfCollector_Happy(t *testing.T) {
 	sess := &fakeSession{body: []byte(cannedXML)}
 	c := NewCollector(&fakeDialer{sess: sess})
-	routes, err := c.GetRoutes(context.Background(), sampleDevice)
+	routes, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.NoError(t, err)
 	require.Len(t, routes, 2)
 	require.Equal(t, "10.0.0.0/8", routes[0].Prefix)
@@ -90,7 +92,7 @@ func TestNetconfCollector_Happy(t *testing.T) {
 
 func TestNetconfCollector_DialError(t *testing.T) {
 	c := NewCollector(&fakeDialer{dialErr: errors.New("i/o timeout")})
-	_, err := c.GetRoutes(context.Background(), sampleDevice)
+	_, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "netconf: dial")
 }
@@ -98,21 +100,21 @@ func TestNetconfCollector_DialError(t *testing.T) {
 func TestNetconfCollector_RPCError(t *testing.T) {
 	sess := &fakeSession{rpcErr: errors.New("rpc closed")}
 	c := NewCollector(&fakeDialer{sess: sess})
-	_, err := c.GetRoutes(context.Background(), sampleDevice)
+	_, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "netconf: rpc")
 }
 
 func TestNetconfCollector_EmptyReply(t *testing.T) {
 	c := NewCollector(&fakeDialer{sess: &fakeSession{body: []byte("")}})
-	routes, err := c.GetRoutes(context.Background(), sampleDevice)
+	routes, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.NoError(t, err)
 	require.Len(t, routes, 0)
 }
 
 func TestNetconfCollector_MalformedXML(t *testing.T) {
 	c := NewCollector(&fakeDialer{sess: &fakeSession{body: []byte("<not xml")}})
-	_, err := c.GetRoutes(context.Background(), sampleDevice)
+	_, err := c.GetRoutes(context.Background(), sampleHost, samplePort, sampleUser, samplePass)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "netconf: parse")
 }

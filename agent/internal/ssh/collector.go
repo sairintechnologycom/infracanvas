@@ -10,7 +10,6 @@ import (
 
 	cryptossh "golang.org/x/crypto/ssh"
 
-	"github.com/infracanvas/infracanvas/agent/internal/config"
 	"github.com/infracanvas/infracanvas/agent/internal/netconf"
 )
 
@@ -33,21 +32,22 @@ type Collector struct {
 func NewCollector(d Dialer) *Collector { return &Collector{dialer: d} }
 
 // GetRoutes runs `show ip route` over an interactive PTY-allocated session
-// and returns the parsed route table.
-func (c *Collector) GetRoutes(ctx context.Context, dev config.Device) ([]netconf.RouteRecord, error) {
-	port := dev.Port
+// and returns the parsed route table. Caller passes primitives rather than
+// a config.Device to avoid an internal/config ↔ internal/ssh import cycle
+// (config depends on netconf.RouteRecord; ssh would otherwise pull config in).
+func (c *Collector) GetRoutes(ctx context.Context, host string, port int, user, pass string) ([]netconf.RouteRecord, error) {
 	if port == 0 {
 		port = 22
 	}
-	sess, err := c.dialer.Dial(ctx, dev.Host, port, dev.Username, dev.Password)
+	sess, err := c.dialer.Dial(ctx, host, port, user, pass)
 	if err != nil {
-		return nil, fmt.Errorf("ssh: dial %s:%d: %w", dev.Host, port, err)
+		return nil, fmt.Errorf("ssh: dial %s:%d: %w", host, port, err)
 	}
 	defer func() { _ = sess.Close() }()
 
 	out, err := sess.Run(ctx, "show ip route")
 	if err != nil {
-		return nil, fmt.Errorf("ssh: run %s: %w", dev.Host, err)
+		return nil, fmt.Errorf("ssh: run %s: %w", host, err)
 	}
 	return ParseShowIPRoute(out), nil
 }
