@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
 status: in_progress
-last_updated: "2026-05-10T05:00:00Z"
-last_activity: "2026-05-10 -- Phase 10 (DC Agent Core) CLOSED. All 9 plans GREEN with SUMMARY.md. 10-VERIFICATION.md verdict: PASS WITH FLAGS (3 flags: production Dialer paths uncovered by CI, InsecureIgnoreHostKey CAB-documented, GHA release matrix dry-run deferred from 10-08 Task 3). Resumed 10-05 Task 3 (config-import loader, broke config↔netconf cycle by switching collectors to primitive args), executed 10-07 (push client retry-twice-then-drop + goflow2/v2 v2.2.6 production decoder + main.go end-to-end fan-out), drafted + closed 10-09 (CAB security packet: 6 markdown docs + cyclonedx-gomod CycloneDX 1.6 SBOM with 8 components). go test ./... -race clean across 6 packages. 11 new commits (9d386bf..e5875c2)."
+last_updated: "2026-05-10T12:30:00Z"
+last_activity: "2026-05-10 -- Phase 11 (Firewall Integration) context gathered. 11-CONTEXT.md + 11-DISCUSSION-LOG.md committed (923c251). Decisions: agent-extension topology with hourly cadence, hybrid normalized+raw_blob schema with separate firewall_nat_rules + firewall_objects tables, snapshot-per-pull versioning, shared parser for CKP-01 + CKP-02 offline import (checkpoint-import protocol mirrors Phase 10 config-import), login-per-pull for Checkpoint Mgmt API, devices[] extended with new protocol values (asa-rest, asa-ssh, fmc, checkpoint, checkpoint-import) — zero new schema, 4th ticker (Firewall: 1*time.Hour) added to Intervals struct extending DCA-06 contract, three push endpoints (POST /v1/agent/firewall-rules + /firewall-nat + /firewall-objects), plaintext creds in agent.yaml with CAB packet extension. Next: /gsd-plan-phase 11. Earlier: Phase 10 (DC Agent Core) CLOSED. All 9 plans GREEN with SUMMARY.md. 10-VERIFICATION.md verdict: PASS WITH FLAGS (3 flags: production Dialer paths uncovered by CI, InsecureIgnoreHostKey CAB-documented, GHA release matrix dry-run deferred from 10-08 Task 3). Resumed 10-05 Task 3 (config-import loader, broke config↔netconf cycle by switching collectors to primitive args), executed 10-07 (push client retry-twice-then-drop + goflow2/v2 v2.2.6 production decoder + main.go end-to-end fan-out), drafted + closed 10-09 (CAB security packet: 6 markdown docs + cyclonedx-gomod CycloneDX 1.6 SBOM with 8 components). go test ./... -race clean across 6 packages. 11 new commits (9d386bf..e5875c2)."
 progress:
   total_phases: 19
   completed_phases: 16
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 10 — DC Agent Core CLOSED 2026-05-10 (9/9 plans). Next: Phase 11 (FlowMap path computation) planning.
+**Current focus:** Phase 11 — Firewall Integration context gathered 2026-05-10. Next: `/gsd-plan-phase 11`.
 
 ## Current Position
 
