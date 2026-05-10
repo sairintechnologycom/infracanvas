@@ -98,3 +98,53 @@ func TestConfigImport(t *testing.T) {
 	require.Len(t, imported, 1)
 	require.Equal(t, "/etc/infracanvas/sw-core.yaml", imported[0].ConfigFile)
 }
+
+func TestConfigImport_File(t *testing.T) {
+	body := "routes:\n" +
+		"  - prefix: \"10.0.0.0/8\"\n" +
+		"    next_hop: \"192.168.1.254\"\n" +
+		"    protocol: static\n" +
+		"    metric: 1\n"
+	path := writeTmp(t, body)
+	routes, err := LoadConfigImport(path)
+	require.NoError(t, err)
+	require.Len(t, routes, 1)
+	require.Equal(t, "10.0.0.0/8", routes[0].Prefix)
+	require.Equal(t, "192.168.1.254", routes[0].NextHop)
+	require.Equal(t, "static", routes[0].Protocol)
+	require.Equal(t, 1, routes[0].Metric)
+}
+
+func TestConfigImport_EmptyRoutes(t *testing.T) {
+	path := writeTmp(t, "routes: []\n")
+	routes, err := LoadConfigImport(path)
+	require.NoError(t, err)
+	require.Len(t, routes, 0)
+}
+
+func TestConfigImport_FileMissing(t *testing.T) {
+	_, err := LoadConfigImport("/no/such/route-file.yaml")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "config-import: read")
+}
+
+func TestConfigImport_MalformedYAML(t *testing.T) {
+	path := writeTmp(t, "routes: [::not yaml")
+	_, err := LoadConfigImport(path)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "config-import: parse")
+}
+
+func TestConfigImport_MultipleRoutes(t *testing.T) {
+	body := "routes:\n" +
+		"  - {prefix: \"10.0.0.0/8\", next_hop: \"a\", protocol: bgp, metric: 100}\n" +
+		"  - {prefix: \"172.16.0.0/12\", next_hop: \"b\", protocol: ospf, metric: 20}\n" +
+		"  - {prefix: \"192.168.0.0/16\", next_hop: \"c\", protocol: static, metric: 1}\n"
+	path := writeTmp(t, body)
+	routes, err := LoadConfigImport(path)
+	require.NoError(t, err)
+	require.Len(t, routes, 3)
+	require.Equal(t, "10.0.0.0/8", routes[0].Prefix)
+	require.Equal(t, "172.16.0.0/12", routes[1].Prefix)
+	require.Equal(t, "192.168.0.0/16", routes[2].Prefix)
+}
