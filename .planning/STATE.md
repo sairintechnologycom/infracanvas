@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening + SaaS Dashboard + CostLens + FlowMap 3b
-status: completed
-last_updated: "2026-05-08T07:03:15Z"
-last_activity: "2026-05-08 -- Phase 10 Plan 08 (GHA CI + Cross-Compile Matrix) 2/3 tasks complete — test-agent job added to ci.yml (9326070), build-agent matrix + create-release wiring added to release.yml (39a6b96), agent/Makefile created; STOPPED at Task 3 checkpoint:human-verify (push test tag v0.0.0-test10 to verify release artifacts)."
+status: in_progress
+last_updated: "2026-05-10T05:00:00Z"
+last_activity: "2026-05-10 -- Phase 10 (DC Agent Core) CLOSED. All 9 plans GREEN with SUMMARY.md. 10-VERIFICATION.md verdict: PASS WITH FLAGS (3 flags: production Dialer paths uncovered by CI, InsecureIgnoreHostKey CAB-documented, GHA release matrix dry-run deferred from 10-08 Task 3). Resumed 10-05 Task 3 (config-import loader, broke config↔netconf cycle by switching collectors to primitive args), executed 10-07 (push client retry-twice-then-drop + goflow2/v2 v2.2.6 production decoder + main.go end-to-end fan-out), drafted + closed 10-09 (CAB security packet: 6 markdown docs + cyclonedx-gomod CycloneDX 1.6 SBOM with 8 components). go test ./... -race clean across 6 packages. 11 new commits (9d386bf..e5875c2)."
 progress:
   total_phases: 19
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 114
-  completed_plans: 111
-  percent: 97
+  completed_plans: 114
+  percent: 100
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20 — v1.1 started)
 
 **Core value:** One command gives you a complete, annotated picture of your hybrid infrastructure — security blind spots, network path asymmetry, drift, and shared cost — across AWS, Azure, and physical data centres.
-**Current focus:** Phase 8 — GitHub Webhook + Auto-scan (planned 2026-05-05; 6 plans, 3 waves — ready to execute)
+**Current focus:** Phase 10 — DC Agent Core CLOSED 2026-05-10 (9/9 plans). Next: Phase 11 (FlowMap path computation) planning.
 
 ## Current Position
 
 Milestone: v1.1 — started 2026-04-20
-Phase: 9 — CostLens (7 plans, 3 waves — execution started 2026-05-06)
-Plan: 09-07 complete (Wave 2 final plan — FlowMap PathDetailPanel Cost tab + path sorting)
-Status: Phase 9 Plan 07 CLOSED on 2026-05-06 — PathDetailPanel shows Cost tab when node.cost.monthly_usd > 0; CostTab displays Monthly Cost + Basis rows using existing Row helper; disclaimer shown when basis contains 'no flow data'; hasCost gate prevents tab from appearing when cost is zero; 156/156 viewer tests pass (+5 net); tsc clean; Phase 9 CostLens COMPLETE (7/7 plans).
+Phase: 10 — DC Agent Core CLOSED 2026-05-10 (9 plans, 5 waves — VERIFICATION.md PASS WITH FLAGS)
+Plan: 10-09 complete (Wave 4 final plan — CAB security packet: 6 markdown docs + CycloneDX 1.6 SBOM)
+Status: Phase 10 closed on 2026-05-10. Resumed mid-execution (10-05 Task 3 + SUMMARY pending). Closed in this session: 10-05 (config-import loader DCA-07 + collector signature refactor breaking config↔netconf cycle), 10-07 (push client + goflow2/v2 production decoder + main.go end-to-end wiring DCA-04..06), 10-09 (CAB packet DCA-09 — agent/docs/cab/ committed as drafts then SUMMARY-closed after user accept). 10-VERIFICATION.md scored 9/9 DCA requirements PASS with 3 documented flags. go test ./... -race clean across cmd/infracanvas-agent + internal/{config,netconf,netflow,push,ssh}. 11 new commits 9d386bf → e5875c2 on dev/local-no-auth.
 Last activity: 2026-05-06 -- Phase 9 Plan 07 closed (FlowMap PathDetailPanel Cost tab, 2 commits: 06f2b54 test RED, 5883fa3 feat GREEN). 156/156 viewer tests pass. Phase 9 CostLens complete.
 Previous last activity: 2026-05-06 -- Phase 9 Plan 01 closed (Wave 0: shadcn badge/tooltip + 3 test stub files, 3 commits: 7a1d181 chore shadcn, a2c6520 test Python RED stubs, 61fba6f test viewer+dashboard stubs) (6 commits across 3 TDD RED→GREEN cycles: 20ff331 test InstallButton, 89b62c5 feat InstallButton, 856fdd7 test RepoCombobox, 20f175c feat RepoCombobox, 1a61ba2 test BranchPicker, 83e5309 feat BranchPicker+test fix). Three new client components under dashboard/components/integrations/: InstallButton.tsx (~35 LoC, opens https://github.com/apps/{slug}/installations/new?state={clerkOrgId} via window.open with noopener,noreferrer; T-07.5-08-01 mitigation; returns null when no Clerk org), RepoCombobox.tsx (~150 LoC, shadcn Popover + Command recipe with shouldFilter={false} so cmdk doesn't double-filter the server-filtered list, CC-15 useRef+setTimeout 250ms debounce on /api/github/repos?installation_id=X&q=Y, CC-14 useEffect+cancelled cleanup, lucide Lock with aria-label='private' on private repos, inline 503 'Rate limited — try again in 60s' role=alert preserving Plan 07 Retry-After:60), BranchPicker.tsx (~115 LoC, shadcn Select with lazy-load on selectedRepo change + URL-encoded full_name + default-to-default_branch fallback only when value empty + cancellable cleanup + same 503 inline alert). 17 vitest tests added (4 install-button + 7 repo-combobox + 6 branch-picker) — full dashboard suite 200/200 pass (was 183/183; +17 net, no regressions). Test 6 of branch-picker fixed during GREEN (Rule 1: original assertion expected default-branch onChange when value='dev' was preset, but the fallback only fires when value is empty — corrected to assert on Select trigger disabled state). tsc --noEmit clean across in-scope files (only pre-existing scan-filters.test.tsx TS6133 deferred from Plan 01 remains). Components are intentionally NOT composed with each other — RepoCombobox does not import BranchPicker; composition belongs to Plan 09's ScanTriggerForm. Props contracts documented in SUMMARY.md for downstream consumers. Wave 4 plan 09 + plan 10 + Wave 5 plan 11 + Wave 6 verifier next. (Previous Plan 07 detail preserved in §Plan 07.5-07 closed below.)
 
@@ -156,9 +156,17 @@ Decisions carried from v1.0 (see PROJECT.md Key Decisions table). Open items aff
 
 ## Session Continuity
 
-Last session: 2026-05-07T00:00:00.000Z
-Milestone: v1.1 in flight
-Resume: Phase 10 (DC Agent Core) PLANNED 2026-05-07 — 9 plans ready to execute. Run `/gsd-execute-phase 10` next. Wave 0 first (10-01: Go module scaffold + Nyquist stubs). Waves 1–4 follow. Key libraries: nemith.io/netconf v0.0.4, goflow2/v2 v2.2.6, cobra v1.10.2, zap v1.28.0. Backend migration: down_revision=009_slack_webhook_url. CGO_ENABLED=0 for cross-compile.
+Last session: 2026-05-10T05:00:00.000Z
+Milestone: v1.1 in flight (Phase 10 closed; Phase 11 planning is next)
+Resume: Phase 10 (DC Agent Core) CLOSED 2026-05-10 with 10-VERIFICATION.md PASS WITH FLAGS. Three known follow-ups carry forward: (1) push test tag v0.0.0-test10 to verify GHA release matrix end-to-end (10-08 Task 3, deferred by user); (2) update agent/Makefile + .github/workflows/release.yml with the working `cyclonedx-gomod app -licenses -json -output ... -main cmd/infracanvas-agent .` invocation before next semver tag; (3) address CAB packet reviewer hotspots (T-10-02-07 disposition, L-1 InsecureIgnoreHostKey language, systemd hardening flags, T-10-08-05 grep-gate description, regenerate SBOM after first git tag). Next workflow command: `/gsd-plan-phase 11` for FlowMap path computation. Phase 10 commits 9d386bf → e5875c2 on dev/local-no-auth not yet pushed to remote.
+
+**Plan 10-05 closed:** 2026-05-10 (5 commits: 9830b77 RED parser, 8312b0a GREEN ParseShowIPRoute, e36e97d RED collector, e91c398 GREEN SSH collector + PTY, 9d386bf RED config-import, 0509633 GREEN LoadConfigImport + netconf/ssh GetRoutes signature refactor breaking config↔netconf cycle by switching collectors to primitives `(host, port, user, pass)`, 413a181 SUMMARY). Three collection paths (NETCONF/SSH/config-import) now converge on `[]netconf.RouteRecord`. 12 new tests GREEN (7 ssh-parser + 5 ssh-collector + 5 config-import). DCA-03 + DCA-07 satisfied.
+
+**Plan 10-07 closed:** 2026-05-10 (5 commits: 6974188 RED push client, bdf1c15 GREEN push client with Bearer auth + retry-twice-then-drop, 0d6118f RED goflow2 + main.go wiring, 62b733b GREEN goflow2/v2 v2.2.6 production decoder + daemon end-to-end fan-out, b55b6e1 SUMMARY). goflow2/v2 v2.2.6 API differs from RESEARCH §Pattern 4 — actual surface is `nfdecoders.CreateTemplateSystem()` + `DecodeMessageVersion(buf, ts, &nfv9, &ipfix)` + `NFv9Packet.FlowSets/IPFIXPacket.FlowSets []interface{}`; documented in 10-07-SUMMARY.md Live Discovery section. `convertGoflow2Records` maps NFv9/IPFIX field types (8/12=src/dst IP, 7/11=L4 ports, 4=protocol, 1=bytes, 2=packets) into FlowRecord with big-endian byte decoding. No per-sampler template map — `NetFlowTemplateSystem` already keys by (version, obsDomainId, templateId). DCA-04 + DCA-05 + DCA-06 satisfied.
+
+**Plan 10-09 closed:** 2026-05-10 (2 commits: ea3b8ad draft 6 markdown docs + CycloneDX 1.6 SBOM in agent/docs/cab/, 896dcf7 SUMMARY after user-accept). cyclonedx-gomod v1.10.0 generated SBOM via `app` mode (8-component transitive closure of binary, excludes test-only deps). 43 T-10-NN-MM threat IDs from plans 10-02..10-08 consolidated in threat-model.md STRIDE register. known-limitations.md L-1..L-N documents InsecureIgnoreHostKey (Medium-High severity, v1.2 known_hosts upgrade path), plaintext credentials (Medium, OS keychain v1.3), no token rotation. operator-runbook.md provides `chmod 600` + systemd unit + firewalld/iptables + HTTPS_PROXY troubleshooting. Editorial liberties (additional systemd hardening flags, severity table, "Future-Phase Threats" closer) accepted by user. DCA-09 satisfied. 5 reviewer hotspots flagged in SUMMARY for first external circulation: T-10-02-07 disposition, L-1 language, systemd flags, T-10-08-05 grep-gate description, SBOM pseudo-version → regenerate after `git tag v0.1.0`.
+
+**Phase 10 net delivery:** Go agent binary cross-compiled linux-amd64 + darwin-arm64 with NETCONF/SSH/config-import route collection + NetFlow ring buffer (300s window) + JSON-over-HTTPS push to backend with Bearer site-token auth + 5min/1min/30s ticker contract. Backend ships dc_sites migration + /v1/sites admin + /v1/agent/{routes,flows} ingestion endpoints. CAB security packet (architecture/dataflow/STRIDE/SBOM/limitations/runbook) ready for first Fortune-500 procurement review. Single-binary, outbound-only, read-only credentials.
 
 **Plan 07.5-11 closed:** 2026-05-05T07:01Z (2 commits: bbfa0c7 docs Task 1 — wrote 07.5-PHASE-VERIFICATION.md (Sections 1 per-VALIDATION.md row commands + 2 GH-01..GH-05 traceability matrix with file:line + 3 T1–T9 cross-cutting grep invariants all green at write time) and 07.5-MANUAL-SMOKE.md (263-line operator checklist: P1–P5 pre-flight + S1–S16 smoke). Task 2 was the checkpoint:human-verify gate (gate=blocking) — operator walked the 16-step checklist against a real InfraCanvas DEV App installation + sandbox Terraform fixture and resumed with single-word verdict "approved" on 2026-05-05. Task 3 (this commit) flipped PHASE-VERIFICATION.md frontmatter to status=passed + signed_off=2026-05-05, checked all 6 Section 4 sign-off boxes, dated the summary sentence, wrote 07.5-11-SUMMARY.md with the recap of plans 01–10 (backend pipeline + dashboard surface + verification gates), advanced this STATE.md and ROADMAP.md (plan 07.5-11 + Phase 7.5 progress row both flipped to complete with completion date 2026-05-05). Phase 7.5 net delivery summary: backend (4 routes /v1/github/* + 1 worker scan_repo @broker.task + 2 sibling helpers finalize_scan/fire_scan_meter_or_502 + 1 R2 helper put_bytes + 2 alembic migrations 007/008); dashboard (4 proxy routes app/api/github/* + app/api/scans/from-github + app/api/scan-status + 4 client components InstallButton/RepoCombobox/BranchPicker/ScanTriggerForm + 1 polling shell ScanPendingClient + 1 status-gate helper renderScanByStatus + 1 page rewrite /settings/integrations + lib/types.ts extensions); verification gates (PHASE-VERIFICATION.md + MANUAL-SMOKE.md); test counts at phase close — backend ≈100+ green; dashboard 225/225 green (+42 from phase start). Phase 8 (push-webhook + auto-scan + Slack alert on Critical) unblocked.
 
