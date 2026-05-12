@@ -148,3 +148,89 @@ func TestConfigImport_MultipleRoutes(t *testing.T) {
 	require.Equal(t, "172.16.0.0/12", routes[1].Prefix)
 	require.Equal(t, "192.168.0.0/16", routes[2].Prefix)
 }
+
+// TestValidate_AcceptsFirewallProtocols covers Phase 11 D-16: 5 new protocol
+// values (asa-rest, asa-ssh, fmc, checkpoint, checkpoint-import) plus the
+// checkpoint-import-specific config_file guard and host-exemption (mirrors
+// the Phase 10 config-import precedent).
+func TestValidate_AcceptsFirewallProtocols(t *testing.T) {
+	cases := []struct {
+		name     string
+		protocol string
+		host     string
+		cfgFile  string
+		wantErr  string
+	}{
+		// positive: each new protocol accepts a well-formed device entry
+		{name: "asa-rest accepts host", protocol: "asa-rest", host: "asa-1.example.com"},
+		{name: "asa-ssh accepts host", protocol: "asa-ssh", host: "asa-2.example.com"},
+		{name: "fmc accepts host", protocol: "fmc", host: "fmc.example.com"},
+		{name: "checkpoint accepts host", protocol: "checkpoint", host: "cp-mgmt.example.com"},
+		{
+			name:     "checkpoint-import accepts config_file without host",
+			protocol: "checkpoint-import",
+			cfgFile:  "/etc/infracanvas/cp.json",
+		},
+		// negative: checkpoint-import without config_file
+		{
+			name:     "checkpoint-import rejects empty config_file",
+			protocol: "checkpoint-import",
+			wantErr:  "config_file required when protocol=checkpoint-import",
+		},
+		// negative: firewall protocol still requires a host (host-exemption
+		// is limited to config-import and checkpoint-import).
+		{
+			name:     "asa-rest rejects empty host",
+			protocol: "asa-rest",
+			wantErr:  "host required when protocol=asa-rest",
+		},
+		{
+			name:     "asa-ssh rejects empty host",
+			protocol: "asa-ssh",
+			wantErr:  "host required when protocol=asa-ssh",
+		},
+		{
+			name:     "fmc rejects empty host",
+			protocol: "fmc",
+			wantErr:  "host required when protocol=fmc",
+		},
+		{
+			name:     "checkpoint rejects empty host",
+			protocol: "checkpoint",
+			wantErr:  "host required when protocol=checkpoint",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &Config{
+				SiteToken:  "tok",
+				BackendURL: "https://backend",
+				Devices: []Device{{
+					Protocol:   tc.protocol,
+					Host:       tc.host,
+					ConfigFile: tc.cfgFile,
+					Username:   "u",
+					Password:   "p",
+				}},
+			}
+			err := cfg.validate()
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestValidate_FirewallProtocolConsts_Values asserts the protocol constant
+// values match the agent.yaml strings operators declare (D-16). Decouples
+// constant renames from the wire contract.
+func TestValidate_FirewallProtocolConsts_Values(t *testing.T) {
+	require.Equal(t, "asa-rest", ProtocolASARest)
+	require.Equal(t, "asa-ssh", ProtocolASASSH)
+	require.Equal(t, "fmc", ProtocolFMC)
+	require.Equal(t, "checkpoint", ProtocolCheckpoint)
+	require.Equal(t, "checkpoint-import", ProtocolCheckpointImport)
+}
