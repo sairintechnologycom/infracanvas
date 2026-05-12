@@ -61,7 +61,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 8. GitHub Webhook + Auto-scan | v1.1 | 6/6 | Complete | 2026-05-05 |
 | 9. CostLens | v1.1 | 7/7 | Complete | 2026-05-06 |
 | 10. DC Agent Core | v1.1 | 0/9 | Planned | - |
-| 11. Firewall Integration | v1.1 | 0/TBD | Not planned | - |
+| 11. Firewall Integration | v1.1 | 2/13 | In progress | - |
 | 12. Path Computation + Asymmetry | v1.1 | 0/TBD | Not planned | - |
 | 13. Team Tier Launch | v1.1 | 0/TBD | Not planned | - |
 
