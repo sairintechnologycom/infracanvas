@@ -148,6 +148,26 @@ func collectAndPushBGP(_ context.Context, _ *config.Config, _ Pusher, log *zap.L
 	log.Debug("bgp_tick_noop_phase10")
 }
 
+// collectAndPushFirewall is the 4th-ticker entry point. PHASE 11 plan 11-07
+// lands this as a STUB; plan 11-12 (Wave 4) fills in per-protocol dispatch
+// (asa-rest / asa-ssh / fmc / checkpoint / checkpoint-import) and snapshot_id
+// minting (RESEARCH Pattern 2 — UUIDv4, shared across the 3 push endpoints).
+//
+// Mirror collectAndPushRoutes structure (above): for each device whose
+// protocol is one of the 5 firewall protocols, dispatch by protocol, mint a
+// snapshot_id once, push three payloads (rules / nat / objects) with the same
+// snapshot_id, log on failure but never panic.
+//
+// The full signature (ctx, cfg, pusher, log) is locked so Plan 11-12 can fill
+// the body in-place without touching the call site in the run() select-loop.
+func collectAndPushFirewall(ctx context.Context, cfg *config.Config, pusher Pusher, log *zap.Logger) {
+	log.Debug("firewall_tick_noop_phase11_plan_07",
+		zap.Int("device_count", len(cfg.Devices)))
+	// TODO(plan 11-12): per-device dispatch + snapshot_id minting + 3-way push
+	_ = ctx
+	_ = pusher
+}
+
 // flushFlowBuffer drains the netflow ring buffer and pushes the result.
 // siteID is taken from the first device with one configured (or empty if
 // none — backend will reject empty site_id with 422 which non-retries, so
@@ -258,9 +278,11 @@ func runDaemonWithIntervals(
 	routeT := time.NewTicker(iv.Routes)
 	bgpT := time.NewTicker(iv.BGP)
 	flowT := time.NewTicker(iv.Flow)
+	fwT := time.NewTicker(iv.Firewall) // PHASE 11 D-03 — 4th ticker
 	defer routeT.Stop()
 	defer bgpT.Stop()
 	defer flowT.Stop()
+	defer fwT.Stop() // PHASE 11 D-03
 
 	var wg sync.WaitGroup
 	for {
@@ -279,6 +301,9 @@ func runDaemonWithIntervals(
 		case <-flowT.C:
 			wg.Add(1)
 			go func() { defer wg.Done(); flushFlowBuffer(ctx, cfg, rb, pusher, log) }()
+		case <-fwT.C: // PHASE 11 D-03 — same wg.Add/wg.Done drain pattern
+			wg.Add(1)
+			go func() { defer wg.Done(); collectAndPushFirewall(ctx, cfg, pusher, log) }()
 		}
 	}
 }

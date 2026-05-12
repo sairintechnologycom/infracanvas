@@ -40,7 +40,13 @@ func TestDaemonStartStop(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// Use very small intervals so tickers definitely fire at least once before cancel.
-	iv := Intervals{Routes: 50 * time.Millisecond, BGP: 50 * time.Millisecond, Flow: 50 * time.Millisecond}
+	// PHASE 11 — Firewall must be non-zero (time.NewTicker(0) panics).
+	iv := Intervals{
+		Routes:   50 * time.Millisecond,
+		BGP:      50 * time.Millisecond,
+		Flow:     50 * time.Millisecond,
+		Firewall: 50 * time.Millisecond,
+	}
 
 	done := make(chan error, 1)
 	go func() {
@@ -71,14 +77,51 @@ func TestDefaultIntervals(t *testing.T) {
 	require.Equal(t, 1*time.Hour, iv.Firewall, "Phase 11 D-02: 4th interval Firewall=1h")
 }
 
-// TestRunDaemon_FirewallTick: Wave 0 stub — fill in once 4th ticker exists
-// (Plan 11-07). Asserts: ticker with Firewall=10ms fires collectAndPushFirewall
-// ≥1× within 100ms; mock Pusher.PushFirewallRules called with snapshot_id
-// non-empty; ctx cancel drains the in-flight goroutine before run() returns.
+// TestRunDaemon_FirewallTick (Phase 11 D-03): asserts the 4th ticker fires
+// collectAndPushFirewall on tick and that ctx cancel drains the in-flight
+// goroutine before runDaemonWithIntervals returns.
 //
-// RED-but-runnable via t.Skip until the 4th ticker lands.
+// Plan 11-07 lands collectAndPushFirewall as a STUB that only emits a
+// log.Debug — it does NOT call the pusher yet. So the assertion here is
+// "no panic, clean shutdown, run returns nil within 2s of cancel". Plan
+// 11-12 (Wave 4) will fill in real per-protocol dispatch and tighten this
+// test to assert pusher.firewallRulesCount > 0.
 func TestRunDaemon_FirewallTick(t *testing.T) {
-	t.Skip("Wave 0 stub — fill in once 4th ticker exists (Plan 11-07)")
+	cfg, err := config.Load(writeMinimalConfig(t))
+	require.NoError(t, err)
+	log := zaptest.NewLogger(t)
+
+	iv := Intervals{
+		Routes:   1 * time.Hour, // suppress in test
+		BGP:      1 * time.Hour,
+		Flow:     1 * time.Hour,
+		Firewall: 10 * time.Millisecond, // fire fast
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	pusher := &fakePusher{}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- runDaemonWithIntervals(ctx, cfg, iv, log,
+			netflow.NewRingBuffer(10), pusher)
+	}()
+
+	// Allow at least a few firewall ticks to fire.
+	time.Sleep(80 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err, "daemon must return nil after ctx cancel")
+	case <-time.After(2 * time.Second):
+		t.Fatal("runDaemonWithIntervals did not return within 2s after cancel — firewall goroutine leak?")
+	}
+
+	// Plan 11-07 stub asserts shutdown drain only. Plan 11-12 will tighten:
+	//   require.Greater(t, pusher.firewallRulesCount, 0)
+	// Counter field exists today (fakePusher Plan 11-07) so the tightening
+	// is a 1-line change once collectAndPushFirewall stops being a no-op.
 }
 
 // TestVersionCommand: invoking `version` prints the package-level version var.
