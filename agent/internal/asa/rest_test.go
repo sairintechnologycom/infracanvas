@@ -46,9 +46,12 @@ func TestRESTCollector_Pull(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(objsJSON)
 	})
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewTLSServer(mux)
 	defer srv.Close()
 
+	// Use the TLS server's client — its cert pool trusts the self-signed
+	// httptest cert, so the collector's production InsecureSkipVerify=false
+	// posture still holds in the test (mirrors prod TLS-validating dial).
 	c := NewRESTCollector(srv.Client())
 	host, port := hostPortOf(t, srv.URL)
 	rules, nats, objs, err := c.Pull(context.Background(), host, port, "ro", "secret")
@@ -64,7 +67,7 @@ func TestRESTCollector_Pull(t *testing.T) {
 //
 // RED: references NewRESTCollector + RESTCollector.Pull which do not exist.
 func TestRESTCollector_DisabledAPI(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"messages":[{"code":"UNAUTHORIZED","details":"http server not enabled"}]}`))
 	}))
