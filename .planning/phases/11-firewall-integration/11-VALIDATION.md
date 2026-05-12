@@ -23,7 +23,7 @@ created: 2026-05-10
 | **Config file (agent)** | `agent/go.mod`, `agent/Makefile` |
 | **Config file (backend)** | `backend/pyproject.toml`, `backend/conftest.py` |
 | **Quick run command (agent)** | `cd agent && go test -race ./internal/{asa,fmc,checkpoint}/...` |
-| **Quick run command (backend)** | `cd backend && pytest tests/test_firewall_*.py -x` |
+| **Quick run command (backend)** | `cd backend && pytest tests/test_routes_firewall*.py tests/test_schemas_firewall.py -x` |
 | **Full suite command (agent)** | `cd agent && go test -race ./...` |
 | **Full suite command (backend)** | `cd backend && pytest -x` |
 | **Estimated runtime (agent quick)** | ~10 seconds |
@@ -53,9 +53,9 @@ created: 2026-05-10
 | TBD-fmc-1 | 11-?? | 2 | ASA-02 | T-11-fmc | FMC token refresh on 401 succeeds before bailing | unit | `cd agent && go test -race ./internal/fmc/...` | ❌ W0 | ⬜ pending |
 | TBD-ckp-live-1 | 11-?? | 2 | CKP-01 | T-11-ckp-live | Login → fetch → logout against httptest fixture; SID never logged | unit | `cd agent && go test -race ./internal/checkpoint/...` | ❌ W0 | ⬜ pending |
 | TBD-ckp-import-1 | 11-?? | 2 | CKP-02 | T-11-ckp-import | Shared parser yields equivalent rules from live + offline fixtures | equivalence | `cd agent && go test -race ./internal/checkpoint/parser/...` | ❌ W0 | ⬜ pending |
-| TBD-be-schema | 11-?? | 1 | ASA-01..03,CKP-01..02 | T-11-rls | New tables enforce team RLS; `current_setting('app.current_team_id')` required | integration | `cd backend && pytest tests/test_firewall_schema.py` | ❌ W0 | ⬜ pending |
-| TBD-be-push | 11-?? | 1 | ASA-01..03,CKP-01..02 | T-11-bearer | 3 push endpoints accept site_token Bearer; reject without | integration | `cd backend && pytest tests/test_firewall_push.py` | ❌ W0 | ⬜ pending |
-| TBD-be-read | 11-?? | 1 | ROADMAP §11.4 | T-11-jwt | `GET /v1/sites/{id}/firewall-rules` returns latest snapshot per device under Clerk JWT, RLS-scoped | integration | `cd backend && pytest tests/test_firewall_read.py` | ❌ W0 | ⬜ pending |
+| TBD-be-schema | 11-02 | 1 | ASA-01..03,CKP-01..02 | T-11-rls | New tables enforce team RLS; `current_setting('app.current_team_id')` required | integration | `cd backend && pytest tests/test_schemas_firewall.py` | ❌ W0 | ⬜ pending |
+| TBD-be-push | 11-03 | 2 | ASA-01..03,CKP-01..02 | T-11-bearer | 3 push endpoints accept site_token Bearer; reject without | integration | `cd backend && pytest tests/test_routes_firewall.py` | ❌ W0 | ⬜ pending |
+| TBD-be-read | 11-04 | 2 | ROADMAP §11.4 | T-11-jwt | `GET /v1/sites/{id}/firewall-rules` returns latest snapshot per device under Clerk JWT, RLS-scoped | integration | `cd backend && pytest tests/test_routes_firewall_read.py` | ❌ W0 | ⬜ pending |
 | TBD-ticker | 11-?? | 3 | D-02, D-03 | — | 4th ticker fires firewall pulls at 1h cadence; shutdown drains | integration | `cd agent && go test -race ./cmd/infracanvas-agent/...` | ❌ W0 | ⬜ pending |
 | TBD-cab | 11-?? | 4 | DCA-09 fwd | T-11-creds | CAB packet enumerates the 5 firewall-creds points from CONTEXT §specifics | manual+grep | `grep -q "login-per-pull" agent/docs/cab/threat-model.md` | ❌ W0 | ⬜ pending |
 
@@ -78,10 +78,10 @@ created: 2026-05-10
 - [ ] `agent/internal/checkpoint/testdata/ckp-access-rulebase-import.json` — paired offline fixture (must produce same parser output as live; equivalence test)
 - [ ] `agent/internal/checkpoint/testdata/ckp-nat-rulebase.json` — NAT rulebase fixture
 - [ ] `agent/internal/checkpoint/testdata/ckp-objects.json` — objects fixture
-- [ ] `agent/internal/checkpoint/parser/parser_test.go` — equivalence test that locks the shared-parser premise (D-12)
-- [ ] `backend/tests/test_firewall_schema.py` — RLS + table-shape stubs for the 4 new tables
-- [ ] `backend/tests/test_firewall_push.py` — push-endpoint stubs (3 endpoints × site-token middleware)
-- [ ] `backend/tests/test_firewall_read.py` — read-endpoint stub (Clerk JWT + RLS)
+- [ ] `agent/internal/checkpoint/parser_test.go` — equivalence test that locks the shared-parser premise (D-12)
+- [ ] `backend/tests/test_schemas_firewall.py` — RLS + table-shape stubs for the 4 new tables
+- [ ] `backend/tests/test_routes_firewall.py` — push-endpoint stubs (3 endpoints × site-token middleware)
+- [ ] `backend/tests/test_routes_firewall_read.py` — read-endpoint stub (Clerk JWT + RLS)
 - [ ] `backend/tests/conftest.py` extension — fixtures for a populated firewall snapshot (rules + nat + objects) under a known site_id
 
 *If none: "Existing infrastructure covers all phase requirements."* — Not applicable; all fixtures above are new.

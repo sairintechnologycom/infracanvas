@@ -341,11 +341,45 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
+**Status:** Planned 2026-05-12 (13 plans / 6 waves)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
 3. Checkpoint Management API pulls rule base + objects
 4. All rule sets visible in cloud backend, tied to team + site
+
+**Plans:**
+
+**Wave 0 — Test scaffold**
+- 11-01: Failing tests + Wave 0 fixtures (Nyquist test-first scaffold)
+
+**Wave 1 — Foundations** *(parallel-safe)*
+- 11-02: Backend tables + Pydantic schemas + TTL prune (4 new tables with RLS)
+- 11-05: Agent push-client extension (3 new methods reusing postWithRetry)
+- 11-06: Agent config protocol enum (5 new protocol values, zero new Device fields)
+
+**Wave 2 — Endpoints + ticker scaffolding** *(parallel-safe; blocked on Wave 1)*
+- 11-03: Three backend push endpoints (Bearer site_token, idempotent on snapshot_id)
+- 11-04: Backend read API (`GET /v1/sites/{site_id}/firewall-rules`, Clerk JWT)
+- 11-07: 4th agent ticker (`Firewall: 1*time.Hour`) + Pusher interface + collectAndPushFirewall stub
+
+**Wave 3 — Per-vendor collectors** *(parallel-safe; blocked on Wave 2)*
+- 11-08: ASA REST collector (ASA-01)
+- 11-09: ASA SSH collector + parser (ASA-03)
+- 11-10: FMC client with token refresh (ASA-02)
+- 11-11: Checkpoint live + import + shared parser (CKP-01, CKP-02, D-12)
+
+**Wave 4 — End-to-end wiring** *(sequential; blocked on Wave 3)*
+- 11-12: Per-protocol dispatcher in main.go; snapshot_id minting; TestRunDaemon_FirewallTick tightening
+
+**Wave 5 — Governance** *(sequential; blocked on Wave 4; `autonomous: false`)*
+- 11-13: CAB packet extension (threat-model, architecture, dataflow, known-limitations, operator-runbook) + final smoke checkpoint
+
+**Cross-cutting constraints:**
+- Snapshot ID is agent-minted UUIDv5; backend uses `INSERT … ON CONFLICT DO NOTHING` on parent (D-08, D-10)
+- Shared Checkpoint parser used by both live and import paths (D-12)
+- No new push client, no new auth dep, no new RLS template, no new CAB packet — extend Phase 10 along documented seams
+- TDD: every Go test runs with `-race`; Wave 0 ships RED; subsequent waves green
 
 ### Phase 12: Path Computation + Asymmetric Routing
 

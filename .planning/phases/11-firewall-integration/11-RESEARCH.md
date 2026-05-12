@@ -709,34 +709,27 @@ def upgrade() -> None:
 | A8 | Checkpoint default `session-timeout` of 600s can be extended to 3600s via the login body parameter. | Pitfall 2 | Low — CheckMates discussion + R81 docs confirm range 10-3600s. |
 | A9 | ASA `terminal pager 0` correctly disables paging across ASA 9.6 through 9.22 (all in-support versions). | Pitfall 4 | Low — well-documented ASA syntax. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Snapshot retention TTL — exact value (7d, 14d, 30d, 90d)?**
    - What we know: D-10 suggests ~30 days; storage math (Pitfall 7) shows 30d × large customer = ~800GB raw data.
    - What's unclear: whether v1.1 customers need a configurable TTL or a hard global default.
-   - Recommendation: Pick 30d as the migration default; expose via env var `FIREWALL_SNAPSHOT_TTL_DAYS` so it can be lowered without re-deploy.
+   - **RESOLVED 2026-05-12:** Default to **14 days** in Plan 11-02, exposed via env var `FIREWALL_SNAPSHOT_TTL_DAYS`. Lower than the original 30d recommendation because Pitfall 7's worst-case storage math (~800GB) made 30d a non-starter for v1.1 cost budget; 14d still covers the standard "rule change two weeks ago, who changed it?" diagnostic window. Operators who want longer retention bump the env var (zero schema change). Revisit if v1.2 customers ask for ≥30d retention as a standard tier.
 
 2. **`firewall_id` derivation — agent-side or backend-side?**
    - What we know: Pitfall 8 captures the design problem.
    - What's unclear: whether the agent computes the deterministic UUIDv5 (cleaner: backend treats it as opaque) or backend computes (cleaner: agent can stay simple).
-   - Recommendation: Agent computes UUIDv5 from `(site_id, vendor, host)` namespace, sends it on the wire. Mirrors how scan_id is minted at Phase 7.5 plan 05.
+   - **RESOLVED 2026-05-12:** **Agent-side UUIDv5** from namespace + `(site_id, vendor, host)`. Mirrors how scan_id is minted at Phase 7.5 plan 05. Backend treats `firewall_id` as opaque. Locked in Plan 11-08/09/10/11 (per-vendor collectors) and Plan 11-05 (Pusher contract).
 
 3. **CKP-02 file layout — three files or one combined file?**
    - What we know: D-12 says "the customer dumps `mgmt_cli show ...` to a file path." `mgmt_cli` produces three separate JSON outputs (rulebase / nat / objects) by default.
    - What's unclear: should `agent.yaml` reference one path (combined JSON) or three (one per data type)?
-   - Recommendation: Three paths under a config-file block:
-     ```yaml
-     - host: "cp-mgmt-airgap"
-       protocol: checkpoint-import
-       config_file: "/etc/infracanvas/cp-airgap"  # base path
-       # Loader expects /etc/infracanvas/cp-airgap.rulebase.json, .nat.json, .objects.json
-     ```
-     This stays close to the Phase 10 `config-import` single-`config_file` field while supporting the three-document Checkpoint reality.
+   - **RESOLVED 2026-05-12:** **Three suffixed paths under a single base path.** `agent.yaml` declares one `config_file` field with a base path; the loader looks for `<base>.rulebase.json`, `<base>.nat.json`, `<base>.objects.json`. Mirrors Phase 10 `config-import` single-field shape while supporting Checkpoint's three-document reality. Locked in Plan 11-11.
 
 4. **Bulk insert size for `firewall_rules` rows on backend?**
    - What we know: Pydantic bound is 50000; SQLAlchemy + asyncpg can multi-row INSERT but a single `executemany` of 50k rows can hit Postgres protocol limits.
    - What's unclear: ideal chunk size for asyncpg `INSERT ... VALUES (...), (...), ...` without exceeding statement length.
-   - Recommendation: Chunk inserts at 500 rows per statement (matches Checkpoint paginate-by-500 mental model). Planner verifies via integration test on a synthetic 10k-rule snapshot.
+   - **RESOLVED 2026-05-12:** **500 rows per chunk** for asyncpg multi-row INSERT. Matches Checkpoint paginate-by-500 mental model. Plan 11-03 verifies via integration test on a synthetic 10k-rule snapshot.
 
 ## Environment Availability
 
