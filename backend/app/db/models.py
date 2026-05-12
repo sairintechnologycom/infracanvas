@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -190,3 +190,128 @@ class DCSite(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class FirewallRulesetSnapshot(Base):
+    """Phase 11 D-08/D-10 — parent of every firewall snapshot.
+
+    Snapshot ID is agent-minted (RESEARCH Pattern 2) — backend uses
+    ON CONFLICT DO NOTHING on ``snapshot_id`` in the three push route
+    handlers (Plan 11-03) so the endpoints are independent and idempotent.
+
+    RLS posture (migration 011): ENABLE + FORCE Row-Level Security with a
+    single ``team_id = current_setting('app.current_team_id', true)::uuid``
+    policy. Children (``firewall_rules`` / ``firewall_nat_rules`` /
+    ``firewall_objects``) enforce team-scope via parent JOIN in their own
+    policy — they carry no ``team_id`` column.
+
+    Retention (T-11-02-05): pruned by ``app.tasks.firewall_prune`` at
+    ``FIREWALL_SNAPSHOT_TTL_DAYS`` (default 14). FK ``ondelete=CASCADE``
+    sweeps children when the parent goes.
+    """
+
+    __tablename__ = "firewall_ruleset_snapshots"
+
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    firewall_id: Mapped[str] = mapped_column(Text, nullable=False)
+    vendor: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    snapshot_ts: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class FirewallRuleORM(Base):
+    """Phase 11 D-08 hybrid — normalized columns + raw_blob JSONB.
+
+    The ``ORM`` suffix avoids the symbol collision with the un-suffixed
+    Pydantic ``FirewallRule`` (``app.schemas.firewall``). Phase 12's
+    path-computation reads the normalized columns; UI/audit reads
+    ``raw_blob``.
+    """
+
+    __tablename__ = "firewall_rules"
+
+    rule_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("firewall_ruleset_snapshots.snapshot_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    src_zone: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dst_zone: Mapped[str | None] = mapped_column(Text, nullable=True)
+    src_cidr: Mapped[str] = mapped_column(Text, nullable=False)
+    dst_cidr: Mapped[str] = mapped_column(Text, nullable=False)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    protocol: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ports: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_blob: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class FirewallNATRuleORM(Base):
+    """Phase 11 D-08 — NAT rule with normalized translation columns.
+
+    Phase 12's NAT_ASYMMETRY classifier (REQ §ASY-02) reads
+    ``src_translation`` / ``dst_translation`` / ``interface_in`` /
+    ``interface_out`` — locked column names.
+    """
+
+    __tablename__ = "firewall_nat_rules"
+
+    nat_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("firewall_ruleset_snapshots.snapshot_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    src_translation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dst_translation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    interface_in: Mapped[str | None] = mapped_column(Text, nullable=True)
+    interface_out: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_blob: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class FirewallObjectORM(Base):
+    """Phase 11 D-09 — host/network/group/service object definitions.
+
+    ``kind`` is application-validated to ``{host, network, group, service}``
+    via the Pydantic side (``FirewallObject``). The column is plain Text
+    here to avoid an Alembic enum migration; the Pydantic boundary is the
+    enforcement point.
+    """
+
+    __tablename__ = "firewall_objects"
+
+    object_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("firewall_ruleset_snapshots.snapshot_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    raw_blob: Mapped[dict] = mapped_column(JSONB, nullable=False)
