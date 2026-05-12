@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-12 — 4 of 13 plans complete (Wave 0 scaffold + Wave 1 backend data plane + Wave 1 agent push-client extension + Wave 1 config protocol enum landed; Wave 1 now fully complete, Wave 2 unblocked)
+**Status:** Executing 2026-05-12 — 5 of 13 plans complete (Wave 0 scaffold + Wave 1 fully complete + Wave 2 push handlers landed; Plan 11-04 read API + Plan 11-07 agent ticker remain in Wave 2)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -359,7 +359,7 @@ Plans:
 - [x] 11-06: Agent config protocol enum (5 new protocol values, zero new Device fields) — ✅ 2026-05-12 (commits a4d43c1, 0bc6822)
 
 **Wave 2 — Endpoints + ticker scaffolding** *(parallel-safe; blocked on Wave 1)*
-- 11-03: Three backend push endpoints (Bearer site_token, idempotent on snapshot_id)
+- [x] 11-03: Three backend push endpoints (Bearer site_token, idempotent on snapshot_id) — ✅ 2026-05-12 (commit 05f1158)
 - 11-04: Backend read API (`GET /v1/sites/{site_id}/firewall-rules`, Clerk JWT)
 - 11-07: 4th agent ticker (`Firewall: 1*time.Hour`) + Pusher interface + collectAndPushFirewall stub
 
