@@ -24,6 +24,9 @@ const (
 	defaultRequestTimeout = 15 * time.Second
 	routesPath            = "/v1/agent/routes"
 	flowsPath             = "/v1/agent/flows"
+	firewallRulesPath     = "/v1/agent/firewall-rules"
+	firewallNATPath       = "/v1/agent/firewall-nat"
+	firewallObjectsPath   = "/v1/agent/firewall-objects"
 )
 
 // BackoffFunc returns the wait duration BEFORE attempt N (1-indexed).
@@ -101,6 +104,59 @@ func (c *Client) PushFlows(ctx context.Context, p FlowsPayload) error {
 	return c.postWithRetry(ctx, flowsPath, body, "flows",
 		zap.String("site_id", p.SiteID),
 		zap.Int("count", len(p.Flows)))
+}
+
+// PushFirewallRules POSTs a firewall-rules snapshot with retry-twice-then-drop
+// semantics (D-07). Returns nil after 3 retried-failures (silently dropped).
+// Returns a non-nil error ONLY for non-retryable failures (4xx — 401/403/422)
+// so the caller can surface auth/validation problems explicitly.
+//
+// Pattern G allowlist: zap fields are site_id, snapshot_id, firewall_id,
+// vendor, source, count — never username/password/sid/token.
+func (c *Client) PushFirewallRules(ctx context.Context, p FirewallRulesPayload) error {
+	body, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("push: marshal firewall-rules: %w", err)
+	}
+	return c.postWithRetry(ctx, firewallRulesPath, body, "firewall-rules",
+		zap.String("site_id", p.SiteID),
+		zap.String("snapshot_id", p.SnapshotID),
+		zap.String("firewall_id", p.FirewallID),
+		zap.String("vendor", p.Vendor),
+		zap.String("source", p.Source),
+		zap.Int("count", len(p.Rules)))
+}
+
+// PushFirewallNAT POSTs a firewall-nat snapshot. Same retry semantics as
+// PushFirewallRules; same snapshot_id as the corresponding rules push
+// (RESEARCH Pattern 2 — agent-minted UUID shared across the three endpoints).
+func (c *Client) PushFirewallNAT(ctx context.Context, p FirewallNATPayload) error {
+	body, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("push: marshal firewall-nat: %w", err)
+	}
+	return c.postWithRetry(ctx, firewallNATPath, body, "firewall-nat",
+		zap.String("site_id", p.SiteID),
+		zap.String("snapshot_id", p.SnapshotID),
+		zap.String("firewall_id", p.FirewallID),
+		zap.String("vendor", p.Vendor),
+		zap.String("source", p.Source),
+		zap.Int("count", len(p.NATRules)))
+}
+
+// PushFirewallObjects POSTs a firewall-objects snapshot. Same retry semantics.
+func (c *Client) PushFirewallObjects(ctx context.Context, p FirewallObjectsPayload) error {
+	body, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("push: marshal firewall-objects: %w", err)
+	}
+	return c.postWithRetry(ctx, firewallObjectsPath, body, "firewall-objects",
+		zap.String("site_id", p.SiteID),
+		zap.String("snapshot_id", p.SnapshotID),
+		zap.String("firewall_id", p.FirewallID),
+		zap.String("vendor", p.Vendor),
+		zap.String("source", p.Source),
+		zap.Int("count", len(p.Objects)))
 }
 
 // postWithRetry implements the D-07 retry-twice-then-drop loop:
