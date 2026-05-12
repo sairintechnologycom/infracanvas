@@ -17,6 +17,14 @@ const (
 	ProtocolNetconf      = "netconf"
 	ProtocolSSH          = "ssh"
 	ProtocolConfigImport = "config-import"
+	// Phase 11 — firewall protocols (D-16, D-04, D-05, D-12).
+	// ProtocolCheckpointImport mirrors ProtocolConfigImport: file-based,
+	// host-exempt, requires config_file.
+	ProtocolASARest          = "asa-rest"
+	ProtocolASASSH           = "asa-ssh"
+	ProtocolFMC              = "fmc"
+	ProtocolCheckpoint       = "checkpoint"
+	ProtocolCheckpointImport = "checkpoint-import"
 )
 
 // Config is the top-level agent configuration loaded from agent.yaml.
@@ -63,7 +71,9 @@ func (c *Config) validate() error {
 	}
 	for i, d := range c.Devices {
 		switch d.Protocol {
-		case ProtocolNetconf, ProtocolSSH, ProtocolConfigImport:
+		case ProtocolNetconf, ProtocolSSH, ProtocolConfigImport,
+			ProtocolASARest, ProtocolASASSH, ProtocolFMC,
+			ProtocolCheckpoint, ProtocolCheckpointImport:
 			// ok
 		default:
 			return fmt.Errorf("device[%d]: invalid protocol: %s", i, d.Protocol)
@@ -71,7 +81,10 @@ func (c *Config) validate() error {
 		if d.Protocol == ProtocolConfigImport && d.ConfigFile == "" {
 			return fmt.Errorf("device[%d]: config_file required when protocol=config-import", i)
 		}
-		if d.Protocol != ProtocolConfigImport && d.Host == "" {
+		if d.Protocol == ProtocolCheckpointImport && d.ConfigFile == "" {
+			return fmt.Errorf("device[%d]: config_file required when protocol=checkpoint-import", i)
+		}
+		if d.Protocol != ProtocolConfigImport && d.Protocol != ProtocolCheckpointImport && d.Host == "" {
 			return fmt.Errorf("device[%d]: host required when protocol=%s", i, d.Protocol)
 		}
 	}
