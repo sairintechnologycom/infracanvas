@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -108,17 +109,53 @@ var _ = zap.NewNop
 // -------- Test fakes for the wiring tests --------
 
 type fakePusher struct {
-	routes []push.RoutesPayload
-	flows  []push.FlowsPayload
-	err    error
+	mu                   sync.Mutex
+	routes               []push.RoutesPayload
+	flows                []push.FlowsPayload
+	firewallRules        []push.FirewallRulesPayload
+	firewallNAT          []push.FirewallNATPayload
+	firewallObjects      []push.FirewallObjectsPayload
+	firewallRulesCount   int
+	firewallNATCount     int
+	firewallObjectsCount int
+	err                  error
 }
 
 func (f *fakePusher) PushRoutes(_ context.Context, p push.RoutesPayload) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.routes = append(f.routes, p)
 	return f.err
 }
 func (f *fakePusher) PushFlows(_ context.Context, p push.FlowsPayload) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.flows = append(f.flows, p)
+	return f.err
+}
+
+// PHASE 11 — three firewall push methods. Plan 11-07 stub increments counters
+// only; Plan 11-12 will fill in real per-protocol dispatch and tighten
+// TestRunDaemon_FirewallTick to assert counters > 0.
+func (f *fakePusher) PushFirewallRules(_ context.Context, p push.FirewallRulesPayload) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.firewallRules = append(f.firewallRules, p)
+	f.firewallRulesCount++
+	return f.err
+}
+func (f *fakePusher) PushFirewallNAT(_ context.Context, p push.FirewallNATPayload) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.firewallNAT = append(f.firewallNAT, p)
+	f.firewallNATCount++
+	return f.err
+}
+func (f *fakePusher) PushFirewallObjects(_ context.Context, p push.FirewallObjectsPayload) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.firewallObjects = append(f.firewallObjects, p)
+	f.firewallObjectsCount++
 	return f.err
 }
 

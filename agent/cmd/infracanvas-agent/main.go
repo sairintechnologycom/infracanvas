@@ -41,26 +41,41 @@ var version = "dev"
 
 // Intervals locks the DCA-06 daemon timing contract. Exposed as a type for
 // tests so callers can assert the contract without running real tickers.
+//
+// PHASE 11 D-02 — extended with Firewall: 1h (4th ticker). Firewall rule bases
+// change at change-window cadence, not minute-by-minute, so the 1h cadence is
+// distinct from the Phase 10 sub-minute pulls. See 11-CONTEXT.md D-02.
 type Intervals struct {
-	Routes time.Duration
-	BGP    time.Duration
-	Flow   time.Duration
+	Routes   time.Duration
+	BGP      time.Duration
+	Flow     time.Duration
+	Firewall time.Duration // PHASE 11 D-02 — firewall pulls every 1h
 }
 
-// defaultIntervals returns the locked DCA-06 collection cadence.
+// defaultIntervals returns the locked DCA-06 collection cadence + the
+// Phase 11 D-02 Firewall=1h cadence.
 func defaultIntervals() Intervals {
 	return Intervals{
-		Routes: 5 * time.Minute,
-		BGP:    1 * time.Minute,
-		Flow:   30 * time.Second,
+		Routes:   5 * time.Minute,
+		BGP:      1 * time.Minute,
+		Flow:     30 * time.Second,
+		Firewall: 1 * time.Hour, // PHASE 11 D-02
 	}
 }
 
 // Pusher abstracts push.Client so tests can inject a fakePusher without
 // spinning up an httptest.Server. Production uses *push.Client.
+//
+// PHASE 11 — extended with three firewall push methods. push.Client implements
+// all five methods (see agent/internal/push/client.go); the tests' fakePusher
+// implements the three new methods as no-ops.
 type Pusher interface {
 	PushRoutes(ctx context.Context, p push.RoutesPayload) error
 	PushFlows(ctx context.Context, p push.FlowsPayload) error
+	// PHASE 11 — three firewall methods (implemented by push.Client, Plan 11-05)
+	PushFirewallRules(ctx context.Context, p push.FirewallRulesPayload) error
+	PushFirewallNAT(ctx context.Context, p push.FirewallNATPayload) error
+	PushFirewallObjects(ctx context.Context, p push.FirewallObjectsPayload) error
 }
 
 // RouteCollectorFn dials a device and returns its current routes.
