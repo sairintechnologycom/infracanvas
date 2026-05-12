@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-12 — 6 of 13 plans complete (Wave 0 scaffold + Wave 1 fully complete + Wave 2 push handlers + read API landed; Plan 11-07 agent ticker is the last Wave 2 prerequisite for Wave 3 collectors)
+**Status:** Executing 2026-05-12 — 7 of 13 plans complete (Wave 0/1/2 ALL DONE — backend ingest + read API operational against live Postgres, agent 4th-ticker scaffold + Pusher interface widened to 5 methods + collectAndPushFirewall stub wired; Wave 3 per-vendor collectors 11-08..11-11 unblocked)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -361,7 +361,7 @@ Plans:
 **Wave 2 — Endpoints + ticker scaffolding** *(parallel-safe; blocked on Wave 1)*
 - [x] 11-03: Three backend push endpoints (Bearer site_token, idempotent on snapshot_id) — ✅ 2026-05-12 (commit 05f1158)
 - [x] 11-04: Backend read API (`GET /v1/sites/{site_id}/firewall-rules`, Clerk JWT) — ✅ 2026-05-12 (commits dc87f5b, 1b35a97)
-- 11-07: 4th agent ticker (`Firewall: 1*time.Hour`) + Pusher interface + collectAndPushFirewall stub
+- [x] 11-07: 4th agent ticker (`Firewall: 1*time.Hour`) + Pusher interface + collectAndPushFirewall stub — ✅ 2026-05-12 (commits e4d4c52, db9416e)
 
 **Wave 3 — Per-vendor collectors** *(parallel-safe; blocked on Wave 2)*
 - 11-08: ASA REST collector (ASA-01)
