@@ -152,6 +152,6 @@ Source: v1.0 post-ship E2E wiring review (2026-04-20). Blocks clean handoff to S
 | WBH-01..03 | 8 | 2026-05-05 | Complete |
 | CLA-01..06, CPC-01, CPC-03 | 9 | 7/7 | Complete 2026-05-06 |
 | DCA-01..09 | 10 | TBD | Not planned |
-| ASA-01..03, CKP-01..02 | 11 | TBD | Planned — 4/13 plans complete (Wave 0 scaffold + Wave 1 backend data plane + agent push extension + config protocol enum landed 2026-05-12; collectors land in Wave 3) |
+| ASA-01..03, CKP-01..02 | 11 | TBD | Planned — 6/13 plans complete (Wave 0 scaffold + Wave 1 fully done + Wave 2 push handlers + read API landed 2026-05-12; Plan 11-07 ticker is the last Wave 2 piece; collectors land in Wave 3) |
 | PTH-01..03, ASY-01..03, NET-010, FMV-02, NFN-02 | 12 | TBD | Not planned |
 | TIR-01..02 | 13 | TBD | Not planned |
