@@ -593,6 +593,7 @@ async def firewall_snapshot(seed_session: Any) -> Any:
     import hashlib
     import secrets
     import uuid as _uuid
+    from datetime import datetime as _datetime
 
     from sqlalchemy import text as _text
 
@@ -635,14 +636,19 @@ async def firewall_snapshot(seed_session: Any) -> Any:
                         "(snapshot_id, team_id, site_id, firewall_id, vendor, "
                         " source, snapshot_ts) VALUES "
                         "(:sid, :tid, :siteid, :fwid, 'cisco-asa', "
-                        " 'asa-rest', :ts::timestamptz)"
+                        " 'asa-rest', :ts)"
                     ),
                     {
                         "sid": snap_id,
                         "tid": str(team.id),
                         "siteid": str(site.id),
                         "fwid": firewall_id,
-                        "ts": snap["snapshot_ts"],
+                        # asyncpg requires a real datetime for timestamptz —
+                        # Python <3.11 fromisoformat doesn't accept the
+                        # trailing 'Z'; normalize to '+00:00' first.
+                        "ts": _datetime.fromisoformat(
+                            snap["snapshot_ts"].replace("Z", "+00:00")
+                        ),
                     },
                 )
                 # Children — N rules with sequential positions

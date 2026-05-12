@@ -18,6 +18,7 @@ from app.obs.logging import configure_logging
 from app.obs.middleware import RequestContextMiddleware
 from app.obs.sentry import init_sentry
 from app.routes import agent as agent_routes
+from app.routes import firewalls as firewalls_routes
 from app.routes import github as github_routes
 from app.routes import health, scans_from_github
 from app.routes import integrations as integrations_routes
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(scans_from_github.router)
     app.include_router(integrations_routes.router)
     app.include_router(agent_routes.router)
+    app.include_router(firewalls_routes.router)
     return app
 
 
