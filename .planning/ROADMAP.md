@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-12 — 1 of 13 plans complete (Wave 0 RED scaffold landed)
+**Status:** Executing 2026-05-12 — 3 of 13 plans complete (Wave 0 scaffold + Wave 1 backend data plane + Wave 1 agent push-client extension landed)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -354,8 +354,8 @@ Plans:
 - [x] 11-01: Failing tests + Wave 0 fixtures (Nyquist test-first scaffold) — ✅ 2026-05-12 (commits 05ee050, 6a8a9d4)
 
 **Wave 1 — Foundations** *(parallel-safe)*
-- 11-02: Backend tables + Pydantic schemas + TTL prune (4 new tables with RLS)
-- 11-05: Agent push-client extension (3 new methods reusing postWithRetry)
+- [x] 11-02: Backend tables + Pydantic schemas + TTL prune (4 new tables with RLS) — ✅ 2026-05-12 (commits 524cbfd, 690a85f, cdf8f92)
+- [x] 11-05: Agent push-client extension (3 new methods reusing postWithRetry) — ✅ 2026-05-12 (commits 23fdf32, 9de6def)
 - 11-06: Agent config protocol enum (5 new protocol values, zero new Device fields)
 
 **Wave 2 — Endpoints + ticker scaffolding** *(parallel-safe; blocked on Wave 1)*
