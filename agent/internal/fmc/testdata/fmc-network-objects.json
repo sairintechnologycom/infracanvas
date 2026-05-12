@@ -1,0 +1,33 @@
+{
+  "links": {
+    "self": "https://fmc.example.invalid/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/object/networks?offset=0&limit=25"
+  },
+  "items": [
+    {
+      "id": "net-obj-1",
+      "type": "Host",
+      "name": "web-server",
+      "value": "10.1.1.10",
+      "description": "Primary web server"
+    },
+    {
+      "id": "net-obj-2",
+      "type": "Host",
+      "name": "web-server-pub",
+      "value": "203.0.113.10",
+      "description": "Public NAT mapping of web-server"
+    },
+    {
+      "id": "net-obj-3",
+      "type": "Network",
+      "name": "dmz-net",
+      "value": "10.2.0.0/16"
+    }
+  ],
+  "paging": {
+    "offset": 0,
+    "limit": 25,
+    "count": 3,
+    "pages": 1
+  }
+}

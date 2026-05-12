@@ -1,0 +1,44 @@
+{
+  "rangeInfo": {
+    "offset": 0,
+    "limit": 100,
+    "total": 3
+  },
+  "items": [
+    {
+      "objectId": "obj-web-server",
+      "name": "web-server",
+      "kind": "object#NetworkObj",
+      "host": {
+        "kind": "IPv4Address",
+        "value": "10.1.1.10"
+      }
+    },
+    {
+      "objectId": "obj-dmz-net",
+      "name": "dmz-net",
+      "kind": "object#NetworkObj",
+      "network": {
+        "kind": "IPv4Network",
+        "value": "10.2.0.0/16"
+      }
+    },
+    {
+      "objectId": "obj-dmz-group",
+      "name": "DMZ-NETS",
+      "kind": "object#NetworkObjGroup",
+      "members": [
+        {
+          "kind": "objectRef#NetworkObj",
+          "name": "web-server",
+          "value": "10.1.1.10"
+        },
+        {
+          "kind": "objectRef#NetworkObj",
+          "name": "dmz-net",
+          "value": "10.2.0.0/16"
+        }
+      ]
+    }
+  ]
+}

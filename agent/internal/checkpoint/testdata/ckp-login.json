@@ -1,0 +1,9 @@
+{
+  "sid": "sid-test-12345-abcdef",
+  "uid": "uid-test-1",
+  "session-timeout": 3600,
+  "last-login-was-at": {
+    "iso-8601": "2026-05-12T07:00:00Z"
+  },
+  "url": "https://cp-mgmt.example.invalid/web_api"
+}

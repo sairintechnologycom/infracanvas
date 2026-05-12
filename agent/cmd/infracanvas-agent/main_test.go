@@ -58,12 +58,26 @@ func TestDaemonStartStop(t *testing.T) {
 	}
 }
 
-// TestTickerIntervals locks the DCA-06 timing contract.
-func TestTickerIntervals(t *testing.T) {
+// TestDefaultIntervals locks the DCA-06 timing contract for routes/BGP/flow
+// AND the Phase 11 D-02 extension that adds Firewall=1h as the 4th interval.
+// EXTENDED — not replaced — per Plan 11-01 acceptance criteria (the 3-interval
+// assertions stay; the 4th assertion is appended).
+func TestDefaultIntervals(t *testing.T) {
 	iv := defaultIntervals()
 	require.Equal(t, 5*time.Minute, iv.Routes, "routes ticker must be 5min per DCA-06")
 	require.Equal(t, 1*time.Minute, iv.BGP, "BGP ticker must be 1min per DCA-06")
 	require.Equal(t, 30*time.Second, iv.Flow, "NetFlow flush must be 30s per DCA-06")
+	require.Equal(t, 1*time.Hour, iv.Firewall, "Phase 11 D-02: 4th interval Firewall=1h")
+}
+
+// TestRunDaemon_FirewallTick: Wave 0 stub — fill in once 4th ticker exists
+// (Plan 11-07). Asserts: ticker with Firewall=10ms fires collectAndPushFirewall
+// ≥1× within 100ms; mock Pusher.PushFirewallRules called with snapshot_id
+// non-empty; ctx cancel drains the in-flight goroutine before run() returns.
+//
+// RED-but-runnable via t.Skip until the 4th ticker lands.
+func TestRunDaemon_FirewallTick(t *testing.T) {
+	t.Skip("Wave 0 stub — fill in once 4th ticker exists (Plan 11-07)")
 }
 
 // TestVersionCommand: invoking `version` prints the package-level version var.

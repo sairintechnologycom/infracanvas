@@ -1,0 +1,34 @@
+{
+  "uid": "nat-policy-uid",
+  "name": "Standard NAT",
+  "rulebase": [
+    {
+      "uid": "nat-rule-uid-1",
+      "type": "nat-rule",
+      "rule-number": 1,
+      "enabled": true,
+      "method": "static",
+      "original-source": {"uid": "obj-web-server", "name": "web-server"},
+      "translated-source": {"uid": "obj-web-server-pub", "name": "web-server-pub"},
+      "original-destination": {"uid": "obj-any", "name": "Any"},
+      "translated-destination": {"uid": "obj-original", "name": "Original"},
+      "original-service": {"uid": "obj-any-svc", "name": "Any"},
+      "translated-service": {"uid": "obj-original", "name": "Original"},
+      "install-on": [{"uid": "gw-1", "name": "Policy-Targets"}]
+    },
+    {
+      "uid": "nat-rule-uid-2",
+      "type": "nat-rule",
+      "rule-number": 2,
+      "enabled": true,
+      "method": "hide",
+      "original-source": {"uid": "obj-internal-nets", "name": "Internal-Networks"},
+      "translated-source": {"uid": "obj-outside-if", "name": "outside-interface-ip"},
+      "original-destination": {"uid": "obj-any", "name": "Any"},
+      "translated-destination": {"uid": "obj-original", "name": "Original"}
+    }
+  ],
+  "from": 1,
+  "to": 2,
+  "total": 2
+}

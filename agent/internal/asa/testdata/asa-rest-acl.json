@@ -1,0 +1,82 @@
+{
+  "rangeInfo": {
+    "offset": 0,
+    "limit": 100,
+    "total": 3
+  },
+  "items": [
+    {
+      "ruleId": 268435457,
+      "position": 1,
+      "permit": true,
+      "sourceAddress": {
+        "kind": "AnyIPAddress",
+        "value": "any"
+      },
+      "destinationAddress": {
+        "kind": "objectRef#NetworkObj",
+        "objectId": "obj-web-server",
+        "name": "web-server",
+        "value": "10.1.1.10"
+      },
+      "sourceService": {
+        "kind": "AnyService",
+        "value": "any"
+      },
+      "destinationService": {
+        "kind": "TcpUdpService",
+        "value": "tcp/80"
+      },
+      "active": true,
+      "remarks": []
+    },
+    {
+      "ruleId": 268435458,
+      "position": 2,
+      "permit": true,
+      "sourceAddress": {
+        "kind": "AnyIPAddress",
+        "value": "any"
+      },
+      "destinationAddress": {
+        "kind": "objectRef#NetworkObj",
+        "objectId": "obj-web-server",
+        "name": "web-server",
+        "value": "10.1.1.10"
+      },
+      "sourceService": {
+        "kind": "AnyService",
+        "value": "any"
+      },
+      "destinationService": {
+        "kind": "TcpUdpService",
+        "value": "tcp/443"
+      },
+      "active": true,
+      "remarks": []
+    },
+    {
+      "ruleId": 268435459,
+      "position": 3,
+      "permit": false,
+      "sourceAddress": {
+        "kind": "AnyIPAddress",
+        "value": "any"
+      },
+      "destinationAddress": {
+        "kind": "AnyIPAddress",
+        "value": "any"
+      },
+      "sourceService": {
+        "kind": "AnyService",
+        "value": "any"
+      },
+      "destinationService": {
+        "kind": "AnyService",
+        "value": "ip"
+      },
+      "active": true,
+      "remarks": ["deny-all final rule"]
+    }
+  ]
+}

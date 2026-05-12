@@ -1,0 +1,55 @@
+{
+  "rangeInfo": {
+    "offset": 0,
+    "limit": 100,
+    "total": 2
+  },
+  "items": [
+    {
+      "objectId": "nat-rule-1",
+      "position": 1,
+      "mode": "auto",
+      "type": "staticNat",
+      "originalSourceNetworkObject": {
+        "kind": "objectRef#NetworkObj",
+        "name": "web-server",
+        "value": "10.1.1.10"
+      },
+      "translatedSourceNetworkObject": {
+        "kind": "objectRef#NetworkObj",
+        "name": "web-server-pub",
+        "value": "203.0.113.10"
+      },
+      "originalSourceInterface": {
+        "kind": "InterfaceRef",
+        "name": "inside"
+      },
+      "translatedSourceInterface": {
+        "kind": "InterfaceRef",
+        "name": "outside"
+      }
+    },
+    {
+      "objectId": "nat-rule-2",
+      "position": 2,
+      "mode": "manual",
+      "type": "dynamicNat",
+      "originalSourceNetworkObject": {
+        "kind": "AnyIPAddress",
+        "value": "any"
+      },
+      "translatedSourceNetworkObject": {
+        "kind": "InterfaceRef",
+        "name": "outside"
+      },
+      "originalSourceInterface": {
+        "kind": "InterfaceRef",
+        "name": "inside"
+      },
+      "translatedSourceInterface": {
+        "kind": "InterfaceRef",
+        "name": "outside"
+      }
+    }
+  ]
+}

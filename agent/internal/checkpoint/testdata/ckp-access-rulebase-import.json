@@ -1,0 +1,59 @@
+{
+  "uid": "policy-uid-standard",
+  "name": "Standard",
+  "rulebase": [
+    {
+      "uid": "rule-uid-1",
+      "name": "Allow-Web-Inbound",
+      "type": "access-rule",
+      "rule-number": 1,
+      "enabled": true,
+      "source": [
+        {"uid": "obj-any", "name": "Any"}
+      ],
+      "destination": [
+        {"uid": "obj-web-server", "name": "web-server"}
+      ],
+      "service": [
+        {"uid": "svc-http", "name": "http"},
+        {"uid": "svc-https", "name": "https"}
+      ],
+      "action": {"uid": "act-accept", "name": "Accept"},
+      "track": {"type": {"name": "Log"}},
+      "source-negate": false,
+      "destination-negate": false,
+      "service-negate": false
+    },
+    {
+      "uid": "rule-uid-2",
+      "name": "Allow-Internal-DB",
+      "type": "access-rule",
+      "rule-number": 2,
+      "enabled": true,
+      "source": [
+        {"uid": "obj-internal-nets", "name": "Internal-Networks"}
+      ],
+      "destination": [
+        {"uid": "obj-db-server", "name": "db-server"}
+      ],
+      "service": [
+        {"uid": "svc-mysql", "name": "mysql"}
+      ],
+      "action": {"uid": "act-accept", "name": "Accept"}
+    },
+    {
+      "uid": "rule-uid-3",
+      "name": "Cleanup",
+      "type": "access-rule",
+      "rule-number": 3,
+      "enabled": true,
+      "source": [{"uid": "obj-any", "name": "Any"}],
+      "destination": [{"uid": "obj-any", "name": "Any"}],
+      "service": [{"uid": "obj-any", "name": "Any"}],
+      "action": {"uid": "act-drop", "name": "Drop"}
+    }
+  ],
+  "from": 1,
+  "to": 3,
+  "total": 3
+}
