@@ -557,3 +557,116 @@ async def in_memory_broker() -> AsyncIterator[Any]:
         yield broker
     finally:
         await broker.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Phase 11 firewall_snapshot fixture (Wave 0 / Plan 11-01).
+#
+# Seeds one or more firewall_ruleset_snapshots rows plus child rule/nat/
+# object rows under a fresh team + dc_site, so read-API tests have data
+# to query under a Clerk JWT.
+#
+# Collection-RED until Plan 11-02 lands the migration — the fixture body
+# references tables that do not exist yet. Tests requiring this fixture
+# carry ``pytestmark = pytest.mark.rls``.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+async def firewall_snapshot(seed_session: Any) -> Any:
+    """Factory: seed one or more populated firewall snapshots.
+
+    Usage:
+        seeded = await firewall_snapshot(
+            seed_session,
+            firewall_id="asa-edge-01",
+            snapshots=[
+                {"snapshot_ts": "2026-05-12T06:00:00Z", "rule_count": 5},
+                {"snapshot_ts": "2026-05-12T07:00:00Z", "rule_count": 7},
+            ],
+        )
+        # Returns: {team_id, site_id, firewall_id, clerk_org_id, snapshot_ids}
+
+    Inserts under BYPASSRLS (``seed_session``) so cross-team seeding works
+    without touching the app.current_team_id GUC. The downstream test sets
+    the GUC inside its own probe transaction (Pattern B).
+    """
+    import hashlib
+    import secrets
+    import uuid as _uuid
+
+    from sqlalchemy import text as _text
+
+    from app.db.models import DCSite, Team
+
+    async def _factory(
+        _seed: Any,
+        firewall_id: str = "fw-1",
+        snapshots: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        if snapshots is None:
+            snapshots = [{"snapshot_ts": "2026-05-12T07:00:00Z", "rule_count": 1}]
+        team = Team(
+            id=_uuid.uuid4(),
+            clerk_org_id=f"org_fwsnap_{secrets.token_hex(6)}",
+            name="Firewall Snapshot Team",
+            stripe_customer_id=f"cus_fwsnap_{secrets.token_hex(4)}",
+        )
+        async with _seed.begin():
+            _seed.add(team)
+        raw_token = "ic_site_" + secrets.token_urlsafe(32)
+        site = DCSite(
+            id=_uuid.uuid4(),
+            team_id=team.id,
+            name="Firewall Snapshot Site",
+            token_lookup_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+        )
+        async with _seed.begin():
+            _seed.add(site)
+
+        snapshot_ids: list[str] = []
+        for snap in snapshots:
+            snap_id = str(_uuid.uuid4())
+            snapshot_ids.append(snap_id)
+            async with _seed.begin():
+                # Parent — Plan 11-02 lands the table; RED until then.
+                await _seed.execute(
+                    _text(
+                        "INSERT INTO firewall_ruleset_snapshots "
+                        "(snapshot_id, team_id, site_id, firewall_id, vendor, "
+                        " source, snapshot_ts) VALUES "
+                        "(:sid, :tid, :siteid, :fwid, 'cisco-asa', "
+                        " 'asa-rest', :ts::timestamptz)"
+                    ),
+                    {
+                        "sid": snap_id,
+                        "tid": str(team.id),
+                        "siteid": str(site.id),
+                        "fwid": firewall_id,
+                        "ts": snap["snapshot_ts"],
+                    },
+                )
+                # Children — N rules with sequential positions
+                for i in range(int(snap.get("rule_count", 1))):
+                    await _seed.execute(
+                        _text(
+                            "INSERT INTO firewall_rules "
+                            "(rule_id, snapshot_id, position, src_cidr, "
+                            " dst_cidr, action, protocol, ports, raw_blob) "
+                            "VALUES (:rid, :sid, :pos, '0.0.0.0/0', "
+                            " '10.0.0.0/8', 'permit', 'tcp', '443', '{}'::jsonb)"
+                        ),
+                        {
+                            "rid": str(_uuid.uuid4()),
+                            "sid": snap_id,
+                            "pos": i + 1,
+                        },
+                    )
+        return {
+            "team_id": team.id,
+            "site_id": site.id,
+            "firewall_id": firewall_id,
+            "clerk_org_id": team.clerk_org_id,
+            "snapshot_ids": snapshot_ids,
+        }
+
+    return _factory
