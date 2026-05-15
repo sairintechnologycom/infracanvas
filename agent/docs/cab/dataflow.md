@@ -32,6 +32,16 @@ single OS process with no IPC.
 | Daemon logs | stdout / stderr | Operator-managed (e.g. `systemd-journald`) | Operational + diagnostic | NO — local-only unless operator forwards |
 | Backend URL | `agent.yaml` | Process lifetime + host filesystem | Operational | YES — used as the connect target |
 | Build version string | embedded (`-ldflags`) | Process lifetime | Operational | NO — Phase 10 does not include version in push payloads |
+| Firewall rule-base (src/dst zone, src/dst CIDR, action, protocol, ports, position, raw_blob) | ASA REST / ASA SSH / FMC / Checkpoint Mgmt API / `mgmt_cli` export file (TB-1) | In-memory until next push tick (≤ 1h) | Operational | YES — POST `/v1/agent/firewall-rules` over HTTPS (TB-2); team-RLS-scoped in backend `firewall_rules` table |
+| Firewall NAT table (src/dst translation, interface_in, interface_out, position, raw_blob) | ASA REST / ASA SSH / FMC / Checkpoint Mgmt API / `mgmt_cli` export file (TB-1) | In-memory until next push tick (≤ 1h) | Operational | YES — POST `/v1/agent/firewall-nat` over HTTPS (TB-2); team-RLS-scoped in backend `firewall_nat_rules` table |
+| Firewall objects (host / network / group / service definitions; `kind` + `name` + `value` + `raw_blob`) | ASA REST / ASA SSH / FMC / Checkpoint Mgmt API / `mgmt_cli` export file (TB-1) | In-memory until next push tick (≤ 1h) | Operational | YES — POST `/v1/agent/firewall-objects` over HTTPS (TB-2); team-RLS-scoped in backend `firewall_objects` table |
+| Firewall mgmt username | `agent.yaml` (`devices[].username` for `asa-rest`/`asa-ssh`/`fmc`/`checkpoint`) | Process lifetime + host filesystem | **Secret** (operational) | NO — never transmitted; presented to vendor API on each pull only |
+| Firewall mgmt password | `agent.yaml` (`devices[].password`) | Process lifetime + host filesystem | **Secret** (operational) | NO — never transmitted; presented to vendor API on each pull only |
+| ASA REST `X-Auth-Token` | `POST /api/tokenservices` response (TB-1 inbound) | In-memory; scoped to a single Pull; best-effort DELETE on cleanup; ASA-side 30-min expiry | **Secret** (auth credential) | NO — never logged (T-11-08-05), never written to disk, never returned in any push payload |
+| Cisco FMC `X-auth-access-token` + refresh token | `POST /api/fmc_platform/v1/auth/generatetoken` response (TB-1 inbound) | In-memory; up to 3 refreshes; 30-min access TTL; FMC-side server expiry | **Secret** (auth credential) | NO — never logged (T-11-10-01 / Pattern G), never written to disk, never in any push payload |
+| Cisco FMC `DOMAIN_UUID` | Auth response header (TB-1 inbound) | In-memory; per-Pull | Operational (tenant identifier) | NO — used only to construct GET URL paths server-side of the agent; not present in push payloads |
+| Checkpoint SID (`X-chkp-sid`) | `POST /web_api/login` response (TB-1 inbound) | In-memory ONLY; login-per-pull (D-14); seconds-to-minutes lifetime per pull; logged out at end of pull | **Secret** (auth credential) | NO — never logged (T-11-11-01; verified by test grep on captured log bytes), never written to disk, never in any push payload, never present at rest (no SID at rest, D-14) |
+| Firewall snapshot_id (UUIDv4) | Minted by agent dispatcher (`uuid.NewString()`) per device per tick (RESEARCH Pattern 2) | In-memory; threaded through 3 push payloads in a single tick | Operational | YES — sent in `snapshot_id` field of all three firewall push bodies; persisted server-side as the PK of `firewall_ruleset_snapshots` |
 
 ### Classification scheme
 
@@ -68,6 +78,35 @@ by policy alone:
 - **No outbound connection except to the configured backend URL.**
   There is no telemetry channel, crash-reporter, update-checker, or
   third-party SDK inside the agent.
+- **Phase 11 — Firewall management credentials are never included in any
+  push payload.** The push payload structures
+  (`agent/internal/push/types.go` — `FirewallRulesPayload`,
+  `FirewallNATPayload`, `FirewallObjectsPayload`) contain no credential
+  field; there is no path from `config.Device.{Username,Password}` to
+  the HTTP request body of any firewall push endpoint.
+- **Phase 11 — Vendor-API session tokens are never transmitted.** ASA
+  REST `X-Auth-Token`, FMC `X-auth-access-token` + refresh token, and
+  Checkpoint `X-chkp-sid` live only as HTTP request headers between
+  agent and the customer's firewall management plane; they are never
+  echoed to the SaaS backend, never logged, and never written to disk.
+- **Phase 11 — Firewall device configuration outside the rule base is
+  not collected.** The ASA SSH collector parses ONLY access-list / NAT
+  / object lines from `show running-config`; it does not extract
+  general device configuration, interface configuration, routing
+  protocol configuration, AAA configuration, SNMP configuration, or
+  any other surface of the running-config. ASA REST / FMC / Checkpoint
+  GETs are scoped to the rules / NAT / objects endpoints only — no
+  device-status, user, or audit-log endpoints are exercised.
+- **Phase 11 — Firewall device state is not modified.** All four
+  collectors execute only read-side commands. There is no
+  `add-*` / `set-*` / `delete-*` / `publish` call to Checkpoint, no
+  `POST` / `PATCH` / `PUT` to ASA or FMC configuration endpoints
+  beyond auth (and a best-effort `DELETE` of the agent's own ASA
+  token), and no `configure terminal` / `write memory` in any SSH
+  session. The four collectors' command lists are hardcoded in source
+  — see the [threat-model.md](./threat-model.md) "Phase 11 — Firewall
+  Management Credential Storage" section for the structural proof and
+  reviewer grep guide.
 
 ## Encryption in Transit
 
@@ -77,6 +116,10 @@ by policy alone:
 | Agent → NETCONF device (TB-1) | SSH-encrypted NETCONF transport | RFC 6242 (NETCONF over SSH); host-key verification posture documented in L-1. |
 | Agent → SSH device (TB-1) | SSH-encrypted CLI transport | Host-key verification posture documented in L-1. |
 | NetFlow exporter → Agent (TB-1) | **Not encrypted** | NetFlow v9 / IPFIX is a UDP-only legacy protocol with no encryption. Mitigated by deploying the agent on the management VLAN; see L-4. |
+| Agent → ASA REST device (TB-1, Phase 11) | TLS 1.2+ via Go stdlib `net/http` | `InsecureSkipVerify: false`, `MinVersion: TLS 1.2`. Certificate chain validated against the host trust store (T-11-08-01 accept-posture for MITM, same as L-1 / T-10-04-01). |
+| Agent → ASA SSH device (TB-1, Phase 11) | SSH-encrypted CLI transport | Host-key verification posture inherited from Phase 10 `xssh.DefaultDialer` (T-11-09-01 accept; documented in L-1). |
+| Agent → Cisco FMC device (TB-1, Phase 11) | TLS 1.2+ via Go stdlib `net/http` | `InsecureSkipVerify: false`, `MinVersion: TLS 1.2`. Same posture as ASA REST (T-11-10-03). |
+| Agent → Checkpoint Mgmt server (TB-1, Phase 11) | TLS 1.2+ via Go stdlib `net/http` | `InsecureSkipVerify: false`, `MinVersion: TLS 1.2`. Same posture as ASA REST (T-11-11-03). |
 
 ## Encryption at Rest
 
@@ -86,6 +129,10 @@ by policy alone:
 | Site token (server side) | Backend Postgres | The backend stores the **SHA-256 hash** of the site token (not the plaintext). The plaintext is returned exactly once at issuance via `POST /v1/sites` and never persists in the cloud. |
 | Routes / flows | Backend Postgres + R2 | Cloud provider–managed encryption at rest (Neon Postgres, Cloudflare R2). Out of scope for the agent CAB review. |
 | NetFlow ring buffer | Process memory only | Lost on agent restart. No disk spill. See L-5. |
+| Firewall mgmt credentials (Phase 11) | Agent host filesystem (`agent.yaml`) | Plaintext. Protected by Unix file permissions only (`chmod 600`). Same posture as Phase 10 device credentials — see L-2 / [threat-model.md](./threat-model.md) "Phase 11 — Firewall Management Credential Storage" section. |
+| ASA REST `X-Auth-Token` / FMC access+refresh tokens / Checkpoint SID (Phase 11) | Agent process memory ONLY | Never written to disk. ASA token: best-effort `DELETE` on Pull return + 30-min ASA-side expiry. FMC: up-to-3 refreshes + new login on next tick. Checkpoint: login-per-pull + logout, no SID at rest (D-14). |
+| `checkpoint-import` export files (Phase 11) | Agent host filesystem (operator-placed) | Operator-managed. Recommended `chmod 600` matching `agent.yaml`. Contains firewall rule-base data (not credentials). See [operator-runbook.md](./operator-runbook.md) Phase 11 section. |
+| Firewall rules / NAT / objects / snapshots | Backend Postgres | Cloud provider–managed encryption at rest (Neon Postgres). RLS team_isolation policies on all four tables (`firewall_ruleset_snapshots`, `firewall_rules`, `firewall_nat_rules`, `firewall_objects`); 14-day TTL prune (env-overridable `FIREWALL_SNAPSHOT_TTL_DAYS`). Out of scope for the agent CAB review. |
 
 ## Logging Posture
 
@@ -100,6 +147,17 @@ are deliberately scoped:
   back into a log field.
 - The site token never appears in a log field. (Threat IDs T-10-04-02,
   T-10-07-02 in [threat-model.md](./threat-model.md) lock this down.)
+- **Phase 11 — Firewall mgmt credentials and vendor session tokens
+  never appear in log fields.** Pattern G (the same one that holds
+  the site token off the log surface) extends to firewall collectors
+  structurally: the ASA REST `Client` / FMC `Client` /
+  Checkpoint `LiveCollector` types either have no `*zap.Logger` field
+  or restrict log fields to host / protocol / pull_id / counts.
+  `TestLiveCollector_LoginPullLogout` regression-tests that the
+  captured log byte buffer contains zero occurrences of the
+  Checkpoint SID across login → fetch → logout. T-11-08-05 /
+  T-11-10-01 / T-11-11-01 in the threat register lock the same
+  guarantee down for ASA REST tokens and FMC tokens respectively.
 
 > **Operator note:** the `chmod 600` requirement on `agent.yaml` is
 > enforced by the operator (see [operator-runbook.md](./operator-runbook.md)
