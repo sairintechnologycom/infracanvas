@@ -69,7 +69,12 @@ func TestClient_TokenRefresh(t *testing.T) {
 		}
 		_, _ = w.Write(mustReadFixture(t, "fmc-network-objects.json"))
 	})
-	srv := httptest.NewServer(mux)
+	// NewTLSServer + srv.Client() gives the test client a cert-pool entry for
+	// the server's self-signed cert, so the FMC client's TLS-validating
+	// http.Client trusts it. NewServer (plain HTTP) would refuse, since
+	// production FMC is HTTPS-only and InsecureSkipVerify is intentionally
+	// false (Plan 11-08 SUMMARY decision precedent for sibling ASA REST).
+	srv := httptest.NewTLSServer(mux)
 	defer srv.Close()
 
 	c := NewClient(srv.Client())
@@ -118,7 +123,10 @@ func TestClient_PaginatedAccessRules(t *testing.T) {
 		}
 		_, _ = w.Write(body)
 	})
-	srv := httptest.NewServer(mux)
+	// NewTLSServer for the same reason as TestClient_TokenRefresh above —
+	// production FMC is HTTPS-only and the collector's http.Client validates
+	// TLS by default.
+	srv := httptest.NewTLSServer(mux)
 	defer srv.Close()
 
 	c := NewClient(srv.Client())
