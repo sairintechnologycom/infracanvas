@@ -1,11 +1,18 @@
-# Known Limitations (Phase 10)
+# Known Limitations
 
-The InfraCanvas DC Agent is shipped in Phase 10 (Year 1) with the
-following acknowledged limitations. Each has a documented remediation
-path; the enterprise tier (v1.2+) addresses the most security-significant
-ones.
+The InfraCanvas DC Agent is shipped with the following acknowledged
+limitations. Each has a documented remediation path; the enterprise
+tier (v1.2+) addresses the most security-significant ones.
 
-The list is exhaustive for the Phase 10 baseline. If a reviewer
+This document covers two phases:
+
+- **Phase 10** (DC Agent Core — route + flow collection) — limitations
+  L-1 through L-7 below.
+- **Phase 11** (firewall integration — ASA + FMC + Checkpoint) —
+  limitations L-11-01 through L-11-05 in the "Phase 11 Firewall
+  Integration" section at the end of this document.
+
+The list is exhaustive for the current baseline. If a reviewer
 identifies a residual not listed here, it is a packet gap — please flag
 it back to InfraCanvas so this document can be updated.
 
@@ -199,3 +206,35 @@ notarization for macOS targets) is on the enterprise-tier roadmap.
 If a customer's policy makes any of L-1, L-2, L-3, L-6, or L-7 a
 hard blocker, contact InfraCanvas support to discuss the enterprise-
 tier early-access path.
+
+---
+
+## Phase 11 Firewall Integration
+
+The Phase 11 firewall integration introduces five new collectors (ASA
+REST, ASA SSH, FMC, Checkpoint live, Checkpoint offline import) and
+three new backend ingest endpoints. The Phase 11 limitations below are
+all vendor-imposed or product-design residuals; none of them are
+security holes. Each has an operator-side workaround.
+
+| Limitation ID | Limitation | Impact | Mitigation / Workaround |
+|---|---|---|---|
+| L-11-01 | Cisco ASA REST API removed at ASA 9.17+ (EOL boundary 9.16) | `protocol: asa-rest` fails with 404 from `/api/tokenservices` or 401 with "REST API disabled" on devices running ASA 9.17 or later | Operator switches the affected device to `protocol: asa-ssh` (`show running-config` over SSH works on all ASA versions). RESEARCH Pitfall 1; surfaced in [operator-runbook.md](./operator-runbook.md) troubleshooting. |
+| L-11-02 | Checkpoint Management API SID timeout on very large rule layers (>50k rules per layer) | Pull may receive 401 mid-pagination if a single layer exceeds the `session-timeout: 3600` second window the agent passes at login | Agent already passes the max-allowed 3600s timeout at login (Pitfall 2 mitigation). For layers that legitimately exceed 1 hour to pull, operator falls back to `protocol: checkpoint-import` and produces the `mgmt_cli` exports out-of-band. RESEARCH Pitfall 2 / Risk Landmine 4. |
+| L-11-03 | `checkpoint-import` requires a fixed sibling-file naming convention | Operator must produce three files from `mgmt_cli` at predictable suffixes — `<base>.rulebase.json`, `<base>.nat.json`, `<base>.objects.json` — and place them all in the same directory as the path declared in `agent.yaml`'s `config_file` field | The agent dispatcher accepts either the base-prefix form (`/etc/infracanvas/cp-airgap`) or the `.rulebase.json`-suffixed form (`/etc/infracanvas/cp-airgap.rulebase.json`); the other two siblings are derived by suffix substitution. Documented in [operator-runbook.md](./operator-runbook.md) Phase 11 section with copy-paste-ready `mgmt_cli` commands. RESOLVED Open Question 3 (RESEARCH 11-RESEARCH.md). |
+| L-11-04 | FMC integration uses the first `DOMAIN_UUID` + first access policy + first NAT policy returned by the auth and list endpoints | Multi-tenant FMC deployments or environments with multiple parallel access policies only get the first domain / first policy on the hourly pull | Operator-driven domain / policy selection is deferred to a future phase. T-11-10-05 (in [threat-model.md](./threat-model.md)) mitigates the worst case structurally (the agent never hardcodes a `DOMAIN_UUID`; it always uses the auth-response header). RESEARCH Pitfall 6 simplification — revisit in v1.2 if customers report multi-domain coverage gaps. |
+| L-11-05 | Snapshot retention is 14 days by default | Older firewall rule-base history (e.g. "what did this rule base look like 6 months ago?") is not queryable via the read API once pruned | Adjustable per-deployment via the `FIREWALL_SNAPSHOT_TTL_DAYS` env var on the backend (zero schema change — the env var is read by the taskiq prune task at run time). RESEARCH Risk Landmine 2 + Pitfall 7. Operators requiring longer retention bump the env var; pilot deployments commonly run 14d to keep Neon storage cost predictable. |
+
+### Phase 11 risk-acceptance summary
+
+| L | Severity (CISO view) | Operator action available? | Future remediation tier |
+|---|---|---|---|
+| L-11-01 | Low (vendor EOL — operator already needs to know ASA versions in their fleet) | Yes (switch device to `asa-ssh`) | Already-shipped (ASA SSH is the official Cisco-recommended path for 9.17+) |
+| L-11-02 | Low-Medium (operator-visible failure mode at very large scale only) | Yes (fall back to `checkpoint-import`) | Larger session-timeout / refresh-token model deferred to v1.2 |
+| L-11-03 | Low (operational convention, not security) | Yes (follow runbook naming convention) | Stable v1.1 contract — multi-file or alternate naming deferred unless customers ask |
+| L-11-04 | Low-Medium (impacts visibility, not security) | Yes (operator can run a second agent host per FMC domain — wide rather than deep) | Multi-domain enumeration is on the v1.2 roadmap |
+| L-11-05 | Low (operational / storage) | Yes (env var bump) | Configurable per-team retention is on the v1.2 roadmap |
+
+None of L-11-01 through L-11-05 are security blockers. All are
+documented for operator transparency and to prevent silent surprises
+during deployment.

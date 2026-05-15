@@ -1,9 +1,9 @@
 # InfraCanvas DC Agent — Change Advisory Board (CAB) Security Review Packet
 
 **Audience:** Enterprise procurement, IT security review boards, change advisory boards.
-**Phase:** 10 (DC Agent Core).
+**Phases covered:** 10 (DC Agent Core — routes, BGP, NetFlow) and 11 (Firewall Integration — Cisco ASA REST + SSH, Cisco FMC, Checkpoint live + offline import).
 **Version:** Generated against the InfraCanvas DC Agent at the tag listed in [`sbom.cyclonedx.json`](./sbom.cyclonedx.json) (see `metadata.component.version`).
-**Last updated:** 2026-05-10.
+**Last updated:** 2026-05-15 (Phase 11 extension landed; Phase 10 baseline preserved verbatim).
 **Status:** DRAFT — pending internal review before first external circulation.
 
 This packet contains the documents an enterprise reviewer needs to approve
@@ -32,14 +32,28 @@ to the InfraCanvas SaaS backend. It does **not** receive or execute any
 inbound commands; it does **not** modify device state; it does **not**
 transmit device credentials.
 
-## What the agent does NOT do (Phase 10 scope)
+## What the agent does NOT do (Phase 10 + Phase 11 scope)
 
-- Modify any device configuration (read-only collection only).
-- Transmit device username/password (read-only NETCONF/SSH service-account
-  credentials live entirely on the agent host).
-- Maintain persistent state on disk (NetFlow buffer is in-memory only).
-- Accept inbound network traffic, except UDP/2055 for NetFlow records.
-- Provide a remote-control plane (no inbound HTTP, no SSH server, no API).
+- Modify any device or firewall configuration (read-only collection
+  only — Phase 10 NETCONF / SSH read-side commands; Phase 11 ASA REST
+  / FMC GETs, ASA SSH `show running-config`, Checkpoint `show-*` /
+  `logout`, and `checkpoint-import` file reads).
+- Transmit device or firewall management credentials. Read-only
+  service-account credentials (Phase 10 NETCONF/SSH + Phase 11 ASA /
+  FMC / Checkpoint mgmt) live entirely on the agent host in
+  `agent.yaml` (`chmod 600`).
+- Transmit vendor session tokens. ASA `X-Auth-Token`, FMC
+  `X-auth-access-token` + refresh token, and Checkpoint `X-chkp-sid`
+  exist only as HTTP request headers between agent and the customer's
+  firewall management plane; they are never sent to SaaS, never
+  logged, never written to disk.
+- Maintain persistent state on disk (NetFlow buffer is in-memory
+  only; firewall rule bases are pushed on every 1h tick and not
+  cached between ticks).
+- Accept inbound network traffic, except UDP/2055 for NetFlow
+  records.
+- Provide a remote-control plane (no inbound HTTP, no SSH server, no
+  API).
 
 ## Outbound-only network posture
 
