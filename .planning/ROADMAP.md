@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-12 — 7 of 13 plans complete (Wave 0/1/2 ALL DONE — backend ingest + read API operational against live Postgres, agent 4th-ticker scaffold + Pusher interface widened to 5 methods + collectAndPushFirewall stub wired; Wave 3 per-vendor collectors 11-08..11-11 unblocked)
+**Status:** Executing 2026-05-15 — 11 of 13 plans complete (Wave 0/1/2/3 ALL DONE — backend ingest + read API operational; agent ticker scaffold wired; ALL four per-vendor collectors landed: ASA REST + ASA SSH + FMC + Checkpoint live/import, all tests GREEN with -race; Wave 4 dispatcher 11-12 unblocked)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -364,10 +364,10 @@ Plans:
 - [x] 11-07: 4th agent ticker (`Firewall: 1*time.Hour`) + Pusher interface + collectAndPushFirewall stub — ✅ 2026-05-12 (commits e4d4c52, db9416e)
 
 **Wave 3 — Per-vendor collectors** *(parallel-safe; blocked on Wave 2)*
-- 11-08: ASA REST collector (ASA-01)
-- 11-09: ASA SSH collector + parser (ASA-03)
-- 11-10: FMC client with token refresh (ASA-02)
-- 11-11: Checkpoint live + import + shared parser (CKP-01, CKP-02, D-12)
+- [x] 11-08: ASA REST collector (ASA-01) — ✅ 2026-05-12 (commits 47864cb, a5ca5b7)
+- [x] 11-09: ASA SSH collector + parser (ASA-03) — ✅ 2026-05-15 (commits 8a5deb6, 4c05901; merge ad00e5f; deletes ssh_stub.go shim)
+- [x] 11-10: FMC client with token refresh (ASA-02) — ✅ 2026-05-15 (commits 67ce13d, fdaa691; merge a68e736)
+- [x] 11-11: Checkpoint live + import + shared parser (CKP-01, CKP-02, D-12) — ✅ 2026-05-15 (commits ac93964, 7f3677e, 0c80cd0; merge 563aa16)
 
 **Wave 4 — End-to-end wiring** *(sequential; blocked on Wave 3)*
 - 11-12: Per-protocol dispatcher in main.go; snapshot_id minting; TestRunDaemon_FirewallTick tightening
