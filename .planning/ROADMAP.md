@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-15 — 12 of 13 plans complete (Wave 0/1/2/3/4 ALL DONE — collectAndPushFirewall dispatcher live with per-protocol fan-out, shared snapshot_id per device per tick across the 3 push endpoints, all 9 agent packages GREEN -race; only Wave 5 governance plan 11-13 remains, autonomous:false → requires user gate)
+**Status:** CODE-COMPLETE 2026-05-15 — 13 of 13 plans complete (Wave 0/1/2/3/4/5 ALL DONE). Code + tests + CAB docs all landed. Final smoke checkpoint is **PENDING operator** — run `/gsd-verify-work 11` against fixture or real firewall to verify backend read API surfaces the snapshot end-to-end.
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -373,7 +373,7 @@ Plans:
 - [x] 11-12: Per-protocol dispatcher in main.go; snapshot_id minting; TestRunDaemon_FirewallTick tightening — ✅ 2026-05-15 (commits 7a94d23, 5c8d697, 3a5486b, 223b7a0)
 
 **Wave 5 — Governance** *(sequential; blocked on Wave 4; `autonomous: false`)*
-- 11-13: CAB packet extension (threat-model, architecture, dataflow, known-limitations, operator-runbook) + final smoke checkpoint
+- [x] 11-13: CAB packet extension (threat-model, architecture, dataflow, known-limitations, operator-runbook) + final smoke checkpoint — ✅ docs landed 2026-05-15 (commits 0ea6ff3, 48c01aa, cf8d477; merge d729415); smoke checkpoint **PENDING operator** via `/gsd-verify-work 11`
 
 **Cross-cutting constraints:**
 - Snapshot ID is agent-minted UUIDv5; backend uses `INSERT … ON CONFLICT DO NOTHING` on parent (D-08, D-10)
