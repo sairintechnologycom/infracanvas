@@ -341,7 +341,7 @@ Plans:
 **Goal:** Cisco ASA + Checkpoint rule-base + policy data flow into cloud.
 **Requirements:** ASA-01, ASA-02, ASA-03, CKP-01, CKP-02
 **Depends on:** Phase 10
-**Status:** Executing 2026-05-15 — 11 of 13 plans complete (Wave 0/1/2/3 ALL DONE — backend ingest + read API operational; agent ticker scaffold wired; ALL four per-vendor collectors landed: ASA REST + ASA SSH + FMC + Checkpoint live/import, all tests GREEN with -race; Wave 4 dispatcher 11-12 unblocked)
+**Status:** Executing 2026-05-15 — 12 of 13 plans complete (Wave 0/1/2/3/4 ALL DONE — collectAndPushFirewall dispatcher live with per-protocol fan-out, shared snapshot_id per device per tick across the 3 push endpoints, all 9 agent packages GREEN -race; only Wave 5 governance plan 11-13 remains, autonomous:false → requires user gate)
 **Success criteria:**
 1. ASA REST API pulls rule base + NAT table; SSH fallback works
 2. FMC REST pulls policy
@@ -370,7 +370,7 @@ Plans:
 - [x] 11-11: Checkpoint live + import + shared parser (CKP-01, CKP-02, D-12) — ✅ 2026-05-15 (commits ac93964, 7f3677e, 0c80cd0; merge 563aa16)
 
 **Wave 4 — End-to-end wiring** *(sequential; blocked on Wave 3)*
-- 11-12: Per-protocol dispatcher in main.go; snapshot_id minting; TestRunDaemon_FirewallTick tightening
+- [x] 11-12: Per-protocol dispatcher in main.go; snapshot_id minting; TestRunDaemon_FirewallTick tightening — ✅ 2026-05-15 (commits 7a94d23, 5c8d697, 3a5486b, 223b7a0)
 
 **Wave 5 — Governance** *(sequential; blocked on Wave 4; `autonomous: false`)*
 - 11-13: CAB packet extension (threat-model, architecture, dataflow, known-limitations, operator-runbook) + final smoke checkpoint
