@@ -60,12 +60,3 @@ func (c *SSHCollector) Pull(
 	return nil, nil, nil, nil
 }
 
-// ParseRunningConfig is a stub — returns empty slices. Plan 11-09's
-// TestSSHParser_RealConfig will fail at the
-// `require.GreaterOrEqual(len(rules), 5)` assertion, which is the
-// intended RED state until the real parser lands.
-func ParseRunningConfig(_ string) (
-	[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
-) {
-	return nil, nil, nil, nil
-}
