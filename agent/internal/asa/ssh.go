@@ -81,6 +81,13 @@ func NewSSHCollector(d SSHDialer) *SSHCollector {
 	return &SSHCollector{dialer: d, log: zap.NewNop()}
 }
 
+// DefaultSSHDialer returns the production SSH dialer that wraps
+// agent/internal/ssh.DefaultDialer() (CAB-documented Phase 10 transport
+// posture: InsecureIgnoreHostKey + ECHO=0 + PTY payload). Plan 11-12
+// dispatcher uses this from the firewall ticker so callers don't
+// construct the unexported defaultSSHDialer themselves.
+func DefaultSSHDialer() SSHDialer { return defaultSSHDialer{} }
+
 // SetLogger installs a *zap.Logger for INFO-level pull-complete logging.
 // Returns the collector for chained construction. Safe to call before
 // Pull; concurrent calls are not safe (caller is expected to wire once
