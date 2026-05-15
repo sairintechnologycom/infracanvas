@@ -18,16 +18,22 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/infracanvas/infracanvas/agent/internal/asa"
+	"github.com/infracanvas/infracanvas/agent/internal/checkpoint"
 	"github.com/infracanvas/infracanvas/agent/internal/config"
+	"github.com/infracanvas/infracanvas/agent/internal/fmc"
 	"github.com/infracanvas/infracanvas/agent/internal/netconf"
 	"github.com/infracanvas/infracanvas/agent/internal/netflow"
 	"github.com/infracanvas/infracanvas/agent/internal/push"
@@ -148,24 +154,201 @@ func collectAndPushBGP(_ context.Context, _ *config.Config, _ Pusher, log *zap.L
 	log.Debug("bgp_tick_noop_phase10")
 }
 
-// collectAndPushFirewall is the 4th-ticker entry point. PHASE 11 plan 11-07
-// lands this as a STUB; plan 11-12 (Wave 4) fills in per-protocol dispatch
-// (asa-rest / asa-ssh / fmc / checkpoint / checkpoint-import) and snapshot_id
-// minting (RESEARCH Pattern 2 — UUIDv4, shared across the 3 push endpoints).
+// firewallPuller pulls one snapshot of rules + NAT + objects for one device.
+// Returned by firewallCollectorFor; nil for non-firewall protocols. Pattern H:
+// the closure passes primitives (host/port/user/pass) to the vendor Pull
+// method — never the config.Device, which would import-cycle into the
+// vendor packages.
+type firewallPuller func(ctx context.Context, dev config.Device) (
+	[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+)
+
+// firewallHTTPClient returns the http.Client used by the Wave 3 REST
+// collectors. Single stdlib client with TLS validation against the system
+// trust store and a 60s overall timeout. Per-call clients are fine here —
+// the firewall ticker fires once per hour in production, so no connection
+// pooling benefit to share across devices.
+func firewallHTTPClient() *http.Client {
+	return &http.Client{Timeout: 60 * time.Second}
+}
+
+// checkpointImportPaths resolves the three sibling JSON files (rulebase, NAT,
+// objects) from dev.ConfigFile. Two operator conventions are accepted:
 //
-// Mirror collectAndPushRoutes structure (above): for each device whose
-// protocol is one of the 5 firewall protocols, dispatch by protocol, mint a
-// snapshot_id once, push three payloads (rules / nat / objects) with the same
-// snapshot_id, log on failure but never panic.
+//   - dev.ConfigFile ends in ".rulebase.json" → treat as the rulebase path
+//     and derive .nat.json / .objects.json siblings by trimming the suffix.
+//   - else → treat dev.ConfigFile as a base prefix; append the three
+//     extensions verbatim (e.g. base "/etc/infracanvas/ckp" →
+//     /etc/infracanvas/ckp.rulebase.json + .nat.json + .objects.json).
 //
-// The full signature (ctx, cfg, pusher, log) is locked so Plan 11-12 can fill
-// the body in-place without touching the call site in the run() select-loop.
+// Plan 11-13 operator runbook surfaces this convention.
+func checkpointImportPaths(base string) (rulebase, nat, objects string) {
+	const rbSuffix = ".rulebase.json"
+	if strings.HasSuffix(base, rbSuffix) {
+		trimmed := strings.TrimSuffix(base, rbSuffix)
+		return base, trimmed + ".nat.json", trimmed + ".objects.json"
+	}
+	return base + rbSuffix, base + ".nat.json", base + ".objects.json"
+}
+
+// firewallVendorSource maps dev.Protocol to the (vendor, source) pair carried
+// on every FirewallRules/NAT/Objects payload (push/types.go field contract).
+// Vendor is the device family; source is the agent-side collection path so
+// the backend can distinguish e.g. ASA via REST vs via SSH for the same
+// device family.
+func firewallVendorSource(protocol string) (vendor, source string) {
+	switch protocol {
+	case config.ProtocolASARest:
+		return "cisco-asa", "asa-rest"
+	case config.ProtocolASASSH:
+		return "cisco-asa", "asa-ssh"
+	case config.ProtocolFMC:
+		return "cisco-fmc", "fmc"
+	case config.ProtocolCheckpoint:
+		return "checkpoint", "checkpoint"
+	case config.ProtocolCheckpointImport:
+		return "checkpoint", "checkpoint-import"
+	}
+	return "", ""
+}
+
+// firewallCollectorFor returns the firewallPuller closure appropriate to the
+// device protocol. Non-firewall protocols (netconf, ssh, config-import) return
+// nil — those are handled by collectAndPushRoutes on the routes ticker.
+//
+// One vendor client per call: production cadence is 1h so connection-pool
+// sharing across devices would only save a few TLS handshakes per hour while
+// adding mutable shared state. Single stdlib *http.Client per pull keeps the
+// dispatcher stateless and trivially safe to call from the ticker goroutine.
+func firewallCollectorFor(dev config.Device) firewallPuller {
+	switch dev.Protocol {
+	case config.ProtocolASARest:
+		c := asa.NewRESTCollector(firewallHTTPClient())
+		return func(ctx context.Context, d config.Device) (
+			[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+		) {
+			return c.Pull(ctx, d.Host, d.Port, d.Username, d.Password)
+		}
+	case config.ProtocolASASSH:
+		c := asa.NewSSHCollector(asa.DefaultSSHDialer())
+		return func(ctx context.Context, d config.Device) (
+			[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+		) {
+			return c.Pull(ctx, d.Host, d.Port, d.Username, d.Password)
+		}
+	case config.ProtocolFMC:
+		c := fmc.NewClient(firewallHTTPClient())
+		return func(ctx context.Context, d config.Device) (
+			[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+		) {
+			return c.Pull(ctx, d.Host, d.Port, d.Username, d.Password)
+		}
+	case config.ProtocolCheckpoint:
+		c := checkpoint.NewLiveCollector(firewallHTTPClient())
+		return func(ctx context.Context, d config.Device) (
+			[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+		) {
+			return c.Pull(ctx, d.Host, d.Port, d.Username, d.Password)
+		}
+	case config.ProtocolCheckpointImport:
+		return func(_ context.Context, d config.Device) (
+			[]push.FirewallRule, []push.FirewallNATRule, []push.FirewallObject, error,
+		) {
+			rb, nat, objs := checkpointImportPaths(d.ConfigFile)
+			return checkpoint.LoadImport(rb, nat, objs)
+		}
+	}
+	return nil
+}
+
+// collectAndPushFirewall is the 4th-ticker entry point. PHASE 11 plan 11-12
+// (Wave 4) fills the body. For each device with a firewall protocol, dispatch
+// to the matching Wave-3 vendor collector, mint a single UUIDv4 snapshot_id
+// per device per tick (RESEARCH Pattern 2 + D-08 — shared across the 3 push
+// endpoints so the backend INSERT ... ON CONFLICT DO NOTHING parent insert
+// is idempotent regardless of arrival order), then push the three payloads
+// sequentially. Non-firewall protocols are silently skipped (no error, no
+// log) — they're handled by collectAndPushRoutes on the routes ticker.
+//
+// Pattern G — log fields restricted to host / protocol / snapshot_id /
+// counts; never user/pass/token. The vendor collectors are responsible for
+// keeping credentials out of their own error returns.
 func collectAndPushFirewall(ctx context.Context, cfg *config.Config, pusher Pusher, log *zap.Logger) {
-	log.Debug("firewall_tick_noop_phase11_plan_07",
-		zap.Int("device_count", len(cfg.Devices)))
-	// TODO(plan 11-12): per-device dispatch + snapshot_id minting + 3-way push
-	_ = ctx
-	_ = pusher
+	for _, dev := range cfg.Devices {
+		fn := firewallCollectorFor(dev)
+		if fn == nil {
+			continue // non-firewall protocol — silently skip per plan 11-12 must_have
+		}
+		rules, nats, objs, err := fn(ctx, dev)
+		if err != nil {
+			log.Warn("firewall_pull_failed",
+				zap.String("device", dev.Host),
+				zap.String("protocol", dev.Protocol),
+				zap.Error(err))
+			continue
+		}
+
+		snapshotID := uuid.NewString() // RESEARCH Pattern 2 + D-08 — shared across 3 push calls
+		snapshotTS := time.Now().UTC().Format(time.RFC3339)
+		vendor, source := firewallVendorSource(dev.Protocol)
+		firewallID := dev.Host // FirewallID per push/types.go: "device serial / dev.Host"
+
+		log.Info("firewall_pull_ok",
+			zap.String("device", dev.Host),
+			zap.String("protocol", dev.Protocol),
+			zap.String("snapshot_id", snapshotID),
+			zap.Int("rules", len(rules)),
+			zap.Int("nat", len(nats)),
+			zap.Int("objects", len(objs)))
+
+		rulesPayload := push.FirewallRulesPayload{
+			SiteID:     dev.SiteID,
+			SnapshotID: snapshotID,
+			FirewallID: firewallID,
+			Vendor:     vendor,
+			Source:     source,
+			SnapshotTS: snapshotTS,
+			Rules:      rules,
+		}
+		if err := pusher.PushFirewallRules(ctx, rulesPayload); err != nil {
+			log.Warn("push_firewall_rules_failed",
+				zap.String("device", dev.Host),
+				zap.String("snapshot_id", snapshotID),
+				zap.Error(err))
+		}
+
+		natPayload := push.FirewallNATPayload{
+			SiteID:     dev.SiteID,
+			SnapshotID: snapshotID,
+			FirewallID: firewallID,
+			Vendor:     vendor,
+			Source:     source,
+			SnapshotTS: snapshotTS,
+			NATRules:   nats,
+		}
+		if err := pusher.PushFirewallNAT(ctx, natPayload); err != nil {
+			log.Warn("push_firewall_nat_failed",
+				zap.String("device", dev.Host),
+				zap.String("snapshot_id", snapshotID),
+				zap.Error(err))
+		}
+
+		objectsPayload := push.FirewallObjectsPayload{
+			SiteID:     dev.SiteID,
+			SnapshotID: snapshotID,
+			FirewallID: firewallID,
+			Vendor:     vendor,
+			Source:     source,
+			SnapshotTS: snapshotTS,
+			Objects:    objs,
+		}
+		if err := pusher.PushFirewallObjects(ctx, objectsPayload); err != nil {
+			log.Warn("push_firewall_objects_failed",
+				zap.String("device", dev.Host),
+				zap.String("snapshot_id", snapshotID),
+				zap.Error(err))
+		}
+	}
 }
 
 // flushFlowBuffer drains the netflow ring buffer and pushes the result.
