@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -29,6 +30,40 @@ func writeMinimalConfig(t *testing.T) string {
 	f := filepath.Join(t.TempDir(), "agent.yaml")
 	require.NoError(t, os.WriteFile(f, []byte(minimalYAML), 0o600))
 	return f
+}
+
+// Minimal Checkpoint mgmt_cli --format json exports — enough for the shared
+// parser to emit at least one push.FirewallRule so TestRunDaemon_FirewallTick
+// can observe the firewall ticker pushing into fakePusher counters.
+const checkpointImportRulebaseJSON = `{"uid":"p","name":"P","rulebase":[{"uid":"r1","name":"Allow-Test","type":"access-rule","rule-number":1,"enabled":true,"source":[{"uid":"any","name":"Any"}],"destination":[{"uid":"any","name":"Any"}],"service":[{"uid":"any","name":"Any"}],"action":{"uid":"a","name":"Accept"},"track":{"type":{"name":"Log"}}}]}`
+const checkpointImportNATJSON = `{"uid":"n","name":"N","rulebase":[]}`
+const checkpointImportObjectsJSON = `{"objects":[]}`
+
+// writeCheckpointImportConfig stages a temp dir containing the three offline
+// Checkpoint export JSON files (base + .rulebase.json / .nat.json / .objects.json)
+// and an agent.yaml with a single checkpoint-import device pointing at the
+// base. The dispatcher's checkpointImportPaths helper resolves the three
+// siblings via the base-prefix convention from Plan 11-12.
+func writeCheckpointImportConfig(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	base := filepath.Join(dir, "ckp")
+	require.NoError(t, os.WriteFile(base+".rulebase.json", []byte(checkpointImportRulebaseJSON), 0o600))
+	require.NoError(t, os.WriteFile(base+".nat.json", []byte(checkpointImportNATJSON), 0o600))
+	require.NoError(t, os.WriteFile(base+".objects.json", []byte(checkpointImportObjectsJSON), 0o600))
+
+	cfgYAML := fmt.Sprintf(`
+site_token: "ic_site_test"
+backend_url: "https://example.invalid"
+devices:
+  - host: "ckp-mgmt-import"
+    protocol: "checkpoint-import"
+    config_file: %q
+    site_id: "site-test"
+`, base)
+	cfgPath := filepath.Join(dir, "agent.yaml")
+	require.NoError(t, os.WriteFile(cfgPath, []byte(cfgYAML), 0o600))
+	return cfgPath
 }
 
 // TestDaemonStartStop: runDaemonWithIntervals returns nil within 200ms when
@@ -78,16 +113,17 @@ func TestDefaultIntervals(t *testing.T) {
 }
 
 // TestRunDaemon_FirewallTick (Phase 11 D-03): asserts the 4th ticker fires
-// collectAndPushFirewall on tick and that ctx cancel drains the in-flight
-// goroutine before runDaemonWithIntervals returns.
+// collectAndPushFirewall on tick AND that the dispatcher actually pushes
+// payloads via the pusher interface. The test uses a checkpoint-import
+// device (no network, deterministic) so the dispatcher exercises the
+// checkpoint.LoadImport branch + the three sequential PushFirewall* calls
+// with a shared snapshot_id (Plan 11-12 Wave 4 contract).
 //
-// Plan 11-07 lands collectAndPushFirewall as a STUB that only emits a
-// log.Debug — it does NOT call the pusher yet. So the assertion here is
-// "no panic, clean shutdown, run returns nil within 2s of cancel". Plan
-// 11-12 (Wave 4) will fill in real per-protocol dispatch and tighten this
-// test to assert pusher.firewallRulesCount > 0.
+// Plan 11-07 landed collectAndPushFirewall as a noop stub. Plan 11-12 fills
+// the body; this test was tightened from "no panic" to require pusher
+// counters > 0 to lock the dispatcher actually wires through.
 func TestRunDaemon_FirewallTick(t *testing.T) {
-	cfg, err := config.Load(writeMinimalConfig(t))
+	cfg, err := config.Load(writeCheckpointImportConfig(t))
 	require.NoError(t, err)
 	log := zaptest.NewLogger(t)
 
@@ -118,10 +154,23 @@ func TestRunDaemon_FirewallTick(t *testing.T) {
 		t.Fatal("runDaemonWithIntervals did not return within 2s after cancel — firewall goroutine leak?")
 	}
 
-	// Plan 11-07 stub asserts shutdown drain only. Plan 11-12 will tighten:
-	//   require.Greater(t, pusher.firewallRulesCount, 0)
-	// Counter field exists today (fakePusher Plan 11-07) so the tightening
-	// is a 1-line change once collectAndPushFirewall stops being a no-op.
+	// Plan 11-12 dispatcher must wire LoadImport → 3 PushFirewall* calls
+	// per tick with a shared snapshot_id. Assert all three counters fire.
+	pusher.mu.Lock()
+	defer pusher.mu.Unlock()
+	require.Greater(t, pusher.firewallRulesCount, 0,
+		"firewall dispatcher must push rules (Plan 11-12 GREEN)")
+	require.Greater(t, pusher.firewallNATCount, 0,
+		"firewall dispatcher must push NAT (Plan 11-12 GREEN)")
+	require.Greater(t, pusher.firewallObjectsCount, 0,
+		"firewall dispatcher must push objects (Plan 11-12 GREEN)")
+	// Shared snapshot_id across the 3 payloads (RESEARCH Pattern 2, D-08).
+	require.NotEmpty(t, pusher.firewallRules[0].SnapshotID,
+		"snapshot_id must be minted per tick")
+	require.Equal(t, pusher.firewallRules[0].SnapshotID, pusher.firewallNAT[0].SnapshotID,
+		"rules + NAT must share the same per-device snapshot_id")
+	require.Equal(t, pusher.firewallRules[0].SnapshotID, pusher.firewallObjects[0].SnapshotID,
+		"rules + objects must share the same per-device snapshot_id")
 }
 
 // TestVersionCommand: invoking `version` prints the package-level version var.
