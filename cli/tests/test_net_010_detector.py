@@ -8,43 +8,42 @@ the Python module emits ``NetworkFinding`` objects with ``rule_id="NET-010"``
 through the existing aggregation pipeline (Phase 2 D-09 / Phase 3 D-12).
 
 Plan 12-05 lands ``cli/infracanvas/security/network/net_010.py`` and flips
-these tests from RED (importorskip) to GREEN.
+these tests GREEN.
 """
 from __future__ import annotations
 
-import pytest
+from infracanvas.graph.models import NetworkPath, PathHop
+from infracanvas.security.network.net_010 import detect_stateful_firewall_asymmetry
 
 
-def _mk_hop(node_id: str, **kw):
-    from infracanvas.graph.models import PathHop
-    return PathHop(node_id=node_id, **kw)
+def _mk_hop(hop_index: int, node_id: str) -> PathHop:
+    return PathHop(hop_index=hop_index, node_id=node_id)
 
 
-def _mk_path(direction: str, node_ids: list[str], path_id: str = "p1"):
-    from infracanvas.graph.models import NetworkPath
+def _mk_path(direction: str, node_ids: list[str], path_id: str = "p1") -> NetworkPath:
     return NetworkPath(
         id=path_id,
+        source_node_id=node_ids[0] if node_ids else "src",
+        dest_node_id=node_ids[-1] if node_ids else "dst",
         direction=direction,
-        hops=[_mk_hop(n) for n in node_ids],
+        hops=[_mk_hop(i, n) for i, n in enumerate(node_ids)],
         evidence={},
     )
 
 
-def test_net_010_python_detector_module_exists():
+def test_net_010_python_detector_module_exists() -> None:
     """D-11 — Python detector under cli/infracanvas/security/network/net_010.py."""
-    pytest.importorskip("infracanvas.security.network.net_010")  # RED until Plan 12-05
-    from infracanvas.security.network.net_010 import detect_stateful_firewall_asymmetry
     assert callable(detect_stateful_firewall_asymmetry)
 
 
-def test_net_010_emits_finding_when_stateful_firewall_one_legged():
-    """D-11 — fires when a stateful firewall sees only one leg of an asymmetric pair.
+def test_net_010_emits_finding_when_stateful_firewall_one_legged() -> None:
+    """D-11 — fires when a stateful firewall sees only one leg of an
+    asymmetric pair.
 
-    Asserts catalog integration: every finding has rule_id="NET-010" and source="network"
-    so the existing Phase 2 D-09 / Phase 3 D-12 aggregation pipeline picks it up.
+    Asserts catalog integration: every finding has rule_id="NET-010" and
+    source="network" so the existing Phase 2 D-09 / Phase 3 D-12
+    aggregation pipeline picks it up.
     """
-    pytest.importorskip("infracanvas.security.network.net_010")
-    from infracanvas.security.network.net_010 import detect_stateful_firewall_asymmetry
     forward = _mk_path("forward", ["router-1", "fw-a", "router-2"], path_id="fwd-1")
     ret = _mk_path("return", ["router-1", "fw-b", "router-2"], path_id="ret-1")
     findings = detect_stateful_firewall_asymmetry(forward, ret, {"fw-a", "fw-b"})
@@ -53,22 +52,19 @@ def test_net_010_emits_finding_when_stateful_firewall_one_legged():
     assert all(f.source == "network" for f in findings)
 
 
-def test_net_010_symmetric_pair_returns_empty():
+def test_net_010_symmetric_pair_returns_empty() -> None:
     """Symmetric pair (identical hop sets) → detector returns []."""
-    pytest.importorskip("infracanvas.security.network.net_010")
-    from infracanvas.security.network.net_010 import detect_stateful_firewall_asymmetry
     forward = _mk_path("forward", ["router-1", "fw-a", "router-2"])
     ret = _mk_path("return", ["router-1", "fw-a", "router-2"])
     findings = detect_stateful_firewall_asymmetry(forward, ret, {"fw-a"})
     assert findings == []
 
 
-def test_net_010_only_stateful_firewalls_trigger():
+def test_net_010_only_stateful_firewalls_trigger() -> None:
     """Asymmetry on non-stateful nodes (plain routers) does NOT fire."""
-    pytest.importorskip("infracanvas.security.network.net_010")
-    from infracanvas.security.network.net_010 import detect_stateful_firewall_asymmetry
     forward = _mk_path("forward", ["router-1", "router-x", "router-2"])
     ret = _mk_path("return", ["router-1", "router-y", "router-2"])
-    # The asymmetric nodes (router-x, router-y) are not in the stateful_firewalls set.
+    # The asymmetric nodes (router-x, router-y) are not in the
+    # stateful_firewalls set — no finding emitted.
     findings = detect_stateful_firewall_asymmetry(forward, ret, {"fw-a"})
     assert findings == []
