@@ -80,6 +80,8 @@ def mk_path(direction: str, hops: "list[PathHop]", **kw: Any) -> "NetworkPath":
         pytest.skip("infracanvas cli package not installed in backend env")
     return NetworkPath(  # type: ignore[misc]
         id=kw.get("id", f"path-{direction}-test"),
+        source_node_id=kw.get("source_node_id", "src-node"),
+        dest_node_id=kw.get("dest_node_id", "dst-node"),
         direction=direction,  # type: ignore[arg-type]
         hops=hops,
         evidence=kw.get("evidence", {}),
