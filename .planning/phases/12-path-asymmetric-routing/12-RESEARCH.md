@@ -843,31 +843,25 @@ def test_lpm_is_deterministic(routes, target_ip):
 | A9 | TTL of 24h for `netflow_records` is sufficient | Pitfall 5 / Discretion | If shorter, may lose correlation samples for low-volume pairs. If longer, storage grows fast. Planner picks; 24h is the suggested starting point. [ASSUMED] |
 | A10 | `firewall_rules.src_cidr` / `dst_cidr` are always valid CIDR strings | Pitfall 8 | Phase 11 push validates via Pydantic, but raw_blob bypass is possible. Mitigation: per-row try/except in compute. [VERIFIED: Pydantic boundary at `app/schemas/firewall.py`] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **BLOCKER — Q1: Should Phase 12 own the routes/flows persistence work, or is there an implicit assumption it lives elsewhere?**
-   - What we know: No `routes` or `flows` tables in any migration. Handler docstrings say "Phase 11 persists" but Phase 11 didn't ship them. No other phase in ROADMAP covers this.
-   - What's unclear: Whether this was an intentional Phase 12 prerequisite (assumed by CONTEXT.md D-01 "the most recent NetFlow window from the existing flow tables") or a missed dependency.
-   - Recommendation: **Phase 12 owns it.** Add as Wave 1 first task. Plan checker should flag if missing.
+1. **RESOLVED — Q1: Phase 12 owns routes/flows persistence.**
+   - Resolution: Plan 12-02 (Wave 1) ships migration `012_route_flow_tables` adding `route_records` + `netflow_records` plus updates to `backend/app/routes/agent.py` push handlers (replacing the log-and-discard stubs).
+   - Closes BLOCKER 1. All downstream compute plans depend on 12-02.
 
-2. **Q2: Does the Phase 10 NetFlow listener expose `exporter_interface` and `exit_interface`?**
-   - What we know: `FlowRecord` Pydantic schema lacks these fields. The Go agent uses `netsampler/goflow2/v2` which does expose them in IPFIX templates.
-   - What's unclear: Whether the agent's pusher carries them today or whether they're collected and dropped.
-   - Recommendation: Planner reads `agent/internal/netflow/listener.go` (and `types.go`) before locking Wave 1. If they're already collected, just extend the Pydantic schema. If not, this becomes a Go agent change.
+2. **RESOLVED — Q2: Exporter/exit interface fields deferred to v1.2; v1.1 ships endpoint-only correlation.**
+   - Resolution: `agent/internal/netflow/types.go` does NOT carry `exporter_interface` / `exit_interface`. Per planner inspection, adding them is a Go agent change with NetFlow template re-parsing scope. For v1.1, correlate.matches() uses the endpoint-only fallback (Pitfall 11 path). D-05's "endpoint + edge-hop" requirement is partially honored — endpoint correlation is live, edge-hop deferred to a v1.2 follow-up (tracked in CONTEXT.md `<deferred>`).
+   - Plan impact: 12-02 schema extension dropped; 12-05 correlate.py uses endpoint-only matching with an explicit `# TODO(v1.2): add edge-hop comparison once agent emits exporter_interface` marker.
 
-3. **Q3: Does NET-010 raise the rules-catalog count assertion at `test_security.py:64` from 51 to 52?**
-   - What we know: D-11 says "rules catalog count rises from 51 → 52." But D-11 ALSO says NET-010 is a Python detector, NOT a YAML rule. The catalog count test asserts on `load_rules()` which is the YAML loader.
-   - What's unclear: Whether "catalog" in D-11 means the YAML catalog (in which case the assertion is wrong) or the broader detector-emitter catalog (in which case the test needs a different counter).
-   - Recommendation: Planner picks. Most defensible: leave YAML count at 51, add a separate test asserting the Python network-detector module exists and emits findings with `rule_id="NET-010"`. CONTEXT.md text is then slightly inaccurate but the spirit (NET-010 is now wired) is honored.
+3. **RESOLVED — Q3: YAML rules-catalog count stays at 51.**
+   - Resolution: NET-010 is a Python detector outside the YAML catalog. Plan 12-01 Wave 0 adds `cli/tests/test_net_010_detector.py` asserting the Python detector emits findings with `rule_id="NET-010"` and `source="network"`. The existing `cli/tests/test_security.py:64` assertion (51 rules) remains unchanged.
+   - CONTEXT.md D-11 "count 51→52" is reinterpreted as "detector count (YAML + Python) effectively rises by 1," with the YAML count preserved.
 
-4. **Q4: Should `RouteRecord` gain a `local_pref` field for ASY-02 BGP_LOCAL_PREF classification?**
-   - What we know: Today `RouteRecord` carries `prefix`, `next_hop`, `protocol`, `metric`, `as_path`. No `local_pref`. score_local_pref() falls back to as_path/metric divergence.
-   - What's unclear: Whether the NETCONF collector can extract LOCAL_PREF without rework.
-   - Recommendation: Ship Phase 12 with the fallback; track as v1.2 follow-up. The BGP_LOCAL_PREF cause name is then slightly misleading (it's really "BGP path-attribute mismatch") but acceptable for v1.1.
+4. **RESOLVED — Q4: Ship classifier with as_path/metric fallback; defer LOCAL_PREF field to v1.2.**
+   - Resolution: `RouteRecord` keeps current fields (`prefix`, `next_hop`, `protocol`, `metric`, `as_path`). `score_local_pref()` uses the as_path/metric fallback. Naming retained as `BGP_LOCAL_PREF` for stability; the documented semantics are "BGP path-attribute mismatch (as_path/metric)" until v1.2 adds true LOCAL_PREF.
 
-5. **Q5: Does the `selectedEdge` slice exist in the viewer Zustand store?**
-   - What we know: `PathDetailPanel.tsx` uses `selectedNode` only.
-   - Recommendation: Planner reads `viewer/src/store.ts` in Wave 0 scaffolding and either confirms or adds it.
+5. **RESOLVED — Q5: Zustand store already exposes `selectedPath` (not `selectedEdge`).**
+   - Resolution: PATTERNS.md verified `selectedPath` slice exists in `viewer/src/store.ts` (line 42). CONTEXT.md reference to `selectedEdge` was a naming slip. Plan 12-07 uses `selectedPath` and adds the optional `asymmetry?: AsymmetryPayload` field on the path object; a viewer hydration task fetches `/v1/sites/{id}/asymmetries` and attaches the payload before the store sets `selectedPath`.
 
 ## Environment Availability
 
