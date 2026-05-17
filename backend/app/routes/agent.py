@@ -39,6 +39,8 @@ from app.db.models import (
     FirewallObjectORM,
     FirewallRuleORM,
     FirewallRulesetSnapshot,
+    NetFlowRecordORM,
+    RouteRecordORM,
     Team,
 )
 from app.db.session import get_sessionmaker
@@ -110,12 +112,51 @@ async def push_routes(
     body: RoutesPushBody,
     principal: DCSitePrincipal = Depends(require_site_token),  # noqa: B008
 ) -> dict[str, bool]:
-    """Receive a routing-table batch from a DC agent. Phase 10 logs only — Phase 11 persists."""
+    """Phase 12 D-15 — persist route batch under RLS GUC.
+
+    Snapshot-per-pull semantics: each push appends rows. The
+    ``path_compute_prune`` job (Pitfall 5 cron offsets) sweeps older rows
+    by TTL. The Phase 12 path-compute job reads the latest
+    ``(site_id, device_host)`` snapshot via SELECT DISTINCT ON for each
+    recompute tick.
+
+    Pattern G credential allowlist: logs ``site_id`` / ``team_id`` /
+    ``device_host`` / ``collected_at`` / ``count``. Never logs raw route
+    content — ``as_path`` may carry operator-private ASNs.
+    """
+    collected_at = datetime.fromisoformat(body.collected_at.replace("Z", "+00:00"))
+    sm = get_sessionmaker()
+    async with sm() as session, session.begin():
+        await session.execute(
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(principal.team_id)},
+        )
+        if body.routes:
+            await session.execute(
+                pg_insert(RouteRecordORM).values(
+                    [
+                        {
+                            "record_id": uuid.uuid4(),
+                            "team_id": uuid.UUID(principal.team_id),
+                            "site_id": uuid.UUID(body.site_id),
+                            "device_host": body.device_host,
+                            "collected_at": collected_at,
+                            "prefix": r.prefix,
+                            "next_hop": r.next_hop,
+                            "protocol": r.protocol,
+                            "metric": r.metric,
+                            "as_path": r.as_path,
+                        }
+                        for r in body.routes
+                    ]
+                )
+            )
     _log.info(
         "agent_routes_received",
-        site_id=principal.site_id,
-        team_id=principal.team_id,
+        site_id=str(principal.site_id),
+        team_id=str(principal.team_id),
         device_host=body.device_host,
+        collected_at=body.collected_at,
         count=len(body.routes),
     )
     return {"ok": True}
@@ -126,11 +167,49 @@ async def push_flows(
     body: FlowsPushBody,
     principal: DCSitePrincipal = Depends(require_site_token),  # noqa: B008
 ) -> dict[str, bool]:
-    """Receive a NetFlow batch from a DC agent. Phase 10 logs only — Phase 11 persists."""
+    """Phase 12 D-15 — persist NetFlow batch under RLS GUC (v1.1 endpoint-only).
+
+    v1.1 ships endpoint-only correlation per RESEARCH Q2 RESOLVED. The
+    edge-hop fields + Go agent emitter + ``netflow_records`` column
+    extension are deferred to v1.2.
+
+    Pattern G credential allowlist: logs ``site_id`` / ``team_id`` /
+    ``collected_at`` / ``count``. Never logs ``src_ip`` / ``dst_ip``
+    (operator-private).
+    """
+    collected_at = datetime.fromisoformat(body.collected_at.replace("Z", "+00:00"))
+    sm = get_sessionmaker()
+    async with sm() as session, session.begin():
+        await session.execute(
+            text("SELECT set_config('app.current_team_id', :t, true)"),
+            {"t": str(principal.team_id)},
+        )
+        if body.flows:
+            await session.execute(
+                pg_insert(NetFlowRecordORM).values(
+                    [
+                        {
+                            "record_id": uuid.uuid4(),
+                            "team_id": uuid.UUID(principal.team_id),
+                            "site_id": uuid.UUID(body.site_id),
+                            "collected_at": collected_at,
+                            "src_ip": f.src_ip,
+                            "dst_ip": f.dst_ip,
+                            "src_port": f.src_port,
+                            "dst_port": f.dst_port,
+                            "protocol": f.protocol,
+                            "bytes": f.bytes,
+                            "packets": f.packets,
+                        }
+                        for f in body.flows
+                    ]
+                )
+            )
     _log.info(
         "agent_flows_received",
-        site_id=principal.site_id,
-        team_id=principal.team_id,
+        site_id=str(principal.site_id),
+        team_id=str(principal.team_id),
+        collected_at=body.collected_at,
         count=len(body.flows),
     )
     return {"ok": True}

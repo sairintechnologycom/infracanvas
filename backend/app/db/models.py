@@ -10,8 +10,19 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -315,3 +326,223 @@ class FirewallObjectORM(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     value: Mapped[dict] = mapped_column(JSONB, nullable=False)
     raw_blob: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class RouteRecordORM(Base):
+    """Phase 12 D-15 / Pitfall 1 — snapshot-per-pull route records from DC agent.
+
+    Full-replace per (site_id, device_host, collected_at) — same shape as
+    Phase 11 firewall_ruleset_snapshots lifecycle. Pruned by
+    ``app.queue.tasks.path_compute_prune`` cohort (route_records is a
+    sibling to computed_paths; netflow_prune sweeps the NetFlow side).
+    The ORM suffix avoids symbol collision with a future Pydantic
+    ``RouteRecord`` re-export in ``app.schemas.paths``.
+
+    RLS posture (migration 012): ENABLE + FORCE Row-Level Security with a
+    ``team_id = current_setting('app.current_team_id', true)::uuid`` policy.
+    """
+
+    __tablename__ = "route_records"
+
+    record_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_host: Mapped[str] = mapped_column(Text, nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    prefix: Mapped[str] = mapped_column(Text, nullable=False)
+    next_hop: Mapped[str] = mapped_column(Text, nullable=False)
+    protocol: Mapped[str] = mapped_column(Text, nullable=False)
+    metric: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    as_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+
+class NetFlowRecordORM(Base):
+    """Phase 12 D-15 — NetFlow v9/IPFIX records persisted from DC agent push.
+
+    v1.1 endpoint-only per RESEARCH Q2 RESOLVED (Warning 4). The
+    ``exporter_interface`` + ``exit_interface`` columns are deferred to
+    v1.2 alongside the Go agent emitter extension. TTL pruned by
+    ``app.queue.tasks.netflow_prune`` at ``NETFLOW_RECORD_TTL_HOURS``
+    (default 24h — flow volume is orders of magnitude larger than
+    routes/firewalls).
+
+    RLS posture (migration 012): ENABLE + FORCE Row-Level Security with a
+    ``team_id = current_setting('app.current_team_id', true)::uuid`` policy.
+    """
+
+    __tablename__ = "netflow_records"
+
+    record_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    src_ip: Mapped[str] = mapped_column(INET, nullable=False)
+    dst_ip: Mapped[str] = mapped_column(INET, nullable=False)
+    src_port: Mapped[int] = mapped_column(Integer, nullable=False)
+    dst_port: Mapped[int] = mapped_column(Integer, nullable=False)
+    protocol: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    packets: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class ComputedPathORM(Base):
+    """Phase 12 D-15 / D-16 — snapshot-per-compute path row.
+
+    Pruned by ``app.queue.tasks.path_compute_prune`` at
+    ``PATH_SNAPSHOT_TTL_DAYS`` (default 14d). The UNIQUE constraint
+    ``uq_computed_paths_snapshot`` enforces D-16 snapshot-per-pull
+    semantics (no duplicate (site_id, src_cidr, dst_cidr, direction,
+    computed_at) tuples).
+
+    RLS posture (migration 013): ENABLE + FORCE Row-Level Security with a
+    ``team_id = current_setting('app.current_team_id', true)::uuid`` policy.
+    """
+
+    __tablename__ = "computed_paths"
+
+    path_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    pair_src_cidr: Mapped[str] = mapped_column(Text, nullable=False)
+    pair_dst_cidr: Mapped[str] = mapped_column(Text, nullable=False)
+    direction: Mapped[str] = mapped_column(Text, nullable=False)
+    hops: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    match_evidence: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class AsymmetryFindingORM(Base):
+    """Phase 12 D-08 / D-09 / D-10 / D-15 — root-caused asymmetry findings.
+
+    ``cause`` is enum-gated at the SQL layer via a CHECK constraint over
+    ('BGP_LOCAL_PREF','ROUTE_LEAK','NAT_ASYMMETRY','UNKNOWN'); Pydantic
+    body validation rejects bad values at the boundary so the CHECK is
+    defense in depth. ``first_seen_at`` / ``last_seen_at`` / ``resolved_at``
+    drive the D-16 reconciliation lifecycle (open findings have
+    ``resolved_at IS NULL``; the path_compute_prune task sweeps resolved
+    rows after ``PATH_FINDING_TTL_DAYS``).
+
+    RLS posture (migration 013): ENABLE + FORCE Row-Level Security with a
+    ``team_id = current_setting('app.current_team_id', true)::uuid`` policy.
+    """
+
+    __tablename__ = "asymmetry_findings"
+
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    forward_path_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), nullable=False
+    )
+    return_path_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), nullable=False
+    )
+    cause: Mapped[str] = mapped_column(Text, nullable=False)
+    cause_confidence: Mapped[float] = mapped_column(Numeric, nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    impact_bytes_per_sec: Mapped[float] = mapped_column(
+        Numeric, nullable=False, default=0
+    )
+    impact_firewall_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class PathDivergenceFindingORM(Base):
+    """Phase 12 D-07 / D-15 — NetFlow-observed paths that don't match the computed model.
+
+    ``observed_path`` carries the JSONB blob of the actually-observed hop
+    sequence (extracted from netflow_records); ``evidence`` carries the
+    correlation envelope (flow keys, time window, byte/packet counters)
+    used to surface the divergence. D-16 lifecycle mirrors
+    ``asymmetry_findings`` — sweep resolved rows via
+    ``app.queue.tasks.path_compute_prune``.
+
+    RLS posture (migration 013): ENABLE + FORCE Row-Level Security with a
+    ``team_id = current_setting('app.current_team_id', true)::uuid`` policy.
+    """
+
+    __tablename__ = "path_divergence_findings"
+
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    site_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("dc_sites.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    expected_path_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), nullable=False
+    )
+    observed_path: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    evidence: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
