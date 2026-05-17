@@ -1016,7 +1016,13 @@ def _stub_full_pipeline_for_slack(
                 return _NoopResult()
             if "stripe_customer_id" in stmt_str:
                 return _FakeTeamResult()
-            if "slack_webhook_url" in stmt_str:
+            # Plan 12-04 refactor: scan_repo now SELECTs source-only from
+            # scans (slack_webhook_url lookup moved into the
+            # app.notifications.slack helper which queries teams directly).
+            # Both the scan_repo source-gate SELECT and the helper's
+            # teams.slack_webhook_url SELECT route to _FakeSlackResult — the
+            # fake row carries both attributes so either consumer is happy.
+            if "FROM scans" in stmt_str or "slack_webhook_url" in stmt_str:
                 return _FakeSlackResult()
             return _NoopResult()
 
@@ -1025,6 +1031,12 @@ def _stub_full_pipeline_for_slack(
             return _FakeSession()
 
     monkeypatch.setattr(sr_mod, "get_sessionmaker", lambda: _FakeMaker())
+
+    # Plan 12-04: app.notifications.slack.send_team_slack performs its own
+    # team-scoped SELECT via get_sessionmaker; route it through the same
+    # fake so the helper's DB call doesn't reach a real Postgres.
+    import app.notifications.slack as slack_mod
+    monkeypatch.setattr(slack_mod, "get_sessionmaker", lambda: _FakeMaker())
 
 
 async def test_slack_fires_on_webhook_source_with_critical(

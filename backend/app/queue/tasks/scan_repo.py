@@ -48,7 +48,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import httpx
 import json
 import os
 import shutil
@@ -56,6 +55,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import httpx  # noqa: F401 — Phase 8 regression tests assert hasattr(sr_mod, "httpx"); the Slack httpx call moved to app.notifications.slack (Plan 12-04).
 import sentry_sdk
 import structlog
 from sqlalchemy import text
@@ -290,21 +290,19 @@ async def scan_repo(
                     summary_json=summary_json,
                 )
 
-        # ---- 9. Slack alert on Critical findings (Plan 08-03). ----------
+        # ---- 9. Slack alert on Critical findings (Plan 08-03 / 12-04). --
         # Only fires for push-webhook-triggered scans (source='webhook')
-        # with ≥ 1 Critical finding AND a configured Slack URL.
-        # httpx failures are caught, logged, and captured in Sentry — never
-        # re-raised so a bad Slack endpoint cannot abort the job or block
-        # the retry queue.
+        # with >= 1 Critical finding. The actual webhook URL lookup +
+        # POST + swallow+Sentry capture moved to
+        # ``app.notifications.slack.send_team_slack`` (Plan 12-04 — same
+        # delivery surface reused by path_compute under NFN-02).
+        # We keep the source-only SELECT here because the helper has no
+        # opinion on scan source; the gate is scan_repo's responsibility.
         sm9 = get_sessionmaker()
         async with sm9() as slack_session:
-            slack_row = (
+            source_row = (
                 await slack_session.execute(
-                    text(
-                        "SELECT s.source, t.slack_webhook_url "
-                        "FROM scans s JOIN teams t ON t.id = s.team_id "
-                        "WHERE s.id = :id"
-                    ),
+                    text("SELECT source FROM scans WHERE id = :id"),
                     {"id": scan_id},
                 )
             ).one_or_none()
@@ -315,30 +313,21 @@ async def scan_repo(
             else 0
         )
         if (
-            slack_row is not None
-            and slack_row.source == "webhook"
-            and slack_row.slack_webhook_url is not None
+            source_row is not None
+            and source_row.source == "webhook"
             and critical_count >= 1
         ):
-            try:
-                async with httpx.AsyncClient() as http_client:
-                    await http_client.post(
-                        slack_row.slack_webhook_url,
-                        json={
-                            "text": (
-                                f":rotating_light: *Critical findings detected* in `{repo}`\n"
-                                f"{critical_count} Critical finding(s) found. "
-                                f"View scan: /scans/{scan_id}"
-                            )
-                        },
-                        timeout=5.0,
-                    )
-                log_ctx.info("scan_repo.slack_alert_sent", repo=repo)
-            except Exception as slack_exc:
-                log_ctx.warning(
-                    "scan_repo.slack_alert_failed", error=repr(slack_exc)
-                )
-                sentry_sdk.capture_exception(slack_exc)
+            from app.notifications.slack import send_team_slack
+
+            await send_team_slack(
+                team_id=str(team_id),
+                message=(
+                    f":rotating_light: *Critical findings detected* in `{repo}`\n"
+                    f"{critical_count} Critical finding(s) found. "
+                    f"View scan: /scans/{scan_id}"
+                ),
+                log_ctx_key="scan_repo",
+            )
 
         log_ctx.info(
             "scan_repo.success",
