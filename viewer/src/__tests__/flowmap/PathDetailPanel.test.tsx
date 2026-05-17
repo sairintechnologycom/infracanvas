@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PathDetailPanel } from '../../components/flowmap/PathDetailPanel';
 import { useStore } from '../../store';
@@ -125,5 +125,27 @@ describe('PathDetailPanel', () => {
     expect(
       screen.queryByText(/Estimate based on assumed transfer volume/i)
     ).toBeNull();
+  });
+});
+
+// Phase 12 FMV-02 — Asymmetry tab + side-by-side hop table (Pitfall 12 Option a)
+// RED until Plan 12-07 adds the hasAsymmetry conditional to the tabs array
+// (mirrors the existing hasRoutes / hasCost gates).
+describe('FMV-02 Asymmetry tab', () => {
+  it.skip('Asymmetry tab visible when selectedPath has asymmetry attached', () => {
+    // Plan 12-07: inject useViewerStoreOrSingleton mock with selectedPath that includes
+    // an asymmetry payload (per D-15 AsymmetryFindingResponse shape from
+    // /v1/sites/{site_id}/asymmetries).
+    // Assertion: screen.queryByText('Asymmetry') is non-null.
+  });
+
+  it.skip('Asymmetry tab hidden when selectedPath is null', () => {
+    // Plan 12-07: screen.queryByText('Asymmetry') is null when selectedPath is null.
+  });
+
+  it.skip('side-by-side hop table shows Forward and Return columns with mismatched-row highlight', () => {
+    // Plan 12-07: render Asymmetry tab; assert <thead> contains 'Forward' and 'Return';
+    // assert at least one <tr> has class or data-* indicating mismatched (red tint per
+    // PATTERNS.md).
   });
 });
