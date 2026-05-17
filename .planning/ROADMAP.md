@@ -393,6 +393,17 @@ Plans:
 4. Root cause classifier assigns BGP_LOCAL_PREF / ROUTE_LEAK / NAT_ASYMMETRY
 5. FlowMap viewer shows divergence marker (FMV-02); route-change alert (NFN-02) fires on DC agent churn
 
+**Plans:** 7 plans (5 waves: W0=1, W1=1, W2=3, W3=1, W4=1)
+
+Plans:
+- [ ] 12-01-PLAN.md — Wave 0 test scaffold + shared pathcompute fixtures + cli net_010 stub + viewer FMV-02 it.skip stubs
+- [ ] 12-02-PLAN.md — Wave 1 migrations 012 + 013 (route_records, netflow_records, computed_paths, asymmetry_findings, path_divergence_findings) + agent push handler persistence + pytricia dep + 2 prune jobs (Blocker 1 closer)
+- [ ] 12-03-PLAN.md — Wave 2 Read API (GET /paths, GET /asymmetries, POST /paths/recompute) + schemas/paths.py re-export of NetworkPath
+- [ ] 12-04-PLAN.md — Wave 2 Extract Slack dispatcher to app/notifications/slack.py + refactor scan_repo to call helper
+- [ ] 12-05-PLAN.md — Wave 2 Pure-compute modules (lpm, forward, pair, correlate, asymmetry, classify, impact) + NET-010 Python detector
+- [ ] 12-06-PLAN.md — Wave 3 path_compute taskiq job (cron */15 fan-out + per-site reconciliation + NFN-02 alerts via send_team_slack)
+- [ ] 12-07-PLAN.md — Wave 4 FMV-02 viewer (PathEdge dual-strand red dashed + PathDetailPanel Asymmetry tab) + smoke checkpoint
+
 ### Phase 13: Team Tier Launch
 
 **Goal:** Team tier billable at $299/mo with FlowMap 3b + CostLens gated to it.
