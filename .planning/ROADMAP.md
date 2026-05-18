@@ -35,7 +35,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 9: CostLens** — TGW/ExpressRoute/Azure Firewall shared cost splits, per-path cost, idle/oversized recommendations — COMPLETE 2026-05-06
 - [ ] **Phase 10: DC Agent Core** — Go agent, NETCONF/SSH, NetFlow collector, encrypted push, CAB security packet
 - [ ] **Phase 11: Firewall Integration** — Cisco ASA REST/SSH + FMC + Checkpoint Management API
-- [ ] **Phase 12: Path Computation + Asymmetric Routing** — forward/return paths, NetFlow correlation, asymmetry detector + root cause classifier, NET-010, FMV-02, NFN-02
+- [x] **Phase 12: Path Computation + Asymmetric Routing** — forward/return paths, NetFlow correlation, asymmetry detector + root cause classifier, NET-010, FMV-02, NFN-02 *(code-complete 2026-05-18, PASS-WITH-FLAGS, smoke UAT pending operator — see `.planning/phases/12-path-asymmetric-routing/12-HUMAN-UAT.md`)*
 - [ ] **Phase 13: Team Tier Launch** — Stripe $299/mo Team tier, feature gates on FlowMap 3b + CostLens
 
 ### 📋 v1.2 Enterprise (Planned)
