@@ -22,6 +22,7 @@ from app.routes import firewalls as firewalls_routes
 from app.routes import github as github_routes
 from app.routes import health, scans_from_github
 from app.routes import integrations as integrations_routes
+from app.routes import paths as paths_routes  # Phase 12 D-14
 from app.routes import scans as scan_routes
 from app.routes import share as share_routes
 from app.routes import webhooks as wh_routes
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(integrations_routes.router)
     app.include_router(agent_routes.router)
     app.include_router(firewalls_routes.router)
+    app.include_router(paths_routes.router)
     return app
 
 
