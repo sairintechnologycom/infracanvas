@@ -11,8 +11,11 @@ Phase 12 D-15 / D-16 — three storage targets for the path-compute job:
                               computed model (D-07 / D-16).
 
 D-08/D-09 — asymmetry_findings.cause is enum-gated via CHECK constraint over
-('BGP_LOCAL_PREF','ROUTE_LEAK','NAT_ASYMMETRY','UNKNOWN'). Pydantic body
-validation rejects bad values at the boundary; the CHECK is defense in depth.
+('BGP_LOCAL_PREF','ROUTE_LEAK','NAT_ASYMMETRY','UNKNOWN','NET-010'). Pydantic
+body validation rejects bad values at the boundary; the CHECK is defense in
+depth. The 'NET-010' value was added in-place during Plan 12-06 (Warning 6) so
+Python-detector NET-010 findings land in the same table and surface through
+the Plan 12-03 GET /asymmetries read API.
 
 D-16 lifecycle — both findings tables carry first_seen_at + last_seen_at
 NOT NULL and resolved_at TIMESTAMPTZ NULL so the reconcile pass can flip
@@ -165,7 +168,7 @@ def upgrade() -> None:
         sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("resolved_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
-            "cause IN ('BGP_LOCAL_PREF','ROUTE_LEAK','NAT_ASYMMETRY','UNKNOWN')",
+            "cause IN ('BGP_LOCAL_PREF','ROUTE_LEAK','NAT_ASYMMETRY','UNKNOWN','NET-010')",
             name="ck_asymmetry_findings_cause",
         ),
     )
