@@ -9,6 +9,7 @@ import {
 import '@infracanvas/viewer/styles.css'
 import type { ResourceGraph, ViewerStoreApi } from '@infracanvas/viewer'
 import { fetchScanJson } from '@/lib/r2'
+import { ViewerBootstrap } from '@/components/viewer/ViewerBootstrap'
 
 interface Props {
   scanId: string
@@ -70,31 +71,44 @@ export function ScanViewerClient({ scanId, initialPresignedUrl }: Props) {
     }
   }, [initialPresignedUrl, getFreshPresignedUrl, store])
 
+  // Phase 12 FMV-02 — Blocker 1 closure. ViewerBootstrap installs
+  // window.__INFRACANVAS_BACKEND_FETCH__ = backendFetch on mount so the
+  // bundled viewer's asymmetryFetcher can reach the backend with the
+  // dashboard's Clerk-JWT auth. Mounted at the outermost level so the
+  // install runs at the same lifecycle moment regardless of loading/error
+  // state. Render-null — produces no visible output and no extra DOM.
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-slate-500">
-        Loading scan diagram…
-      </div>
+      <>
+        <ViewerBootstrap />
+        <div className="flex items-center justify-center h-full text-sm text-slate-500">
+          Loading scan diagram…
+        </div>
+      </>
     )
   }
 
   if (error || !graph) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3">
-        <p className="text-sm text-slate-900 font-semibold">Could not load scan diagram</p>
-        <p className="text-xs text-slate-500">{error ?? 'Unknown error'}</p>
-        <button
-          onClick={() => router.refresh()}
-          className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
-        >
-          Try again
-        </button>
-      </div>
+      <>
+        <ViewerBootstrap />
+        <div className="flex flex-col items-center justify-center h-full gap-3">
+          <p className="text-sm text-slate-900 font-semibold">Could not load scan diagram</p>
+          <p className="text-xs text-slate-500">{error ?? 'Unknown error'}</p>
+          <button
+            onClick={() => router.refresh()}
+            className="text-sm text-slate-900 hover:text-slate-700 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </>
     )
   }
 
   return (
     <div className="h-full w-full" data-testid="scan-viewer-client">
+      <ViewerBootstrap />
       <ViewerProvider store={store}>
         <ViewerApp />
       </ViewerProvider>

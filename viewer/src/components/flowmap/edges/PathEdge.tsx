@@ -3,17 +3,29 @@ import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react'
 interface PathEdgeData {
   direction?: 'forward' | 'return' | 'both'
   pathId?: string
+  /** Phase 12 FMV-02 — when true, render forward leg with red dashed stroke */
+  asymmetricForward?: boolean
+  /** Phase 12 FMV-02 — when true, render return leg with red dashed stroke */
+  asymmetricReturn?: boolean
 }
+
+// Phase 12 FMV-02 — dashed-red asymmetric leg styling
+const ASYMMETRIC_STROKE = '#DC2626' // tailwind red-600
+const ASYMMETRIC_DASH = '4 3' // 4px dash, 3px gap
 
 // Dual-lane path rendering per UI-SPEC PathEdge:
 //   forward lane: stroke #3B82F6, translated -3px perpendicular, markerEnd
 //   return  lane: stroke #F97316, translated +3px perpendicular, markerStart
 // In 3a network_paths is empty, so this edge type renders cold but unit-tests
 // against synthetic PathHop fixtures still exercise the two-BaseEdge contract.
+// Phase 12 FMV-02 layers asymmetric-leg overrides on top: when
+// asymmetricForward / asymmetricReturn flags are set on edge data, the matching
+// strand renders with stroke #DC2626 (red-600) + a 4-on/3-off dash pattern.
 export function PathEdge(props: EdgeProps) {
   const { sourceX, sourceY, targetX, targetY, data } = props
   const [edgePath] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY })
-  const direction = (data as PathEdgeData | undefined)?.direction ?? 'both'
+  const edgeData = data as PathEdgeData | undefined
+  const direction = edgeData?.direction ?? 'both'
 
   const forwardStyle = {
     stroke: '#3B82F6',
@@ -28,6 +40,15 @@ export function PathEdge(props: EdgeProps) {
     transform: 'translate(0, 3px)',
   } as const
 
+  // Phase 12 FMV-02 — asymmetric-leg overrides. When both flags are falsy, the
+  // effective styles are the existing Phase 3 dual-color styles unchanged.
+  const fwdEffective = edgeData?.asymmetricForward
+    ? { ...forwardStyle, stroke: ASYMMETRIC_STROKE, strokeDasharray: ASYMMETRIC_DASH }
+    : forwardStyle
+  const retEffective = edgeData?.asymmetricReturn
+    ? { ...returnStyle, stroke: ASYMMETRIC_STROKE, strokeDasharray: ASYMMETRIC_DASH }
+    : returnStyle
+
   const renderForward = direction === 'forward' || direction === 'both'
   const renderReturn = direction === 'return' || direction === 'both'
 
@@ -37,7 +58,7 @@ export function PathEdge(props: EdgeProps) {
         <BaseEdge
           id={`${props.id}-forward`}
           path={edgePath}
-          style={forwardStyle}
+          style={fwdEffective}
           markerEnd="url(#path-arrow-forward)"
         />
       )}
@@ -45,7 +66,7 @@ export function PathEdge(props: EdgeProps) {
         <BaseEdge
           id={`${props.id}-return`}
           path={edgePath}
-          style={returnStyle}
+          style={retEffective}
           markerStart="url(#path-arrow-return)"
         />
       )}

@@ -52,32 +52,74 @@ describe('PathEdge', () => {
 })
 
 // Phase 12 FMV-02 — dual-strand asymmetric rendering tests
-// RED until Plan 12-07 extends PathEdge with asymmetricForward / asymmetricReturn props.
-// The existing renderEdge helper above stays UNCHANGED; Plan 12-07 introduces a
-// sibling helper (e.g. renderEdgeWithAsymmetry) that threads the new flags through
+// Plan 12-07 extends PathEdge with asymmetricForward / asymmetricReturn props.
+// The existing renderEdge helper above stays UNCHANGED; this block introduces a
+// sibling helper (renderEdgeWithAsymmetry) that threads the new flags through
 // synthetic EdgeProps.
+function renderEdgeWithAsymmetry(
+  direction: 'forward' | 'return' | 'both',
+  asymmetric: { forward?: boolean; return?: boolean } = {},
+) {
+  const props = {
+    id: 'e1',
+    source: 's',
+    target: 't',
+    sourceX: 0,
+    sourceY: 0,
+    targetX: 100,
+    targetY: 0,
+    sourcePosition: 'right',
+    targetPosition: 'left',
+    data: {
+      direction,
+      asymmetricForward: asymmetric.forward,
+      asymmetricReturn: asymmetric.return,
+    },
+  } as unknown as EdgeProps
+  return render(
+    <svg>
+      <PathEdge {...props} />
+    </svg>,
+  )
+}
+
+// CSS rgb form of the tokens — jsdom normalises hex stroke values written
+// via React's style prop to rgb() in the inline style attribute.
+const RGB_DC2626 = 'rgb(220, 38, 38)' // tailwind red-600 — asymmetric
+const RGB_3B82F6 = 'rgb(59, 130, 246)' // tailwind blue-500 — forward
+const RGB_F97316 = 'rgb(249, 115, 22)' // tailwind orange-500 — return
+
 describe('FMV-02 asymmetry rendering', () => {
-  it.skip('asymmetricForward=true renders forward path with red dashed stroke', () => {
-    // Plan 12-07 implementation:
-    //   const { container } = renderEdgeWithAsymmetry('both', { forward: true })
-    //   const paths = container.querySelectorAll('path')
-    //   const fwd = Array.from(paths).find(p => p.getAttribute('marker-end')?.includes('forward'))
-    //   expect(fwd?.getAttribute('stroke')).toBe('#DC2626')
-    //   expect(fwd?.getAttribute('stroke-dasharray')).toBeTruthy()
+  it('asymmetricForward=true renders forward path with red dashed stroke', () => {
+    const { container } = renderEdgeWithAsymmetry('both', { forward: true })
+    // Forward lane has BaseEdge id ending in -forward (visible) + a sibling
+    // interaction path with no id; we target the visible one.
+    const fwd = container.querySelector<SVGPathElement>('path[id$="-forward"]')
+    expect(fwd).toBeTruthy()
+    const style = fwd?.getAttribute('style') || ''
+    expect(style).toContain(`stroke: ${RGB_DC2626}`)
+    expect(style).toContain('stroke-dasharray:')
   })
 
-  it.skip('asymmetricReturn=true renders return path with red dashed stroke', () => {
-    // Plan 12-07: symmetric to above for the return leg
-    //   const { container } = renderEdgeWithAsymmetry('both', { return: true })
-    //   const ret = Array.from(container.querySelectorAll('path')).find(p => ...)
-    //   expect(ret?.getAttribute('stroke')).toBe('#DC2626')
-    //   expect(ret?.getAttribute('stroke-dasharray')).toBeTruthy()
+  it('asymmetricReturn=true renders return path with red dashed stroke', () => {
+    const { container } = renderEdgeWithAsymmetry('both', { return: true })
+    const ret = container.querySelector<SVGPathElement>('path[id$="-return"]')
+    expect(ret).toBeTruthy()
+    const style = ret?.getAttribute('style') || ''
+    expect(style).toContain(`stroke: ${RGB_DC2626}`)
+    expect(style).toContain('stroke-dasharray:')
   })
 
-  it.skip('asymmetric flags default to false — strands keep existing solid colors', () => {
-    // Plan 12-07 regression-lock:
-    //   forward stroke == '#3B82F6' (blue-500)
-    //   return  stroke == '#F97316' (orange-500)
-    // — proves Phase 3 dual-color behavior is preserved when no asymmetry flags are set.
+  it('asymmetric flags default to false — strands keep existing solid colors', () => {
+    const { container } = renderEdgeWithAsymmetry('both')
+    const fwd = container.querySelector<SVGPathElement>('path[id$="-forward"]')
+    const ret = container.querySelector<SVGPathElement>('path[id$="-return"]')
+    const fwdStyle = fwd?.getAttribute('style') || ''
+    const retStyle = ret?.getAttribute('style') || ''
+    expect(fwdStyle).toContain(`stroke: ${RGB_3B82F6}`) // Phase 3 forward color preserved
+    expect(retStyle).toContain(`stroke: ${RGB_F97316}`) // Phase 3 return color preserved
+    // Regression: no dasharray when flags are falsy.
+    expect(fwdStyle).not.toContain('stroke-dasharray:')
+    expect(retStyle).not.toContain('stroke-dasharray:')
   })
 })
