@@ -37,13 +37,16 @@ persists into ``asymmetry_findings`` (with ``cause='NET-010'``) surface
 in the same response so the viewer Asymmetry tab + dashboard list see
 them without a code change.
 
-Warning 7 — recompute deploy-state honesty
-------------------------------------------
+Warning 7 — recompute deploy-state honesty (HISTORICAL)
+-------------------------------------------------------
 
-When ``app.queue.tasks.path_compute`` is not importable (Plan 12-06 has
-not landed in this build), ``POST /paths/recompute`` raises HTTP 503
-with detail ``"compute job not yet deployed"``. No fake ``job_id`` is
-minted. Plan 12-06 removes the try/except entirely when it lands.
+Plan 12-06 landed ``app.queue.tasks.path_compute`` and removed the
+inline try/except wrapper. The recompute handler now imports
+``recompute_paths_for_site`` at module load and enqueues the taskiq
+job directly. Cross-build deploy-state honesty is now handled at the
+import-time level: if the module cannot be imported, the whole
+``app.routes.paths`` import fails and FastAPI surfaces it as a startup
+error — far louder than a runtime 503.
 
 Logging allowlist (Pattern G)
 -----------------------------
@@ -64,6 +67,7 @@ from app.auth.clerk import ClerkPrincipal, require_role
 from app.auth.deps import resolve_team_from_clerk_org
 from app.db.models import DCSite, Team
 from app.db.session import get_sessionmaker
+from app.queue.tasks.path_compute import recompute_paths_for_site
 from app.schemas.paths import (
     AsymmetryFindingResponse,
     PathsListItem,
@@ -263,11 +267,12 @@ async def recompute_site_paths(
     seconds, return a coalesced ``job_id`` with ``coalesced=True`` and
     skip the enqueue; otherwise enqueue a fresh taskiq job.
 
-    Warning 7: when ``app.queue.tasks.path_compute`` cannot be imported
-    (Plan 12-06 has not landed in this build), this endpoint returns
-    HTTP 503 with detail ``"compute job not yet deployed"``. No fake
-    ``job_id`` is minted. Plan 12-06 removes the try/except entirely
-    when it lands.
+    Warning 7 (HISTORICAL): the inline ``try/except ImportError → 503``
+    placeholder is gone. Plan 12-06 landed the compute module and the
+    import moved to the top of this file. If the module ever fails to
+    import in production, the whole ``app.routes.paths`` import fails
+    and FastAPI raises a startup error — which is the correct posture
+    for a missing taskiq job.
     """
     _ = principal
     sm = get_sessionmaker()
@@ -313,26 +318,8 @@ async def recompute_site_paths(
                 coalesced=True,
             )
 
-    # Enqueue fresh job (outside the session/transaction).
-    # Warning 7 — no silent ImportError swallow. If Plan 12-06's module is
-    # not present in this build, raise HTTP 503 so the caller sees a
-    # truthful "not yet deployed" signal instead of a fake job_id that
-    # will never run. Plan 12-06 deletes the try/except entirely.
-    try:
-        from app.queue.tasks.path_compute import (  # noqa: PLC0415
-            recompute_paths_for_site,
-        )
-    except ImportError as exc:
-        _log.warning(
-            "recompute_compute_module_missing",
-            team_id=str(team.id),
-            site_id=str(site_id),
-        )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="compute job not yet deployed",
-        ) from exc
-
+    # Enqueue fresh taskiq job (outside the session/transaction). The
+    # import lives at the top of this file (Plan 12-06 Warning 7 cleanup).
     await recompute_paths_for_site.kiq(site_id=site_id, on_demand=True)
     job_id = f"path-compute-{site_id}-{uuid.uuid4()}"
     _log.info(
