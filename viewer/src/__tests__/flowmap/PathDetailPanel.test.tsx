@@ -2,7 +2,7 @@ import { describe, test, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PathDetailPanel } from '../../components/flowmap/PathDetailPanel';
 import { useStore } from '../../store';
-import type { ResourceNode } from '../../types';
+import type { NetworkPath, ResourceNode } from '../../types';
 
 function _node(overrides: Partial<ResourceNode> = {}): ResourceNode {
   return {
@@ -129,23 +129,125 @@ describe('PathDetailPanel', () => {
 });
 
 // Phase 12 FMV-02 — Asymmetry tab + side-by-side hop table (Pitfall 12 Option a)
-// RED until Plan 12-07 adds the hasAsymmetry conditional to the tabs array
-// (mirrors the existing hasRoutes / hasCost gates).
+// Plan 12-07 adds the hasAsymmetry conditional to the tabs array (mirrors the
+// existing hasRoutes / hasCost gates).
+
+function _path(
+  pathOverrides: Partial<NetworkPath> = {},
+  asymmetryReturnOverrides: Partial<NetworkPath> = {},
+): NetworkPath {
+  return {
+    id: 'p1',
+    source_node_id: 'src-a',
+    dest_node_id: 'dst-b',
+    direction: 'forward',
+    hops: [
+      {
+        hop_index: 0,
+        node_id: 'router-1',
+        source_ip: '10.0.0.1',
+        dest_ip: '10.0.0.2',
+        protocol: 'tcp',
+        port: 443,
+        interface_in: '',
+        interface_out: '',
+        bgp_as_path: [],
+        next_hop: '',
+        evidence: {},
+      },
+      {
+        hop_index: 1,
+        node_id: 'fw-a',
+        source_ip: '10.0.0.2',
+        dest_ip: '10.0.0.3',
+        protocol: 'tcp',
+        port: 443,
+        interface_in: '',
+        interface_out: '',
+        bgp_as_path: [],
+        next_hop: '',
+        evidence: {},
+      },
+    ],
+    evidence: {},
+    asymmetry: {
+      finding_id: 'f1',
+      cause: 'NAT_ASYMMETRY',
+      cause_confidence: 0.7,
+      impact_bytes_per_sec: 12345,
+      impact_firewall_count: 2,
+      forward_path_id: 'p1',
+      return_path_id: 'p1r',
+      return_path: {
+        id: 'p1r',
+        source_node_id: 'dst-b',
+        dest_node_id: 'src-a',
+        direction: 'return',
+        hops: [
+          {
+            hop_index: 0,
+            node_id: 'router-1',
+            source_ip: '10.0.0.3',
+            dest_ip: '10.0.0.2',
+            protocol: 'tcp',
+            port: 443,
+            interface_in: '',
+            interface_out: '',
+            bgp_as_path: [],
+            next_hop: '',
+            evidence: {},
+          },
+          {
+            hop_index: 1,
+            node_id: 'fw-b',
+            source_ip: '10.0.0.2',
+            dest_ip: '10.0.0.1',
+            protocol: 'tcp',
+            port: 443,
+            interface_in: '',
+            interface_out: '',
+            bgp_as_path: [],
+            next_hop: '',
+            evidence: {},
+          },
+        ],
+        evidence: {},
+        ...asymmetryReturnOverrides,
+      },
+    },
+    ...pathOverrides,
+  };
+}
+
 describe('FMV-02 Asymmetry tab', () => {
-  it.skip('Asymmetry tab visible when selectedPath has asymmetry attached', () => {
-    // Plan 12-07: inject useViewerStoreOrSingleton mock with selectedPath that includes
-    // an asymmetry payload (per D-15 AsymmetryFindingResponse shape from
-    // /v1/sites/{site_id}/asymmetries).
-    // Assertion: screen.queryByText('Asymmetry') is non-null.
+  beforeEach(() => {
+    useStore.setState({ selectedNode: null, selectedPath: null });
   });
 
-  it.skip('Asymmetry tab hidden when selectedPath is null', () => {
-    // Plan 12-07: screen.queryByText('Asymmetry') is null when selectedPath is null.
+  it('Asymmetry tab visible when selectedPath has asymmetry attached', () => {
+    useStore.setState({ selectedNode: _node(), selectedPath: _path() });
+    render(<PathDetailPanel />);
+    expect(screen.queryByText('Asymmetry')).not.toBeNull();
   });
 
-  it.skip('side-by-side hop table shows Forward and Return columns with mismatched-row highlight', () => {
-    // Plan 12-07: render Asymmetry tab; assert <thead> contains 'Forward' and 'Return';
-    // assert at least one <tr> has class or data-* indicating mismatched (red tint per
-    // PATTERNS.md).
+  it('Asymmetry tab hidden when selectedPath is null', () => {
+    useStore.setState({ selectedNode: _node(), selectedPath: null });
+    render(<PathDetailPanel />);
+    expect(screen.queryByText('Asymmetry')).toBeNull();
+  });
+
+  it('side-by-side hop table shows Forward and Return columns with mismatched-row highlight', () => {
+    useStore.setState({ selectedNode: _node(), selectedPath: _path() });
+    const { container } = render(<PathDetailPanel />);
+    // Click the Asymmetry tab (button label "Asymmetry").
+    fireEvent.click(screen.getByText('Asymmetry'));
+    // Thead has Forward + Return columns.
+    const thead = container.querySelector('thead');
+    expect(thead?.textContent).toMatch(/Forward/);
+    expect(thead?.textContent).toMatch(/Return/);
+    // Hop row 0: router-1 == router-1 → no mismatch.
+    // Hop row 1: fw-a != fw-b → mismatched. Expect exactly 1 mismatched <tr>.
+    const mismatched = container.querySelectorAll('tr[data-mismatched="true"]');
+    expect(mismatched.length).toBe(1);
   });
 });

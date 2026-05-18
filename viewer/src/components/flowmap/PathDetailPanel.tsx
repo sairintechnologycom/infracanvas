@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { X, Network, FileText, Shield, Code, List, DollarSign } from 'lucide-react';
+import { X, Network, FileText, Shield, Code, List, DollarSign, AlertTriangle } from 'lucide-react';
 import { FindingCard } from '../FindingCard';
 import { useViewerStoreOrSingleton } from '../../store';
-import type { Finding, ResourceNode } from '../../types';
+import type { Finding, NetworkPath, ResourceNode } from '../../types';
 
-type Tab = 'overview' | 'findings' | 'attributes' | 'routes' | 'cost';
+type Tab = 'overview' | 'findings' | 'attributes' | 'routes' | 'cost' | 'asymmetry';
 
 const ROUTES_ELIGIBLE_TYPES = new Set([
   'aws_ec2_transit_gateway_route_table',
@@ -15,6 +15,9 @@ const ROUTES_ELIGIBLE_TYPES = new Set([
 export function PathDetailPanel() {
   const node = useViewerStoreOrSingleton((s) => s.selectedNode);
   const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode);
+  // Phase 12 FMV-02 — selectedPath carries an optional asymmetry payload after
+  // asymmetryFetcher + setAsymmetries hydration (see store.ts / Task 3).
+  const selectedPath = useViewerStoreOrSingleton((s) => s.selectedPath);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // Empty state — nothing selected
@@ -58,12 +61,18 @@ export function PathDetailPanel() {
 
   const hasRoutes = ROUTES_ELIGIBLE_TYPES.has(node.type);
   const hasCost = node.cost.monthly_usd > 0;
+  // Phase 12 FMV-02 — Asymmetry tab gate. Mirror of hasRoutes / hasCost pattern.
+  // Visible only when a path is selected AND it carries an asymmetry payload.
+  const hasAsymmetry = selectedPath !== null && selectedPath?.asymmetry !== undefined;
   const tabs: Array<{ id: Tab; label: string; icon: typeof FileText }> = [
     { id: 'overview', label: 'Overview', icon: FileText },
     { id: 'findings', label: `Findings (${node.findings.length})`, icon: Shield },
     { id: 'attributes', label: 'Attributes', icon: Code },
     ...(hasRoutes ? [{ id: 'routes' as const, label: 'Routes', icon: List }] : []),
     ...(hasCost ? [{ id: 'cost' as const, label: 'Cost', icon: DollarSign }] : []),
+    ...(hasAsymmetry
+      ? [{ id: 'asymmetry' as const, label: 'Asymmetry', icon: AlertTriangle }]
+      : []),
   ];
 
   const color = '#3B82F6'; // reuse forward-blue accent
@@ -131,6 +140,9 @@ export function PathDetailPanel() {
           <RoutesTab routes={(node.attributes.routes as unknown[] | undefined) ?? []} />
         )}
         {activeTab === 'cost' && hasCost && <CostTab node={node} />}
+        {activeTab === 'asymmetry' && hasAsymmetry && selectedPath && (
+          <AsymmetryTab path={selectedPath} />
+        )}
       </div>
     </div>
   );
@@ -282,6 +294,117 @@ function CostTab({ node }: { node: ResourceNode }) {
           Estimate based on assumed transfer volume — enable flow logs for actuals.
         </div>
       )}
+    </div>
+  );
+}
+
+// Phase 12 FMV-02 — Asymmetry tab. Renders cause + impact summary and a
+// side-by-side Forward/Return hop table; rows where the forward hop node_id
+// differs from the return hop node_id are highlighted with a red tint
+// (rgba(127, 29, 29, 0.25) per PATTERNS.md). All strings are rendered via
+// JSX interpolation — React auto-escapes (T-12-07-01 mitigation).
+function AsymmetryTab({ path }: { path: NetworkPath }) {
+  const asym = path.asymmetry!;
+  const forwardHops = path.hops;
+  const returnHops = asym.return_path?.hops ?? [];
+  const maxLen = Math.max(forwardHops.length, returnHops.length);
+  const rows = Array.from({ length: maxLen }, (_, i) => {
+    const fwd = forwardHops[i];
+    const ret = returnHops[i];
+    return {
+      i,
+      fwd,
+      ret,
+      mismatch: (fwd?.node_id ?? null) !== (ret?.node_id ?? null),
+    };
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 11 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Row label="Cause" value={`${asym.cause} (${Math.round(asym.cause_confidence * 100)}%)`} />
+        <Row label="Impact" value={`${Math.round(asym.impact_bytes_per_sec)} B/s`} />
+        <Row
+          label="Stateful firewalls"
+          value={String(asym.impact_firewall_count)}
+        />
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <thead>
+          <tr style={{ color: '#4a5568', textAlign: 'left' }}>
+            <th
+              style={{
+                padding: '4px 6px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                fontSize: 10,
+              }}
+            >
+              #
+            </th>
+            <th
+              style={{
+                padding: '4px 6px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                fontSize: 10,
+              }}
+            >
+              Forward
+            </th>
+            <th
+              style={{
+                padding: '4px 6px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                fontSize: 10,
+              }}
+            >
+              Return
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr
+              key={r.i}
+              data-mismatched={r.mismatch ? 'true' : 'false'}
+              style={{
+                borderTop: '1px solid #252d3d',
+                backgroundColor: r.mismatch ? 'rgba(127, 29, 29, 0.25)' : 'transparent',
+              }}
+            >
+              <td
+                style={{
+                  padding: '4px 6px',
+                  color: '#94A3B8',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {r.i}
+              </td>
+              <td
+                style={{
+                  padding: '4px 6px',
+                  color: '#e2e8f0',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {r.fwd?.node_id ?? '—'}
+              </td>
+              <td
+                style={{
+                  padding: '4px 6px',
+                  color: '#e2e8f0',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {r.ret?.node_id ?? '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

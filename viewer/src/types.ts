@@ -99,6 +99,27 @@ export interface PathHop {
   evidence: Record<string, unknown>;
 }
 
+// Phase 12 FMV-02 — Asymmetry payload (wire shape from
+// GET /v1/sites/{site_id}/asymmetries — Plan 12-03 surface, Plan 12-06 persistence)
+// attached to NetworkPath at the fetcher / store layer for the Asymmetry tab.
+export interface AsymmetryPayload {
+  finding_id: string;
+  /**
+   * Cause discriminant — one of 'BGP_LOCAL_PREF' | 'ROUTE_LEAK' | 'NAT_ASYMMETRY'
+   * | 'UNKNOWN' | 'NET-010' (Plan 12-06 persists NET-010 as a first-class cause).
+   * Kept as plain string so the wire surface stays loose-coupled with the backend.
+   */
+  cause: string;
+  cause_confidence: number;
+  impact_bytes_per_sec: number;
+  impact_firewall_count: number;
+  evidence?: Record<string, unknown>;
+  /** Sibling return path for side-by-side hop rendering in the Asymmetry tab */
+  return_path?: NetworkPath;
+  forward_path_id?: string;
+  return_path_id?: string;
+}
+
 export interface NetworkPath {
   id: string;
   source_node_id: string;
@@ -107,6 +128,12 @@ export interface NetworkPath {
   hops: PathHop[];
   evidence: Record<string, unknown>;
   path_cost?: PathCost;
+  /**
+   * Phase 12 — UI-only attachment. Populated by viewer/src/lib/asymmetryFetcher.ts
+   * after a GET /v1/sites/{id}/asymmetries response is mapped onto matching
+   * network_paths by forward_path_id (see store.setAsymmetries).
+   */
+  asymmetry?: AsymmetryPayload;
 }
 
 // Phase 9: CostLens types (mirror of cli/infracanvas/graph/models.py CostLensData)
