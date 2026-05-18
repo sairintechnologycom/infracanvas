@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -23,8 +23,9 @@ import { DCSiteGroupNodeMemo } from './nodes/DCSiteGroupNode'
 import { PathEdge, pathEdgeMarkerDefs } from './edges/PathEdge'
 import { layoutFlowMap } from './lib/elkLayout'
 import { FlowMapEmptyState } from './FlowMapEmptyState'
+import { fetchAsymmetries } from '../../lib/asymmetryFetcher'
 import { useViewerStoreOrSingleton } from '../../store'
-import type { NetworkPath, ResourceNode } from '../../types'
+import type { AsymmetryPayload, NetworkPath, ResourceNode } from '../../types'
 
 // Set of resource types that belong on the FlowMap — cloud network-layer
 // primitives collected by Plans 03-03 (AWS) + 03-04 (Azure). Exported so
@@ -94,12 +95,62 @@ function useSetSelectedPath(): (p: NetworkPath | null) => void {
   })
 }
 
+// Phase 12 FMV-02 — narrow selector for the setAsymmetries action. Returns a
+// no-op when the host store predates Plan 12-07 (defensive forward-compat).
+function useSetAsymmetries(): (payloads: AsymmetryPayload[]) => void {
+  return useViewerStoreOrSingleton((s) => {
+    const anyS = s as unknown as { setAsymmetries?: (p: AsymmetryPayload[]) => void }
+    return anyS.setAsymmetries ?? (() => undefined)
+  })
+}
+
+// Phase 12 FMV-02 — best-effort site_id resolver. The CLI HTML bundle injects
+// the entire ResourceGraph onto window.__INFRACANVAS_DATA__; the SaaS dashboard
+// path may attach a site_id to graph.metadata (when the scan is bound to a DC
+// site). Both shapes are tolerated; null is the offline fallback (asymmetry
+// fetch is then a no-op).
+function resolveSiteId(graph: unknown): string | null {
+  if (!graph || typeof graph !== 'object') return null
+  const g = graph as { metadata?: { site_id?: unknown }; site_id?: unknown }
+  const fromMeta = g.metadata?.site_id
+  if (typeof fromMeta === 'string' && fromMeta.length > 0) return fromMeta
+  const direct = g.site_id
+  if (typeof direct === 'string' && direct.length > 0) return direct
+  return null
+}
+
 export function FlowMapCanvas() {
   const graph = useViewerStoreOrSingleton((s) => s.graph)
   const setSelectedNode = useViewerStoreOrSingleton((s) => s.setSelectedNode)
   const flowMapFilters = useFlowMapFilters()
   const setSelectedPath = useSetSelectedPath()
+  const setAsymmetries = useSetAsymmetries()
+  const selectedPath = useViewerStoreOrSingleton((s) => s.selectedPath)
   const { fitView } = useReactFlow()
+
+  // Phase 12 FMV-02 — Blocker 3 closure. Fetch asymmetry findings from the
+  // backend (via the dashboard-injected window.__INFRACANVAS_BACKEND_FETCH__)
+  // and dispatch them to the store so selectedPath.asymmetry populates before
+  // the user inspects PathEdge / PathDetailPanel. On offline / standalone
+  // bundles the fetcher returns [] and this is a no-op.
+  const lastFetchedSiteIdRef = useRef<string | null>(null)
+  const selectedPathId = selectedPath?.id ?? null
+  useEffect(() => {
+    const siteId = resolveSiteId(graph)
+    if (!siteId) return
+    // Re-fetch when the site changes OR when the user picks a new path
+    // (so a freshly-selected path is hydrated even after the initial fetch).
+    if (lastFetchedSiteIdRef.current === siteId && !selectedPathId) return
+    lastFetchedSiteIdRef.current = siteId
+    let cancelled = false
+    fetchAsymmetries(siteId).then((payloads) => {
+      if (cancelled) return
+      setAsymmetries(payloads)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [graph, selectedPathId, setAsymmetries])
 
   const networkNodes = useMemo(() => {
     if (!graph) return []

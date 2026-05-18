@@ -3,6 +3,7 @@ import { createStore } from 'zustand/vanilla';
 import { useStore as useZustandStore } from 'zustand';
 import { createContext, createElement, useContext, useState, type ReactNode } from 'react';
 import type {
+  AsymmetryPayload,
   DriftStatus,
   NetworkPath,
   ResourceGraph,
@@ -59,6 +60,11 @@ export interface StoreState {
   toggleFlowMapFlowLogs: () => void;
   clearFlowMapFilters: () => void;
   setSelectedPath: (path: NetworkPath | null) => void;
+  // Phase 12 FMV-02 — Blocker 3 closure. Maps asymmetry payloads onto
+  // existing graph.network_paths entries (by forward_path_id) and rebinds
+  // selectedPath if its id matches, so selectedPath.asymmetry is populated
+  // synchronously for the PathDetailPanel Asymmetry tab.
+  setAsymmetries: (asymmetries: AsymmetryPayload[]) => void;
 }
 
 const emptyFilters: Filters = {
@@ -183,6 +189,33 @@ const stateCreator = (set: SetFn): StoreState => ({
   clearFlowMapFilters: () => set({ flowMapFilters: { ...emptyFlowMapFilters } }),
 
   setSelectedPath: (path) => set({ selectedPath: path }),
+
+  // Phase 12 FMV-02 — Blocker 3 closure. Iterate over graph.network_paths and
+  // attach matching AsymmetryPayloads (matched by forward_path_id == path.id).
+  // Also rebind selectedPath synchronously if its id matches an incoming
+  // payload, so the Asymmetry tab + red dashed PathEdge surface populated data.
+  setAsymmetries: (asymmetries) =>
+    set((s) => {
+      if (!s.graph || asymmetries.length === 0) return {};
+      const byForwardId = new Map<string, AsymmetryPayload>(
+        asymmetries
+          .filter((a): a is AsymmetryPayload & { forward_path_id: string } =>
+            typeof a.forward_path_id === 'string' && a.forward_path_id.length > 0,
+          )
+          .map((a) => [a.forward_path_id, a]),
+      );
+      if (byForwardId.size === 0) return {};
+      const nextPaths = (s.graph.network_paths ?? []).map((p) => {
+        const payload = byForwardId.get(p.id);
+        return payload ? { ...p, asymmetry: payload } : p;
+      });
+      const nextGraph: ResourceGraph = { ...s.graph, network_paths: nextPaths };
+      const nextSelected =
+        s.selectedPath && byForwardId.has(s.selectedPath.id)
+          ? { ...s.selectedPath, asymmetry: byForwardId.get(s.selectedPath.id)! }
+          : s.selectedPath;
+      return { graph: nextGraph, selectedPath: nextSelected };
+    }),
 });
 
 // Singleton — unchanged API for existing components + tests.
