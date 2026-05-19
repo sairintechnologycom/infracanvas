@@ -31,9 +31,8 @@ Like a credit score for your cloud: instant signal, no manual correlation. Share
 Requires **Python 3.12+**.
 
 ```bash
-# 1. Install (from source until PyPI publish)
-git clone https://github.com/infracanvas/infracanvas
-cd infracanvas && pip install ./cli
+# 1. Install
+pip install infracanvas
 
 # 2. Scan your Terraform directory
 infracanvas scan ./your-terraform-directory
@@ -61,12 +60,12 @@ infracanvas scan ./your-terraform-directory
 Requires **Python 3.12+**.
 
 ```bash
-# From source (current path)
-git clone https://github.com/infracanvas/infracanvas
-cd infracanvas && pip install ./cli
+# PyPI (recommended)
+pip install infracanvas
 
-# PyPI (coming soon — Canvas MVP launch)
-# pip install infracanvas
+# From source
+git clone https://github.com/sairintechnologycom/infracanvas
+cd infracanvas && pip install ./cli
 
 # Homebrew (coming soon)
 # brew install infracanvas/infracanvas/infracanvas
