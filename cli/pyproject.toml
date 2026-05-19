@@ -28,8 +28,11 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "typer==0.12.3",
-    "click>=8.1.0,<8.2",
+    # typer >=0.15 required for PEP-604 union annotations (`Path | None`) in
+    # command signatures — the codebase modernised away from Optional[X].
+    # click 8.2+ removed mix_stderr; tests handle both shapes (see test_cli.py).
+    "typer>=0.15,<1",
+    "click>=8.1,<9",
     "rich==13.7.1",
     "python-hcl2==4.3.4",
     "networkx==3.3",
