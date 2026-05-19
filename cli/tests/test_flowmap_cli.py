@@ -99,17 +99,22 @@ class TestRunFlowmapCollection:
 class TestFlowmapFlag:
     def test_help_lists_flowmap(self):
         """CLI --help text must advertise the --flowmap flag."""
+        import re
+
         from typer.testing import CliRunner
 
         from infracanvas.main import app
         runner = CliRunner()
         result = runner.invoke(app, ["scan", "--help"])
         assert result.exit_code == 0
-        assert "--flowmap" in result.output
+        # Strip ANSI escapes — newer typer/rich emits colour even off-TTY,
+        # which fragments option strings.
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+        assert "--flowmap" in plain
         # Rich may wrap the help text across lines and insert │ box-drawing
         # characters at boundaries; collapse whitespace + strip │ before
         # asserting on the advertised "Beta, free during preview" wording.
-        collapsed = " ".join(result.output.replace("│", " ").split())
+        collapsed = " ".join(plain.replace("│", " ").split())
         assert "Beta, free during preview" in collapsed
 
     def test_no_flowmap_flag_no_collector_import(self):

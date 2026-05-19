@@ -40,10 +40,13 @@ class TestExportExitCodes:
         """CLI-EXIT-03: --gate-mode / --no-gate-mode visible in help."""
         result = _run(["export", "--help"])
         assert result.returncode == 0
-        # Rich/Typer may wrap option text across lines; check each flag
-        # token appears somewhere in stdout (possibly on different lines).
-        assert "--gate-mode" in result.stdout
-        assert "--no-gate-mode" in result.stdout
+        # Strip ANSI escape sequences — newer typer emits colour even when
+        # stdout isn't a TTY (e.g. inside CI), which breaks naive substring
+        # checks because the option text gets sliced by escape codes.
+        import re
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        assert "--gate-mode" in plain
+        assert "--no-gate-mode" in plain
 
 
 class TestScoreExitCodes:

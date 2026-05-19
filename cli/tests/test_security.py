@@ -360,3 +360,82 @@ class TestAZ_RuleEvaluation:
         node = _evaluate_single(_node_from_fixture(fixture))
         findings = [f for f in node.findings if f.rule_id == rule_id]
         assert not findings, f"{rule_id} fired on negative fixture"
+
+
+class TestS3CompanionFold:
+    """Verify _fold_s3_companions projects sibling-resource attrs onto the parent bucket."""
+
+    def _make_bucket(self, name: str, **extra) -> ResourceNode:
+        attrs = {"bucket": name, **extra}
+        return ResourceNode(
+            id=f"aws_s3_bucket.{name}", type="aws_s3_bucket",
+            name=name, provider="aws", attributes=attrs,
+        )
+
+    def _make_companion(self, ctype: str, target: str, **extra) -> ResourceNode:
+        attrs = {"bucket": f"${{aws_s3_bucket.{target}.id}}", **extra}
+        return ResourceNode(
+            id=f"{ctype}.{target}", type=ctype,
+            name=target, provider="aws", attributes=attrs,
+        )
+
+    def test_encryption_companion_suppresses_sec002(self):
+        """SEC-002 must NOT fire when an _server_side_encryption_configuration sibling exists."""
+        bucket = self._make_bucket("secure")
+        encryption = self._make_companion(
+            "aws_s3_bucket_server_side_encryption_configuration", "secure",
+            rule=[{"apply_server_side_encryption_by_default": [{"sse_algorithm": "AES256"}]}],
+        )
+        graph = ResourceGraph(nodes=[bucket, encryption])
+        graph = evaluate_all(graph)
+        sec002 = [f for f in graph.nodes[0].findings if f.rule_id == "SEC-002"]
+        assert not sec002, "SEC-002 false-positive on bucket with sibling encryption resource"
+
+    def test_acl_companion_triggers_sec001(self):
+        """SEC-001 fires when an _acl sibling sets acl=public-read on the parent bucket."""
+        bucket = self._make_bucket("leaky")
+        acl = self._make_companion("aws_s3_bucket_acl", "leaky", acl="public-read")
+        graph = ResourceGraph(nodes=[bucket, acl])
+        graph = evaluate_all(graph)
+        sec001 = [f for f in graph.nodes[0].findings if f.rule_id == "SEC-001"]
+        assert sec001, "SEC-001 missed companion-resource public ACL"
+
+    def test_fold_skips_when_no_bucket_found(self):
+        """Orphan companion (no parent bucket in graph) is silently skipped, no crash."""
+        orphan = self._make_companion("aws_s3_bucket_acl", "ghost", acl="public-read")
+        graph = ResourceGraph(nodes=[orphan])
+        evaluate_all(graph)  # must not raise
+
+
+class TestEngineOperatorAdditions:
+    """Coverage for not_starts_with operator and contains-normalisation."""
+
+    def _check(self, attr_name: str, attr_value, op: str, value) -> bool:
+        node = ResourceNode(
+            id="x.y", type="aws_db_instance", name="y", provider="aws",
+            attributes={attr_name: attr_value},
+        )
+        rule = SecurityRule(
+            id="TEST-OP", title="t", severity=Severity.high,
+            resource_types=["aws_db_instance"], framework_ids=[],
+            condition=RuleCondition(attribute=attr_name, operator=op, value=value),
+            remediation="r", description="d",
+        )
+        return _evaluate_rule(rule, node) is not None
+
+    def test_not_starts_with_fires_on_literal(self):
+        assert self._check("password", "ChangeMe123!", "not_starts_with", "${")
+
+    def test_not_starts_with_silent_on_var_reference(self):
+        assert not self._check("password", "${var.db_password}", "not_starts_with", "${")
+
+    def test_not_starts_with_silent_on_empty(self):
+        assert not self._check("password", "", "not_starts_with", "${")
+
+    def test_contains_matches_jsonencode_python_dict_repr(self):
+        """Jsonencode HCL produces Python-dict-repr; needle in JSON form must still match."""
+        haystack = "${jsonencode({'Statement': [{'Action': '*', 'Resource': '*'}]})}"
+        assert self._check("policy", haystack, "contains", "\"Action\":\"*\"")
+
+    def test_contains_still_matches_plain_json(self):
+        assert self._check("policy", '{"Action":"*"}', "contains", "\"Action\":\"*\"")
