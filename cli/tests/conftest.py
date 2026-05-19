@@ -83,6 +83,14 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     except ImportError:
         return
 
+    # Skip the gate unless pytest-cov is active for THIS session — otherwise a
+    # stale .coverage file from a previous run (or one written by a different
+    # workflow, e.g. running `pytest cli/tests/` from the project root without
+    # the cli/pyproject.toml addopts) produces misleading red.
+    cov_plugin = session.config.pluginmanager.get_plugin("_cov")
+    if cov_plugin is None or getattr(cov_plugin, "cov_controller", None) is None:
+        return
+
     cov_file = Path(session.config.rootpath) / ".coverage"
     if not cov_file.exists():
         return

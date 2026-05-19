@@ -221,17 +221,27 @@ class TestFailOnFlag:
         assert has_findings is True  # High findings present
 
 
+def _make_split_runner() -> CliRunner:
+    """Build a CliRunner that keeps stdout/stderr separate across Click versions.
+
+    Click 8.2 removed ``mix_stderr``: stdout and stderr are always separated and
+    ``result.stderr`` is accessible by default. Older Click needs the explicit kwarg.
+    """
+    try:
+        return CliRunner(mix_stderr=False)  # type: ignore[call-arg]
+    except TypeError:
+        return CliRunner()
+
+
 class TestPhase51CLI:
     """Phase 5.1 CLI UX tests — --quiet one-liner, --open browser, parse warnings on stderr.
 
-    Uses a dedicated ``CliRunner(mix_stderr=False)`` so the assertions can distinguish
-    stdout from stderr. The stderr routing contract (Task 1 Edit 6) depends on this:
-    parse warnings must NOT appear on stdout when --quiet is set.
+    Uses a split-stream ``CliRunner`` so the assertions can distinguish stdout from
+    stderr. The stderr routing contract (Task 1 Edit 6) depends on this: parse
+    warnings must NOT appear on stdout when --quiet is set.
     """
 
-    # Separate stdout/stderr so we can assert stdout is exactly the one-line summary
-    # while stderr carries parse warnings and error messages.
-    split_runner = CliRunner(mix_stderr=False)
+    split_runner = _make_split_runner()
 
     def test_51e_scan_quiet_one_line_summary(self):
         """5.1-E: --quiet prints exactly one summary line to stdout; exit 0."""
