@@ -1,7 +1,11 @@
 - id: SEC-007
   title: "IAM Policy with Wildcard Action"
   severity: critical
-  resource_types: ["aws_iam_policy"]
+  resource_types:
+    - "aws_iam_policy"
+    - "aws_iam_role_policy"
+    - "aws_iam_user_policy"
+    - "aws_iam_group_policy"
   framework_ids: ["CIS-1.5", "NIST-IA-2", "SOC2-CC6.1", "PCI-DSS-8.3"]
   condition:
     attribute: "policy"

@@ -33,3 +33,27 @@
     value: 0
   remediation: "Set monitoring_interval to 60 or less and provide a monitoring_role_arn for enhanced monitoring"
   description: "RDS instance does not have enhanced monitoring enabled, reducing operational visibility"
+
+- id: SEC-031
+  title: "RDS Instance Storage Not Encrypted"
+  severity: high
+  resource_types: ["aws_db_instance"]
+  framework_ids: ["CIS-2.3.1", "NIST-SC-28", "SOC2-CC6.7", "PCI-DSS-3.4", "HIPAA-164.312(a)(2)(iv)"]
+  condition:
+    attribute: "storage_encrypted"
+    operator: "equals"
+    value: false
+  remediation: "Set storage_encrypted = true and provide a kms_key_id. Requires snapshot/restore on existing instances."
+  description: "RDS instance has unencrypted storage at rest — data, snapshots, and backups are stored in plaintext"
+
+- id: SEC-032
+  title: "RDS Instance Has Hardcoded Master Password"
+  severity: critical
+  resource_types: ["aws_db_instance"]
+  framework_ids: ["CIS-1.4", "NIST-IA-5", "SOC2-CC6.1", "PCI-DSS-8.2"]
+  condition:
+    attribute: "password"
+    operator: "not_starts_with"
+    value: "${"
+  remediation: "Replace the literal password with a reference to a sensitive variable, AWS Secrets Manager, or SSM Parameter Store."
+  description: "RDS master password is a hardcoded literal in Terraform source — visible to anyone with repo read access"

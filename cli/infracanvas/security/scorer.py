@@ -24,13 +24,44 @@ SEVERITY_WEIGHT: dict[str, int] = {
     "info": 1,
 }
 
-# Category → rule IDs mapping — SCR-02 spec: 5 dimensions
+# Category → rule IDs mapping — SCR-02 spec: 5 dimensions.
+# Expanded post-Phase 1 to cover the full rule inventory across AWS (SEC-*),
+# Azure (AZ-*), and Network (NET-*). Pre-existing test contracts retained:
+# SEC-001/003/004/005 → Security; SEC-002/006/009 → Encryption;
+# SEC-007/008 → IAM Hygiene; SEC-010 → Tagging.
 CATEGORY_RULES: dict[str, set[str]] = {
-    "Security":        {"SEC-001", "SEC-003", "SEC-004", "SEC-005"},
-    "Encryption":      {"SEC-002", "SEC-006", "SEC-009"},
-    "IAM Hygiene":     {"SEC-007", "SEC-008"},
-    "Cost Efficiency": set(),
-    "Tagging":         {"SEC-010"},
+    "Security": {
+        # AWS network exposure + access control
+        "SEC-001", "SEC-003", "SEC-004", "SEC-005",
+        "SEC-011", "SEC-014", "SEC-016", "SEC-023", "SEC-024",
+        # Azure network + storage public access
+        "AZ-001", "AZ-002", "AZ-003", "AZ-005",
+        "AZ-006", "AZ-007", "AZ-009", "AZ-010",
+        "AZ-013", "AZ-014", "AZ-015",
+        # Network rules — internet-facing exposure
+        "NET-001", "NET-003", "NET-007", "NET-010", "NET-011",
+    },
+    "Encryption": {
+        "SEC-002", "SEC-006", "SEC-009",
+        "SEC-022", "SEC-025", "SEC-026", "SEC-029",
+        "SEC-031",
+        "AZ-004",
+    },
+    "IAM Hygiene": {
+        "SEC-007", "SEC-008",
+        "SEC-015", "SEC-028",
+        # Hardcoded secrets are an identity/credential management problem.
+        "SEC-032", "AZ-012", "AZ-016",
+        "AZ-008", "AZ-011",
+    },
+    "Cost Efficiency": {
+        # Resilience + lifecycle hygiene — wasted spend on un-managed resources
+        "SEC-012", "SEC-013", "SEC-017", "SEC-018", "SEC-019", "SEC-020",
+        "SEC-021", "SEC-027", "SEC-030",
+        "NET-002", "NET-004", "NET-005", "NET-006",
+        "NET-008", "NET-009", "NET-012",
+    },
+    "Tagging": {"SEC-010"},
 }
 
 

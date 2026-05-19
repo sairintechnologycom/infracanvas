@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import signal
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,13 @@ from infracanvas.parser.references import find_references
 # materializing millions of ParsedResources. Chosen to comfortably fit realistic
 # Terraform usage (typical upper bound is a few hundred) while refusing OOM-scale input.
 COUNT_EXPANSION_CAP: int = 1000
+
+# Per-file HCL parse timeout. python-hcl2's Lark grammar can backtrack indefinitely
+# on certain malformed inputs (e.g. unterminated string, missing close brace),
+# leaving the scan hung at 96% CPU. We bound each file's parse so the user sees a
+# clear error instead. Override via INFRACANVAS_PARSE_TIMEOUT_S (e.g. for very
+# large generated .tf files).
+PARSE_TIMEOUT_S: float = float(os.environ.get("INFRACANVAS_PARSE_TIMEOUT_S", "30"))
 
 
 @dataclass
@@ -93,14 +102,69 @@ def parse_directory(directory: Path) -> ParsedTerraform:
     return result
 
 
+class _ParseTimeout(Exception):
+    """Raised when hcl2.load exceeds PARSE_TIMEOUT_S on a single file."""
+
+
+def _load_hcl_with_timeout(tf_file: Path, timeout_s: float) -> tuple[Any, str | None]:
+    """Run hcl2.load with a wall-clock deadline; return (parsed, error_str).
+
+    python-hcl2's Lark grammar can hang indefinitely on malformed input (missing
+    brace, unterminated string). On Unix we use SIGALRM, which interrupts pure-
+    Python loops cleanly. On platforms without SIGALRM (Windows) we fall back to
+    a best-effort threading watchdog.
+    """
+    timeout_msg = (
+        f"parser exceeded {timeout_s:.0f}s — file is likely malformed "
+        f"(unterminated string / missing brace). "
+        f"Set INFRACANVAS_PARSE_TIMEOUT_S to raise the limit for large files."
+    )
+
+    has_sigalrm = hasattr(signal, "SIGALRM")
+    if has_sigalrm:
+        def _handler(_signum: int, _frame: Any) -> None:
+            raise _ParseTimeout(timeout_msg)
+
+        old_handler = signal.signal(signal.SIGALRM, _handler)
+        signal.setitimer(signal.ITIMER_REAL, timeout_s)
+        try:
+            with open(tf_file) as f:
+                return hcl2.load(f), None
+        except _ParseTimeout as exc:
+            return None, str(exc)
+        except Exception as exc:  # noqa: BLE001 — hcl2 raises a wide variety
+            return None, f"{type(exc).__name__}: {exc}"
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, old_handler)
+    else:  # pragma: no cover — Windows fallback
+        import threading
+
+        out: dict[str, Any] = {}
+
+        def _worker() -> None:
+            try:
+                with open(tf_file) as f:
+                    out["parsed"] = hcl2.load(f)
+            except Exception as exc:  # noqa: BLE001
+                out["error"] = f"{type(exc).__name__}: {exc}"
+
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+        t.join(timeout_s)
+        if t.is_alive():
+            return None, timeout_msg
+        if "error" in out:
+            return None, out["error"]
+        return out.get("parsed"), None
+
+
 def _parse_file(tf_file: Path, result: ParsedTerraform) -> None:
     """Parse a single .tf file and append results."""
-    with open(tf_file) as f:
-        try:
-            parsed = hcl2.load(f)
-        except Exception as exc:
-            result.parse_errors.append((tf_file, str(exc)))
-            return
+    parsed, err = _load_hcl_with_timeout(tf_file, PARSE_TIMEOUT_S)
+    if err is not None:
+        result.parse_errors.append((tf_file, err))
+        return
 
     _extract_resources(parsed, result)
     _extract_variables(parsed, result)

@@ -25,3 +25,32 @@
     operator: "exists"
   remediation: "Remove public IP and use Azure Bastion or VPN for access"
   description: "Virtual machine is directly exposed to the internet via public IP"
+
+- id: AZ-011
+  title: "Linux Virtual Machine Allows Password Authentication"
+  severity: high
+  resource_types:
+    - "azurerm_linux_virtual_machine"
+  framework_ids: ["CIS-7.3", "NIST-AC-7", "SOC2-CC6.1", "PCI-DSS-8.2.4"]
+  condition:
+    attribute: "disable_password_authentication"
+    operator: "equals"
+    value: false
+  remediation: "Set disable_password_authentication = true and configure admin_ssh_key with a strong public key"
+  description: "Linux VM allows SSH password authentication — vulnerable to brute force and credential stuffing"
+
+- id: AZ-012
+  title: "Virtual Machine Has Hardcoded Admin Password"
+  severity: critical
+  resource_types:
+    - "azurerm_linux_virtual_machine"
+    - "azurerm_windows_virtual_machine"
+    - "azurerm_virtual_machine"
+  framework_ids: ["CIS-1.21", "NIST-IA-5", "SOC2-CC6.1", "PCI-DSS-8.2"]
+  condition:
+    attribute: "admin_password"
+    operator: "not_starts_with"
+    value: "${"
+  remediation: "Replace the literal admin_password with a reference to a Key Vault secret or sensitive variable."
+  description: "Azure VM admin password is a hardcoded literal in Terraform source — visible to anyone with repo read access"
+

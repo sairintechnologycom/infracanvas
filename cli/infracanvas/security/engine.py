@@ -2,11 +2,75 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode
 from infracanvas.security.loader import load_rules
 from infracanvas.security.models import SecurityRule
+
+# Modern AWS provider pattern: S3 bucket configuration is split across sibling
+# resources rather than inline attributes (the v4 deprecation). Without folding,
+# rules like SEC-002 (S3 Bucket Missing Encryption) fire as false-positives on
+# every bucket that uses the canonical aws_s3_bucket_server_side_encryption_*
+# pattern. This map lists each companion → the synthetic attribute key it should
+# project onto the parent bucket, plus the source attribute on the companion.
+_S3_COMPANION_FOLD: dict[str, tuple[str, str]] = {
+    "aws_s3_bucket_server_side_encryption_configuration": (
+        "server_side_encryption_configuration", "rule",
+    ),
+    "aws_s3_bucket_versioning":          ("versioning_configuration", "versioning_configuration"),
+    "aws_s3_bucket_logging":             ("logging", "target_bucket"),
+    "aws_s3_bucket_acl":                 ("acl", "acl"),
+    "aws_s3_bucket_public_access_block": ("public_access_block", "*"),
+}
+
+# Matches `${aws_s3_bucket.<name>.id}` (HCL ref) or bare `aws_s3_bucket.<name>`.
+_BUCKET_REF_RE = re.compile(r"aws_s3_bucket\.([A-Za-z0-9_\-]+)")
+
+
+def _bucket_target_name(companion_attrs: dict[str, Any]) -> str | None:
+    """Return the referenced bucket's local name from a companion's `bucket` attr."""
+    bucket_ref = companion_attrs.get("bucket")
+    if not isinstance(bucket_ref, str):
+        return None
+    m = _BUCKET_REF_RE.search(bucket_ref)
+    return m.group(1) if m else None
+
+
+def _fold_s3_companions(graph: ResourceGraph) -> None:
+    """Project companion-resource attributes onto their parent aws_s3_bucket.
+
+    Mutates `graph.nodes` in place. Idempotent: re-running has no effect once
+    folded keys exist on the parent. Falls back silently if the companion's
+    `bucket` reference can't be resolved.
+    """
+    buckets_by_name: dict[str, ResourceNode] = {
+        n.name: n for n in graph.nodes if n.type == "aws_s3_bucket"
+    }
+    if not buckets_by_name:
+        return
+
+    for node in graph.nodes:
+        fold = _S3_COMPANION_FOLD.get(node.type)
+        if fold is None:
+            continue
+        synthetic_key, source_key = fold
+        target_name = _bucket_target_name(node.attributes) or node.name
+        bucket = buckets_by_name.get(target_name)
+        if bucket is None:
+            continue
+        if synthetic_key in bucket.attributes:
+            continue  # already folded — preserve any inline value
+        if source_key == "*":
+            # PAB-style: project the whole companion attribute dict, minus the
+            # `bucket` reference itself.
+            payload = {k: v for k, v in node.attributes.items() if k != "bucket"}
+            bucket.attributes[synthetic_key] = payload
+        else:
+            value = node.attributes.get(source_key)
+            if value is not None:
+                bucket.attributes[synthetic_key] = value
 
 
 def evaluate_all(
@@ -15,6 +79,7 @@ def evaluate_all(
 ) -> ResourceGraph:
     """Run all security rules (and optional policy rules) against all nodes."""
     rules = load_rules()
+    _fold_s3_companions(graph)
 
     for node in graph.nodes:
         for rule in rules:
@@ -61,11 +126,32 @@ def _evaluate_rule(rule: SecurityRule, node: ResourceNode, source: str = "securi
             matched = value is None
         case "contains":
             if isinstance(value, str):
-                # Check both the raw value and unescaped version
+                # Check raw, double-quote-unescaped, and Python-dict-repr forms.
+                # jsonencode({...}) HCL gets parsed by python-hcl2 into a string
+                # that uses single quotes and spaces around colons (Python repr).
+                # We normalise to JSON style so rules can author needles in the
+                # natural `"Action":"*"` form.
                 target = str(condition.value)
-                matched = target in value or target in value.replace("\\\"", "\"")
+                normalised = (
+                    value.replace("'", '"')
+                         .replace('": "', '":"')
+                         .replace('": [', '":[')
+                         .replace('": {', '":{')
+                )
+                matched = (
+                    target in value
+                    or target in value.replace("\\\"", "\"")
+                    or target in normalised
+                )
             elif isinstance(value, list):
                 matched = condition.value in value
+        case "not_starts_with":
+            # Used by literal-secret detection: a Terraform variable or
+            # function-call reference begins with `${`, a hardcoded literal
+            # does not. `value` here is the raw attribute string.
+            if isinstance(value, str):
+                target = str(condition.value)
+                matched = not value.startswith(target) and len(value) > 0
         case "matches_cidr":
             matched = _check_cidr_match(value, condition.values)
         case "list_contains_cidr":

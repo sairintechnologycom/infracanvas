@@ -33,3 +33,27 @@
     value: "TLS1_2"
   remediation: "Set min_tls_version = 'TLS1_2'"
   description: "Storage account accepts connections with TLS version below 1.2"
+
+- id: AZ-013
+  title: "Storage Account Does Not Enforce HTTPS (legacy attribute)"
+  severity: high
+  resource_types: ["azurerm_storage_account"]
+  framework_ids: ["CIS-3.1", "NIST-SC-8", "SOC2-CC6.7", "PCI-DSS-4.1"]
+  condition:
+    attribute: "enable_https_traffic_only"
+    operator: "equals"
+    value: false
+  remediation: "Set enable_https_traffic_only = true (or migrate to azurerm provider v4 https_traffic_only_enabled)"
+  description: "Storage account allows unencrypted HTTP traffic via legacy enable_https_traffic_only=false"
+
+- id: AZ-014
+  title: "Storage Account Allows Public Network Access"
+  severity: high
+  resource_types: ["azurerm_storage_account"]
+  framework_ids: ["CIS-3.6", "NIST-SC-7", "SOC2-CC6.1"]
+  condition:
+    attribute: "public_network_access_enabled"
+    operator: "equals"
+    value: true
+  remediation: "Set public_network_access_enabled = false and use Private Endpoints for trusted access"
+  description: "Storage account is reachable from the public internet — bypasses VNet integration"

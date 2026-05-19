@@ -9,3 +9,27 @@
     value: true
   remediation: "Set public_network_access_enabled = false and use private endpoints"
   description: "SQL Server is accessible from the public internet"
+
+- id: AZ-015
+  title: "SQL Server Minimum TLS Version Too Low"
+  severity: medium
+  resource_types: ["azurerm_mssql_server"]
+  framework_ids: ["CIS-4.1.3", "NIST-SC-8", "PCI-DSS-4.1"]
+  condition:
+    attribute: "minimum_tls_version"
+    operator: "not_equals"
+    value: "1.2"
+  remediation: "Set minimum_tls_version = '1.2'"
+  description: "SQL Server accepts connections with TLS version below 1.2"
+
+- id: AZ-016
+  title: "SQL Server Has Hardcoded Administrator Password"
+  severity: critical
+  resource_types: ["azurerm_mssql_server"]
+  framework_ids: ["CIS-1.21", "NIST-IA-5", "SOC2-CC6.1", "PCI-DSS-8.2"]
+  condition:
+    attribute: "administrator_login_password"
+    operator: "not_starts_with"
+    value: "${"
+  remediation: "Replace the literal administrator_login_password with a reference to a Key Vault secret or sensitive variable."
+  description: "SQL Server admin password is a hardcoded literal in Terraform source — visible to anyone with repo read access"

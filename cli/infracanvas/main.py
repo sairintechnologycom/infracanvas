@@ -215,6 +215,25 @@ def _run_scan(
     return graph
 
 
+def _gate_exit_code(graph: ResourceGraph, fail_on: Optional[str]) -> int:
+    """Compute the exit code from --fail-on threshold against scan findings.
+
+    Returns 1 if any finding at or above `fail_on` severity exists, 0 otherwise.
+    When `fail_on` is None (flag not passed), always returns 0 — the scan is
+    informational only and exits clean.
+    """
+    if not fail_on:
+        return 0
+    sev_order = ["critical", "high", "medium", "info"]
+    if fail_on not in sev_order:
+        return 0
+    threshold_idx = sev_order.index(fail_on)
+    return 1 if any(
+        graph.summary.findings.get(s, 0) > 0
+        for s in sev_order[: threshold_idx + 1]
+    ) else 0
+
+
 def _detect_provider(graph: ResourceGraph) -> str:
     providers: set[str] = set()
     for node in graph.nodes:
@@ -368,7 +387,14 @@ def scan(
     ] = None,
     fail_on: Annotated[
         Optional[str],
-        typer.Option("--fail-on", help="Minimum severity for non-zero exit (critical/high/medium/info)"),
+        typer.Option(
+            "--fail-on",
+            help=(
+                "Gate exit code on findings of the given severity or higher "
+                "(critical/high/medium/info). Applies in all output modes — no "
+                "need to pair with --ci. Default: not gated, always exits 0."
+            ),
+        ),
     ] = None,
 ) -> None:
     """Scan a Terraform directory and generate an annotated resource graph."""
@@ -428,11 +454,11 @@ def scan(
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Warning:[/yellow] CostLens allocation failed: {exc}")
 
-    # --json: JSON to stdout, always exit 0 on success (replaces the old --quiet JSON-dump behavior)
+    # --json: JSON to stdout. --fail-on still applies as a gate if explicitly set.
     if json_out:
         sys.stdout.write(export_graph(graph))
         sys.stdout.write("\n")
-        raise typer.Exit(code=0)
+        raise typer.Exit(code=_gate_exit_code(graph, fail_on))
 
     # --ci: JSON to stdout + findings-gated exit (unchanged semantics)
     if ci:
@@ -489,7 +515,7 @@ def scan(
             out_path.write_text(export_graph(graph))
 
         typer.echo(summary_line + opened_suffix)
-        raise typer.Exit(code=0)
+        raise typer.Exit(code=_gate_exit_code(graph, fail_on))
 
     _print_summary(graph)
 
@@ -519,7 +545,7 @@ def scan(
         out_path.write_text(export_graph(graph))
         console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
-    raise typer.Exit(code=0)
+    raise typer.Exit(code=_gate_exit_code(graph, fail_on))
 
 
 def _run_watch(
