@@ -3,7 +3,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 CLI = [sys.executable, "-m", "infracanvas.main"]
 
 

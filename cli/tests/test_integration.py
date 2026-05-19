@@ -9,10 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
-from infracanvas.export.json import export_graph
 from infracanvas.graph.models import ResourceGraph
 from infracanvas.main import app
 
@@ -72,7 +70,7 @@ class TestIntegration:
     def test_d002_severity_filter(self):
         """D-002: --severity critical flag filters output correctly."""
         data = _run_scan_quiet("simple_vpc")
-        graph = ResourceGraph.model_validate(data)
+        ResourceGraph.model_validate(data)  # smoke-validate baseline
 
         # With severity filter, only critical findings remain on nodes
         result = _run_cli(
@@ -244,8 +242,7 @@ class TestEndToEnd:
         # Check score card was written
         assert "Score card saved" in result.output or "infracanvas-score.html" in result.output
         # Find the generated score card HTML and verify all 5 dimensions are present
-        import glob
-        score_htmls = glob.glob(str(tmp_path / "**/*score*.html"), recursive=True)
+        # (we look in both the tmp path and the default output dir below)
         # Also check the default output directory
         default_score = Path("infracanvas-score.html")
         if default_score.exists():

@@ -139,8 +139,8 @@ class TestScorer:
 class TestScorecardHtml:
     """Tests for D-08 score card HTML layout."""
 
-    def _make_card(self) -> "ScoreCard":
-        from infracanvas.graph.models import ScoreCard, CategoryScore, Finding, Severity
+    def _make_card(self) -> "ScoreCard":  # noqa: F821 — imported inside fn for test scoping
+        from infracanvas.graph.models import CategoryScore, Finding, ScoreCard, Severity
 
         return ScoreCard(
             overall=74,

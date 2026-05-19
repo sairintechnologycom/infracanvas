@@ -1,8 +1,9 @@
 """Tests for shadow infrastructure detector (SHD-01, SHD-02)."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from infracanvas.graph.models import DriftStatus, ResourceGraph, ResourceNode
 

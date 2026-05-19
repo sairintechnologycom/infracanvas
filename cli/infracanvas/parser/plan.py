@@ -9,7 +9,6 @@ from typing import Any
 
 from infracanvas.graph.models import AttributeChange, DriftStatus
 
-
 ACTION_MAP: dict[tuple[str, ...], DriftStatus] = {
     ("no-op",): DriftStatus.unchanged,
     ("create",): DriftStatus.added,

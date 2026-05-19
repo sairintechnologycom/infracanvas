@@ -54,7 +54,7 @@ infracanvas = "infracanvas.main:app"
 
 [project.urls]
 Homepage = "https://infracanvas.dev"
-Repository = "https://github.com/infracanvas/infracanvas"
+Repository = "https://github.com/sairintechnologycom/infracanvas"
 Documentation = "https://docs.infracanvas.dev"
 "Bug Tracker" = "https://github.com/infracanvas/infracanvas/issues"
 
@@ -87,6 +87,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+# E501 (line-too-long): line-length=100 already caps real code; remaining
+#   offenders are docstrings/comments where wrapping hurts readability.
+# N801 (invalid-class-name): test classes deliberately encode plan/test IDs
+#   (TestPhase51CLI, Test5_1_E).
+ignore = ["E501", "N801"]
 
 [tool.mypy]
 python_version = "3.12"

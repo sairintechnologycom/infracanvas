@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from infracanvas.parser.hcl import parse_directory
 from infracanvas.parser.references import find_references
 from infracanvas.parser.state import parse_state_file

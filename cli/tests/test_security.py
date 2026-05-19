@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from infracanvas.graph.builder import build_graph
-from infracanvas.graph.models import Finding, ResourceGraph, ResourceNode, Severity
+from infracanvas.graph.models import ResourceGraph, ResourceNode, Severity
 from infracanvas.parser.hcl import parse_directory
 from infracanvas.security.engine import _evaluate_rule, evaluate_all
 from infracanvas.security.loader import load_rules

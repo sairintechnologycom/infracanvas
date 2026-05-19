@@ -2,7 +2,7 @@
 
 import pytest
 
-from infracanvas.cost.estimator import CostEstimator, HOURS_PER_MONTH, _estimate_resource
+from infracanvas.cost.estimator import HOURS_PER_MONTH, CostEstimator, _estimate_resource
 from infracanvas.graph.models import (
     DriftStatus,
     GraphSummary,

@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from infracanvas.main import app
@@ -178,6 +177,7 @@ class TestWatchMode:
     def test_watch_flag_accepted(self):
         """CLX-02-A: --watch flag is accepted by scan command."""
         from typer.testing import CliRunner
+
         from infracanvas.main import app
         runner = CliRunner()
         # Use a non-existent dir to trigger early exit, but verify flag is accepted

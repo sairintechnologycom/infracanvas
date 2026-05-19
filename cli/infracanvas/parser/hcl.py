@@ -102,7 +102,7 @@ def parse_directory(directory: Path) -> ParsedTerraform:
     return result
 
 
-class _ParseTimeout(Exception):
+class _ParseTimeoutError(Exception):
     """Raised when hcl2.load exceeds PARSE_TIMEOUT_S on a single file."""
 
 
@@ -123,14 +123,14 @@ def _load_hcl_with_timeout(tf_file: Path, timeout_s: float) -> tuple[Any, str | 
     has_sigalrm = hasattr(signal, "SIGALRM")
     if has_sigalrm:
         def _handler(_signum: int, _frame: Any) -> None:
-            raise _ParseTimeout(timeout_msg)
+            raise _ParseTimeoutError(timeout_msg)
 
         old_handler = signal.signal(signal.SIGALRM, _handler)
         signal.setitimer(signal.ITIMER_REAL, timeout_s)
         try:
             with open(tf_file) as f:
                 return hcl2.load(f), None
-        except _ParseTimeout as exc:
+        except _ParseTimeoutError as exc:
             return None, str(exc)
         except Exception as exc:  # noqa: BLE001 — hcl2 raises a wide variety
             return None, f"{type(exc).__name__}: {exc}"

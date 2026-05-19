@@ -19,13 +19,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd cli
-          pip install -e .
-          pip install pytest pytest-cov
+          pip install -e ".[test,flowmap,shadow]"
 
       - name: Run tests
         run: |
           cd cli
-          pytest --cov=infracanvas --cov-report=term-missing -q
+          pytest -q
 
   test-viewer:
     runs-on: ubuntu-latest

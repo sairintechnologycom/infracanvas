@@ -1,6 +1,5 @@
 """Tests for .infracanvas.yml config loading."""
 
-from pathlib import Path
 
 from infracanvas.config import InfraCanvasConfig, load_config
 

@@ -10,7 +10,6 @@ from infracanvas.graph.models import (
     Finding,
     ResourceGraph,
     ScoreCard,
-    Severity,
 )
 
 # Grade thresholds — matches UI-SPEC: A>=80, B>=65, C>=50, D>=35, F<35

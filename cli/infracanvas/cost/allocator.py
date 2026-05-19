@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from infracanvas.graph.models import (
-    CostLineItem,
     CostLensData,
+    CostLineItem,
     ResourceGraph,
     ResourceNode,
     SharedResourceSummary,

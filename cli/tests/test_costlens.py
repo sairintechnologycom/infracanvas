@@ -1,10 +1,9 @@
 """Tests for CostLens — SharedCostAllocator, IdleDetector, EgressEstimator."""
 
-import pytest
 
 from infracanvas.cost.allocator import SharedCostAllocator
-from infracanvas.cost.idle import IdleDetector  # noqa: F401  (RED — Plan 03)
 from infracanvas.cost.egress import EgressEstimator
+from infracanvas.cost.idle import IdleDetector  # noqa: F401  (RED — Plan 03)
 from infracanvas.graph.models import CostEstimate, NetworkPath, ResourceGraph, ResourceNode
 
 

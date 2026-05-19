@@ -48,8 +48,9 @@ class TestNetworkFinding:
 
     def test_network_finding_rejects_missing_fields(self):
         """FDM-01: NetworkFinding requires mandatory network-layer fields."""
-        from infracanvas.graph.models import NetworkFinding
         import pytest
+
+        from infracanvas.graph.models import NetworkFinding
         with pytest.raises(Exception):
             NetworkFinding(source_ip="0.0.0.0/0")  # type: ignore[call-arg]
 

@@ -10,20 +10,20 @@ import uuid
 import webbrowser
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from infracanvas.config import InfraCanvasConfig, load_config
+from infracanvas.config import load_config
 from infracanvas.cost.estimator import CostEstimator
 from infracanvas.drift.analyzer import DriftAnalyzer
 from infracanvas.export.html import export_html
 from infracanvas.export.json import export_graph
 from infracanvas.export.scorecard import export_scorecard
 from infracanvas.graph.builder import build_graph
-from infracanvas.graph.models import ResourceGraph, Severity
+from infracanvas.graph.models import ResourceGraph, ScoreCard, Severity
 from infracanvas.graph.summary import compute_summary
 from infracanvas.parser.hcl import parse_directory
 from infracanvas.parser.plan import PlanReader
@@ -71,14 +71,14 @@ def _should_open_browser() -> bool:
 
 def _run_scan(
     directory: Path,
-    severity_filter: Optional[str] = None,
-    ignore_rules: Optional[list[str]] = None,
+    severity_filter: str | None = None,
+    ignore_rules: list[str] | None = None,
     *,
     allow_empty: bool = False,
     ci: bool = False,
     shadow: bool = False,
     flowmap: bool = False,
-    policy: Optional[Path] = None,
+    policy: Path | None = None,
 ) -> ResourceGraph:
     """Core scan pipeline: parse → graph → security → annotate."""
     out = _ci_console if ci else console
@@ -139,7 +139,7 @@ def _run_scan(
     # PRS-05: flag shadow resources from .tfstate (state-only resources absent from HCL)
     state_path = directory / "terraform.tfstate"
     if state_path.exists():
-        from infracanvas.parser.state import parse_state_file, flag_shadow_resources
+        from infracanvas.parser.state import flag_shadow_resources, parse_state_file
         state = parse_state_file(state_path)
         flag_shadow_resources(graph, state)
 
@@ -215,7 +215,7 @@ def _run_scan(
     return graph
 
 
-def _gate_exit_code(graph: ResourceGraph, fail_on: Optional[str]) -> int:
+def _gate_exit_code(graph: ResourceGraph, fail_on: str | None) -> int:
     """Compute the exit code from --fail-on threshold against scan findings.
 
     Returns 1 if any finding at or above `fail_on` severity exists, 0 otherwise.
@@ -314,7 +314,7 @@ def scan(
         Path, typer.Argument(help="Directory containing Terraform files")
     ],
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
@@ -349,7 +349,7 @@ def scan(
         ),
     ] = False,
     severity: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--severity", "-s", help="Filter findings by severity"),
     ] = None,
     ci: Annotated[
@@ -364,7 +364,7 @@ def scan(
         typer.Option("--watch", "-w", help="Re-scan on file changes"),
     ] = False,
     ignore: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option("--ignore", help="Rule IDs to skip, e.g. --ignore SEC-010"),
     ] = None,
     shadow: Annotated[
@@ -382,11 +382,11 @@ def scan(
         ),
     ] = False,
     policy: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--policy", help="Directory containing custom policy YAML files"),
     ] = None,
     fail_on: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--fail-on",
             help=(
@@ -550,9 +550,9 @@ def scan(
 
 def _run_watch(
     directory: Path,
-    output: Optional[Path],
+    output: Path | None,
     fmt: str,
-    severity: Optional[str],
+    severity: str | None,
     ignore_rules: list[str],
     ci: bool,
 ) -> None:
@@ -609,7 +609,7 @@ def serve(
         int, typer.Option("--port", "-p", help="HTTP server port"),
     ] = 8080,
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
 ) -> None:
@@ -714,7 +714,7 @@ def score(
         typer.Option("--format", "-f", help="Output format (terminal, json, html)"),
     ] = "terminal",
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
 ) -> None:
@@ -785,7 +785,7 @@ def plan(
         typer.Option("--planfile", "-p", help="Terraform plan JSON file"),
     ] = ...,
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
@@ -940,9 +940,8 @@ def plan(
             console.print(f"  Report saved to: [bold]{out_path}[/bold]")
 
 
-def _print_scorecard(card: "ScoreCard") -> None:
+def _print_scorecard(card: ScoreCard) -> None:
     """Print a rich score card to the terminal."""
-    from infracanvas.graph.models import ScoreCard  # noqa: F811
 
     if card.overall >= 80:
         score_style = "bold green"
@@ -1004,7 +1003,7 @@ def export(
         Path, typer.Argument(help="InfraCanvas report JSON file")
     ],
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Output file path"),
     ] = None,
     format: Annotated[
