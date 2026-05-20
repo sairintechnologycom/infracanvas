@@ -1,17 +1,9 @@
 name: backend-ci
 
+# Manual-trigger only — backend needs Postgres + Clerk + R2 service config
+# not provisioned in CI yet. Re-wire to push/pull_request in Phase 6.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "cli/**"
-      - ".github/workflows/backend-ci.yml"
-  pull_request:
-    paths:
-      - "backend/**"
-      - "cli/**"
-      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
 
 jobs:
   lint-type-test:
