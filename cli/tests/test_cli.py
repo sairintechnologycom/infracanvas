@@ -94,9 +94,10 @@ class TestScanCommand:
 
 class TestVersionFlag:
     def test_version_output(self):
+        from infracanvas.main import __version__
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.stdout
+        assert __version__ in result.stdout
 
 
 class TestConfig:

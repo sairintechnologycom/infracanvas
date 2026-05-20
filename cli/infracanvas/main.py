@@ -30,7 +30,7 @@ from infracanvas.parser.plan import PlanReader
 from infracanvas.security.engine import evaluate_all
 from infracanvas.security.scorer import Scorer
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 app = typer.Typer(
     name="infracanvas",
