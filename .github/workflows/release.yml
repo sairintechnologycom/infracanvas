@@ -182,10 +182,9 @@ jobs:
           node-version: '20'
 
       - name: Build viewer (for package inclusion)
-        run: |
-          cd viewer && npm ci && npm run build
-          mkdir -p cli/infracanvas/export
-          cp viewer/dist/index.html cli/infracanvas/export/viewer_template.html
+        # viewer/package.json has a `postbuild` hook that copies dist/index.html
+        # to ../cli/infracanvas/export/viewer_template.html — no extra cp needed.
+        run: cd viewer && npm ci && npm run build
 
       - name: Build package
         run: |
